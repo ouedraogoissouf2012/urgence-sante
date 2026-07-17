@@ -1,0 +1,24 @@
+# Base géospatiale de développement local.
+# Les valeurs sensibles proviennent d'un fichier .env NON versionné
+# (voir .env.example). Aucun secret n'est écrit ici.
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: urgence-sante-postgis
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-urgence_sante}
+      POSTGRES_USER: ${POSTGRES_USER:-urgence_sante}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis (voir .env.example)}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-urgence_sante} -d ${POSTGRES_DB:-urgence_sante}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgis-data:

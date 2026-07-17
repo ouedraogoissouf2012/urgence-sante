@@ -4,6 +4,14 @@ spring:
   profiles:
     default: local
 
-# La base PostgreSQL/PostGIS et sa configuration arrivent à l'issue #8.
-# Aucune source de données n'est déclarée à ce stade : le contexte démarre
-# sans dépendance externe.
+  # Source de données PostgreSQL/PostGIS. Aucune valeur sensible n'est écrite
+  # ici : tout provient de variables d'environnement (mot de passe sans défaut).
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:urgence_sante}
+    username: ${DB_USER:urgence_sante}
+    password: ${DB_PASSWORD:}
+
+  # Migrations versionnées : Flyway initialise et fait évoluer le schéma.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
