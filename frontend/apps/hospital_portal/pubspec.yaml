@@ -1,0 +1,29 @@
+name: hospital_portal
+description: "Portail hospitalier — saisie de disponibilité (Web)."
+publish_to: 'none'
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  app_foundation:
+    path: ../../packages/app_foundation
+  design_system:
+    path: ../../packages/design_system
+  api_client:
+    path: ../../packages/api_client
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  testing_support:
+    path: ../../packages/testing_support
+
+flutter:
+  uses-material-design: true

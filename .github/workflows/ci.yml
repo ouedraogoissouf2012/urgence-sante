@@ -30,6 +30,35 @@ jobs:
         working-directory: backend
         run: ./mvnw -B --no-transfer-progress verify
 
+  frontend:
+    name: Frontend — analyse & tests Flutter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+
+      - name: Résolution des dépendances (workspace)
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Analyse statique
+        working-directory: frontend
+        run: flutter analyze
+
+      - name: Tests
+        working-directory: frontend
+        run: |
+          for member in \
+              packages/app_foundation packages/design_system packages/api_client \
+              apps/patient_mobile apps/hospital_portal; do
+            ( cd "$member" && flutter test )
+          done
+
   quality-gates:
     name: Qualité — limite de 300 lignes
     runs-on: ubuntu-latest

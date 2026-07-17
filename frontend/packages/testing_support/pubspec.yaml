@@ -1,0 +1,19 @@
+name: testing_support
+description: "Fakes et outils de test réutilisables."
+version: 0.0.1
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.10.4
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Exposé aux consommateurs : ce package fournit des utilitaires de test.
+  flutter_test:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
