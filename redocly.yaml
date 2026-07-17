@@ -1,0 +1,12 @@
+# Configuration de validation OpenAPI (Redocly), figée pour des vérifications
+# reproductibles en local et en CI.
+apis:
+  urgence-sante@v1:
+    root: docs/api/openapi.yaml
+
+extends:
+  - recommended
+
+rules:
+  # API privée propriétaire : pas d'objet « license » public à publier.
+  info-license: off

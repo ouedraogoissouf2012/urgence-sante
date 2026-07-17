@@ -72,6 +72,9 @@ coverage/
 Thumbs.db
 desktop.ini
 
+# ── Node / outils JS (validation OpenAPI, génération de client) ───────────
+node_modules/
+
 # ── Logs & temporaires ────────────────────────────────────────────────────
 *.log
 logs/

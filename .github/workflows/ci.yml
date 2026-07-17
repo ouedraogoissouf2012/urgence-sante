@@ -59,6 +59,20 @@ jobs:
             ( cd "$member" && flutter test )
           done
 
+  contracts:
+    name: Contrats — validation OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Valider le contrat OpenAPI (Redocly)
+        run: bash scripts/validate-openapi.sh
+
   quality-gates:
     name: Qualité — limite de 300 lignes
     runs-on: ubuntu-latest

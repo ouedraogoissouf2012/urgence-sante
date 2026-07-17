@@ -26,6 +26,11 @@ done
 
 violations=0
 while IFS= read -r -d '' file; do
+  # Exclut le code généré (marqueur en tête de fichier), comme le prévoit
+  # QUALITY_RULES.md — par exemple le client OpenAPI.
+  if head -n 5 "$file" | grep -qiE 'AUTO-GENERATED|GENERATED CODE|DO NOT (MODIFY|EDIT)'; then
+    continue
+  fi
   lines=$(wc -l < "$file")
   if (( lines > MAX_LINES )); then
     printf '  %-72s %5d lignes\n' "${file#./}" "$lines"

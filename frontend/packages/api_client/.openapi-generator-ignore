@@ -1,0 +1,9 @@
+# Fichiers maintenus à la main, préservés lors de la régénération du client.
+pubspec.yaml
+README.md
+analysis_options.yaml
+.gitignore
+.travis.yml
+git_push.sh
+doc/**
+test/**
