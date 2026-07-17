@@ -1,0 +1,76 @@
+# ── Secrets & environnement ───────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+secrets/
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# ── Binaires de cadrage (référence hors dépôt : voir sources .md) ─────────
+*.pdf
+*.pptx
+*.ppt
+*.xlsx
+*.xls
+*.docx
+*.doc
+
+# ── Java / Maven (backend Spring Boot) ────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# ── Flutter / Dart (frontend) ─────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/doc/api/
+*.g.dart.lock
+coverage/
+.fvm/
+# Générés par plateforme
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework/
+**/ios/Flutter/Generated.xcconfig
+
+# ── IDE / éditeurs ────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+*.swp
+*~
+
+# ── Outils Claude Code (config locale machine) ────────────────────────────
+.claude/settings.local.json
+
+# ── OS ────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs & temporaires ────────────────────────────────────────────────────
+*.log
+logs/
+tmp/
+*.tmp
