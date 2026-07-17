@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# Hook pre-push : exécute les gardes de qualité et d'architecture avant tout
+# push. C'est l'équivalent local de .github/workflows/ci.yml, utile tant que les
+# minutes GitHub Actions ne sont pas disponibles sur le dépôt privé.
+#
+# Activation (une fois par clone) :
+#   git config core.hooksPath scripts/git-hooks
+#
+# Contournement d'urgence (à éviter, non tracé) :
+#   git push --no-verify
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "▶ Garde 1/2 — limite de 300 lignes"
+bash scripts/check-file-length.sh
+
+echo ""
+echo "▶ Garde 2/2 — build, tests et vérification d'architecture (backend)"
+( cd backend && ./mvnw -B --no-transfer-progress verify )
+
+echo ""
+echo "✓ Gardes locales OK — push autorisé."

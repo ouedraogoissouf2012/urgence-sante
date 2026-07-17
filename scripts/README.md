@@ -12,6 +12,18 @@ transverses aux couches back-end et front-end.
 - raccourcis de build/test transverses (`mvn verify`, `flutter analyze`,
   `flutter test`).
 
+## Hook git pre-push
+
+`git-hooks/pre-push` rejoue les gardes localement avant chaque push (équivalent
+de la CI). À activer **une fois par clone** :
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+Le hook lance `check-file-length.sh` puis `./mvnw verify` (build, tests,
+vérification d'architecture). Contournement d'urgence : `git push --no-verify`.
+
 ## Règles
 
 - un script échoue de manière visible (code de sortie non nul) en cas de
