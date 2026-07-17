@@ -67,10 +67,18 @@
 
     <build>
         <plugins>
-            <!-- Seul le module d'assemblage produit un exécutable repackagé. -->
+            <!--
+              Seul le module d'assemblage produit un exécutable repackagé.
+              Le classifier « exec » réserve le jar exécutable et laisse le jar
+              de classes comme artefact principal, réutilisable en dépendance
+              (par exemple par le module architecture-tests).
+            -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
         </plugins>
     </build>
