@@ -1,0 +1,4 @@
+# Profil de test : contexte minimal et déterministe, sans dépendance externe.
+spring:
+  main:
+    banner-mode: "off"

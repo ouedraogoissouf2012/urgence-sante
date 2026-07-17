@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: urgence-sante
+  profiles:
+    default: local
+
+# La base PostgreSQL/PostGIS et sa configuration arrivent à l'issue #8.
+# Aucune source de données n'est déclarée à ce stade : le contexte démarre
+# sans dépendance externe.
