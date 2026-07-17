@@ -1,18 +1,14 @@
 name: api_client
-description: "Client REST généré depuis OpenAPI (issue #7). Placeholder à l'issue #5."
-version: 0.0.1
+description: "Client REST GÉNÉRÉ depuis docs/api/openapi.yaml — ne pas éditer à la main."
+version: 1.0.0
 publish_to: 'none'
 resolution: workspace
 
 environment:
   sdk: ^3.10.4
-  flutter: ">=1.17.0"
 
 dependencies:
-  flutter:
-    sdk: flutter
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^6.0.0
+  collection: '>=1.17.0 <2.0.0'
+  http: '>=0.13.0 <2.0.0'
+  intl: any
+  meta: '>=1.1.8 <2.0.0'

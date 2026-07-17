@@ -1,0 +1,262 @@
+openapi: 3.0.3
+
+info:
+  title: Urgence Santé API
+  version: 1.0.0
+  description: |
+    Contrat REST public de l'application Urgence Santé (orientation vers les
+    établissements de santé du Grand Abidjan).
+
+    Cette spécification est la **source de vérité** partagée entre le back-end
+    Spring Boot et les applications Flutter (client Dart généré). Toute
+    évolution incompatible passe par une revue et une nouvelle version.
+  contact:
+    name: Équipe Urgence Santé
+
+servers:
+  - url: /api/v1
+    description: Version 1 de l'API (préfixe de versionnement dans le chemin).
+
+tags:
+  - name: Facilities
+    description: Établissements de santé et recherche géographique.
+
+# Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
+# (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
+security: []
+
+paths:
+  /facilities:
+    get:
+      tags: [Facilities]
+      operationId: listFacilities
+      summary: Lister les établissements de santé
+      description: |
+        Retourne une page d'établissements. Peut être filtrée par service
+        médical et triée par proximité si une position est fournie.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: service
+          in: query
+          required: false
+          description: Filtre sur le code d'un service médical (ex. « maternity »).
+          schema:
+            type: string
+            maxLength: 64
+        - name: lat
+          in: query
+          required: false
+          description: Latitude du point de recherche (WGS84). Requiert « lon ».
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+        - name: lon
+          in: query
+          required: false
+          description: Longitude du point de recherche (WGS84). Requiert « lat ».
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+        - name: radiusMeters
+          in: query
+          required: false
+          description: Rayon de recherche en mètres autour du point fourni.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100000
+      responses:
+        '200':
+          description: Page d'établissements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedFacilities'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /facilities/{facilityId}:
+    get:
+      tags: [Facilities]
+      operationId: getFacility
+      summary: Consulter un établissement
+      parameters:
+        - name: facilityId
+          in: path
+          required: true
+          description: Identifiant unique de l'établissement.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: L'établissement demandé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      required: false
+      description: Index de page, à partir de 0.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      required: false
+      description: Taille de page (nombre d'éléments).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    BadRequest:
+      description: Requête invalide.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Ressource introuvable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # Convention d'erreurs : RFC 9457 (Problem Details for HTTP APIs).
+    Problem:
+      type: object
+      description: Représentation normalisée d'une erreur (RFC 9457).
+      required: [status, title]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifiant le type de problème.
+          default: about:blank
+        title:
+          type: string
+          description: Résumé court et lisible du type de problème.
+        status:
+          type: integer
+          format: int32
+          description: Code de statut HTTP.
+        detail:
+          type: string
+          description: Explication spécifique à cette occurrence.
+        instance:
+          type: string
+          format: uri
+          description: URI identifiant l'occurrence du problème.
+        errors:
+          type: array
+          description: Détail des erreurs de validation, le cas échéant.
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Nom du champ en erreur.
+        message:
+          type: string
+          description: Message de validation associé au champ.
+
+    PageMetadata:
+      type: object
+      description: Métadonnées de pagination.
+      required: [number, size, totalElements, totalPages]
+      properties:
+        number:
+          type: integer
+          format: int32
+          description: Index de la page courante (à partir de 0).
+        size:
+          type: integer
+          format: int32
+          description: Taille de page demandée.
+        totalElements:
+          type: integer
+          format: int64
+          description: Nombre total d'éléments disponibles.
+        totalPages:
+          type: integer
+          format: int32
+          description: Nombre total de pages.
+
+    GeoPoint:
+      type: object
+      description: Coordonnées géographiques (WGS84).
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    Facility:
+      type: object
+      description: Établissement de santé.
+      required: [id, name, location, services]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        location:
+          $ref: '#/components/schemas/GeoPoint'
+        phone:
+          type: string
+          description: Numéro de contact, au format international.
+        services:
+          type: array
+          description: Codes des services médicaux offerts.
+          items:
+            type: string
+        distanceMeters:
+          type: integer
+          format: int32
+          description: |
+            Distance depuis le point de recherche, en mètres. Présent uniquement
+            lorsque la requête fournit une position.
+
+    PagedFacilities:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facility'
+        page:
+          $ref: '#/components/schemas/PageMetadata'

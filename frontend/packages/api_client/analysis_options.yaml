@@ -1,2 +1,3 @@
-# Hérite des règles partagées du workspace.
-include: ../../analysis_options.yaml
+# Package entièrement GÉNÉRÉ depuis OpenAPI (openapi-generator).
+# Le code généré est validé par le générateur ; il n'est pas soumis aux lints
+# manuels stricts du workspace. Analyse standard (erreurs réelles) uniquement.
