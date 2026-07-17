@@ -14,12 +14,25 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
-echo "▶ Garde 1/2 — limite de 300 lignes"
+echo "▶ Garde 1/3 — limite de 300 lignes"
 bash scripts/check-file-length.sh
 
 echo ""
-echo "▶ Garde 2/2 — build, tests et vérification d'architecture (backend)"
+echo "▶ Garde 2/3 — build, tests et vérification d'architecture (backend)"
 ( cd backend && ./mvnw -B --no-transfer-progress verify )
+
+echo ""
+echo "▶ Garde 3/3 — analyse et tests Flutter (frontend)"
+(
+  cd frontend
+  flutter pub get >/dev/null
+  flutter analyze
+  for member in \
+      packages/app_foundation packages/design_system packages/api_client \
+      apps/patient_mobile apps/hospital_portal; do
+    ( cd "$member" && flutter test )
+  done
+)
 
 echo ""
 echo "✓ Gardes locales OK — push autorisé."

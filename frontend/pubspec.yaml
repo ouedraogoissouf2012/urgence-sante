@@ -1,0 +1,19 @@
+name: urgence_sante_frontend
+description: Espace de travail Flutter multi-application (pub workspace).
+publish_to: none
+
+environment:
+  sdk: ^3.10.4
+
+# Résolution unifiée des dépendances pour toutes les applications et packages.
+# Un seul pubspec.lock à la racine garantit des versions cohérentes.
+workspace:
+  - apps/patient_mobile
+  - apps/hospital_portal
+  - packages/design_system
+  - packages/api_client
+  - packages/app_foundation
+  - packages/testing_support
+
+dev_dependencies:
+  flutter_lints: ^6.0.0

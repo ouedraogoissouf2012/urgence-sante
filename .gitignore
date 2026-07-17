@@ -22,13 +22,16 @@ application-local.properties
 
 # ── Java / Maven (backend Spring Boot) ────────────────────────────────────
 target/
-!.mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar
 *.war
 *.ear
 hs_err_pid*
 replay_pid*
+# Exception : wrapper Maven à versionner (négation après *.jar).
+# Note : Flutter ignore volontairement son gradle-wrapper.jar via
+# apps/*/android/.gitignore (regénéré au build) — ne pas le forcer ici.
+!.mvn/wrapper/maven-wrapper.jar
 
 # ── Flutter / Dart (frontend) ─────────────────────────────────────────────
 .dart_tool/
