@@ -1,14 +1,13 @@
-import 'package:app_foundation/app_foundation.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 
-import '../features/home/home_page.dart';
+import '../features/orientation/presentation/orientation_page.dart';
 
 /// Racine de l'application patient.
+///
+/// La configuration d'environnement est fournie par les providers (bootstrap).
 class PatientApp extends StatelessWidget {
-  const PatientApp({required this.config, super.key});
-
-  final AppConfig config;
+  const PatientApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +15,7 @@ class PatientApp extends StatelessWidget {
       title: 'Urgence Santé',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.patient(),
-      home: HomePage(environment: config.environment),
+      home: const OrientationPage(),
     );
   }
 }

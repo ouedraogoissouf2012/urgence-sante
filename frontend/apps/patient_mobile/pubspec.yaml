@@ -11,6 +11,14 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  # Injection et observation d'état (ADR-003).
+  flutter_riverpod: ^3.0.0
+  # Carte OpenStreetMap et position (Lot 1).
+  flutter_map: ^8.2.0
+  latlong2: ^0.9.1
+  geolocator: ^14.0.0
+  # Appels d'urgence (tel:).
+  url_launcher: ^6.3.0
   app_foundation:
     path: ../../packages/app_foundation
   design_system:
