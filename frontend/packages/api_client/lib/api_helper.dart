@@ -54,6 +54,12 @@ String parameterToString(dynamic value) {
   if (value is DateTime) {
     return value.toUtc().toIso8601String();
   }
+  if (value is AvailabilityStatus) {
+    return AvailabilityStatusTypeTransformer().encode(value).toString();
+  }
+  if (value is Freshness) {
+    return FreshnessTypeTransformer().encode(value).toString();
+  }
   return value.toString();
 }
 

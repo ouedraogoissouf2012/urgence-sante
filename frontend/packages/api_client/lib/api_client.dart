@@ -182,10 +182,16 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AvailabilityStatus':
+          return AvailabilityStatusTypeTransformer().decode(value);
         case 'Facility':
           return Facility.fromJson(value);
+        case 'FacilityAvailability':
+          return FacilityAvailability.fromJson(value);
         case 'FieldError':
           return FieldError.fromJson(value);
+        case 'Freshness':
+          return FreshnessTypeTransformer().decode(value);
         case 'GeoPoint':
           return GeoPoint.fromJson(value);
         case 'MedicalService':
@@ -196,6 +202,10 @@ class ApiClient {
           return PagedFacilities.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
+        case 'ServiceAvailability':
+          return ServiceAvailability.fromJson(value);
+        case 'UpdateAvailabilityRequest':
+          return UpdateAvailabilityRequest.fromJson(value);
         default:
           dynamic match;
           if (value is List && (match = _regList.firstMatch(targetType)?.group(1)) != null) {

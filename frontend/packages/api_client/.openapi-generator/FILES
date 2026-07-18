@@ -1,4 +1,5 @@
 lib/api.dart
+lib/api/availability_api.dart
 lib/api/facilities_api.dart
 lib/api/medical_services_api.dart
 lib/api_client.dart
@@ -9,10 +10,15 @@ lib/auth/authentication.dart
 lib/auth/http_basic_auth.dart
 lib/auth/http_bearer_auth.dart
 lib/auth/oauth.dart
+lib/model/availability_status.dart
 lib/model/facility.dart
+lib/model/facility_availability.dart
 lib/model/field_error.dart
+lib/model/freshness.dart
 lib/model/geo_point.dart
 lib/model/medical_service.dart
 lib/model/page_metadata.dart
 lib/model/paged_facilities.dart
 lib/model/problem.dart
+lib/model/service_availability.dart
+lib/model/update_availability_request.dart
