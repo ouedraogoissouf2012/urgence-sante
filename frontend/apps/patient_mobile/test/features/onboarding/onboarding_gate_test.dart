@@ -5,6 +5,7 @@ import 'package:patient_mobile/app/patient_app.dart';
 import 'package:patient_mobile/core/consent/consent_store.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
+import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
@@ -22,8 +23,8 @@ class _InMemoryConsentStore implements ConsentStore {
 
 class _FakeRepository implements OrientationRepository {
   @override
-  Future<List<MedicalNeed>> loadNeeds() async =>
-      const [MedicalNeed(code: 'maternity', label: 'Maternité')];
+  Future<Cached<List<MedicalNeed>>> loadNeeds() async =>
+      const Cached.live([MedicalNeed(code: 'maternity', label: 'Maternité')]);
 
   @override
   Future<List<RecommendedCenter>> recommend({
@@ -32,6 +33,9 @@ class _FakeRepository implements OrientationRepository {
     required String serviceCode,
   }) async =>
       const [];
+
+  @override
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => null;
 }
 
 class _FakeLocation implements LocationService {

@@ -27,12 +27,17 @@ class OrientationViewModel extends Notifier<OrientationState> {
     return const OrientationState();
   }
 
-  /// Charge le catalogue des besoins médicaux.
+  /// Charge le catalogue des besoins médicaux (cache local en panne réseau,
+  /// avec sa date de synchronisation affichée).
   Future<void> loadNeeds() async {
-    state = state.copyWith(phase: OrientationPhase.loadingNeeds);
+    state = state.copyWith(phase: OrientationPhase.loadingNeeds, clearOffline: true);
     try {
-      final List<MedicalNeed> needs = await _repository.loadNeeds();
-      state = state.copyWith(phase: OrientationPhase.ready, needs: needs);
+      final cached = await _repository.loadNeeds();
+      state = state.copyWith(
+        phase: OrientationPhase.ready,
+        needs: cached.value,
+        offlineSyncedAt: cached.fromCache ? cached.syncedAt : null,
+      );
     } on Exception {
       state = state.copyWith(
         phase: OrientationPhase.error,
@@ -54,6 +59,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
       selectedNeed: need,
       clearLocationFailure: true,
       clearSelectedCenter: true,
+      clearOffline: true,
       approximatePosition: false,
     );
     try {
@@ -66,12 +72,28 @@ class OrientationViewModel extends Notifier<OrientationState> {
         locationFailure: exception.failure,
       );
     } on Exception {
+      await _fallbackToLastKnownCenters();
+    }
+  }
+
+  /// En panne réseau, sert les DERNIERS CENTRES CONNUS (annuaire minimal
+  /// hors ligne) : statuts non confirmés, date de synchronisation affichée.
+  Future<void> _fallbackToLastKnownCenters() async {
+    final cached = await _repository.lastKnownCenters();
+    if (cached == null) {
       state = state.copyWith(
         phase: OrientationPhase.error,
         errorMessage:
             'La recherche a échoué. Vérifiez votre connexion puis réessayez.',
       );
+      return;
     }
+    state = state.copyWith(
+      phase: OrientationPhase.results,
+      results: cached.value,
+      offlineResults: true,
+      offlineSyncedAt: cached.syncedAt,
+    );
   }
 
   /// Parcours dégradé : recherche depuis le centre d'Abidjan, sans position
@@ -84,15 +106,12 @@ class OrientationViewModel extends Notifier<OrientationState> {
     state = state.copyWith(
       phase: OrientationPhase.searching,
       clearLocationFailure: true,
+      clearOffline: true,
     );
     try {
       await _search(need, _fallbackLatitude, _fallbackLongitude, approximate: true);
     } on Exception {
-      state = state.copyWith(
-        phase: OrientationPhase.error,
-        errorMessage:
-            'La recherche a échoué. Vérifiez votre connexion puis réessayez.',
-      );
+      await _fallbackToLastKnownCenters();
     }
   }
 

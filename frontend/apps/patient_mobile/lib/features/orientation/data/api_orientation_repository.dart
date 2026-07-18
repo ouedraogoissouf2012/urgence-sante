@@ -2,11 +2,12 @@ import 'package:api_client/api.dart';
 
 import '../domain/model/medical_need.dart';
 import '../domain/model/recommended_center.dart';
-import '../domain/repository/orientation_repository.dart';
+import 'orientation_remote.dart';
 
 /// Adaptateur API du parcours d'orientation : traduit le client généré en
-/// modèles du domaine de l'application. Aucune logique métier.
-class ApiOrientationRepository implements OrientationRepository {
+/// modèles du domaine. Le mode hors ligne est apporté par le décorateur de
+/// cache, sans logique réseau supplémentaire ici.
+class ApiOrientationRepository implements OrientationRemote {
   ApiOrientationRepository(ApiClient apiClient)
       : _medicalServicesApi = MedicalServicesApi(apiClient),
         _orientationApi = OrientationApi(apiClient);

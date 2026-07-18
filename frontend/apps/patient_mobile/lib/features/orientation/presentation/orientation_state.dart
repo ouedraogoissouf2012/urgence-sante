@@ -36,6 +36,8 @@ class OrientationState {
     this.locationFailure,
     this.approximatePosition = false,
     this.selectedCenterId,
+    this.offlineSyncedAt,
+    this.offlineResults = false,
   });
 
   final OrientationPhase phase;
@@ -56,6 +58,14 @@ class OrientationState {
   /// Centre sélectionné (synchronisation carte ↔ liste), ou `null`.
   final String? selectedCenterId;
 
+  /// Date de synchronisation des données affichées quand elles proviennent du
+  /// cache local (mode hors ligne) ; `null` si les données sont en direct.
+  final DateTime? offlineSyncedAt;
+
+  /// Vrai si les RÉSULTATS affichés sont les derniers centres connus (hors
+  /// ligne) : statuts non confirmés, aucun temps réel.
+  final bool offlineResults;
+
   bool get hasPosition => userLatitude != null && userLongitude != null;
 
   OrientationState copyWith({
@@ -69,8 +79,11 @@ class OrientationState {
     LocationFailure? locationFailure,
     bool? approximatePosition,
     String? selectedCenterId,
+    DateTime? offlineSyncedAt,
+    bool? offlineResults,
     bool clearLocationFailure = false,
     bool clearSelectedCenter = false,
+    bool clearOffline = false,
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
@@ -85,6 +98,9 @@ class OrientationState {
       approximatePosition: approximatePosition ?? this.approximatePosition,
       selectedCenterId:
           clearSelectedCenter ? null : (selectedCenterId ?? this.selectedCenterId),
+      offlineSyncedAt:
+          clearOffline ? null : (offlineSyncedAt ?? this.offlineSyncedAt),
+      offlineResults: clearOffline ? false : (offlineResults ?? this.offlineResults),
     );
   }
 }
