@@ -42,28 +42,27 @@ class OrientationViewModel extends Notifier<OrientationState> {
     }
   }
 
+  /// Position de repli (Plateau, centre d'Abidjan) pour le parcours dégradé
+  /// sans localisation automatique. Clairement signalée comme approximative.
+  static const double _fallbackLatitude = 5.3364;
+  static const double _fallbackLongitude = -4.0267;
+
   /// Sélectionne un besoin puis lance localisation + recherche.
   Future<void> searchFor(MedicalNeed need) async {
-    state = state.copyWith(phase: OrientationPhase.searching, selectedNeed: need);
+    state = state.copyWith(
+      phase: OrientationPhase.searching,
+      selectedNeed: need,
+      clearLocationFailure: true,
+      approximatePosition: false,
+    );
     try {
       final UserPosition position = await _locationService.currentPosition();
-      state = state.copyWith(
-        userLatitude: position.latitude,
-        userLongitude: position.longitude,
-      );
-      final results = await _repository.recommend(
-        latitude: position.latitude,
-        longitude: position.longitude,
-        serviceCode: need.code,
-      );
-      state = state.copyWith(
-        phase: results.isEmpty ? OrientationPhase.empty : OrientationPhase.results,
-        results: results,
-      );
+      await _search(need, position.latitude, position.longitude, approximate: false);
     } on LocationUnavailableException catch (exception) {
       state = state.copyWith(
         phase: OrientationPhase.error,
         errorMessage: exception.message,
+        locationFailure: exception.failure,
       );
     } on Exception {
       state = state.copyWith(
@@ -72,6 +71,55 @@ class OrientationViewModel extends Notifier<OrientationState> {
             'La recherche a échoué. Vérifiez votre connexion puis réessayez.',
       );
     }
+  }
+
+  /// Parcours dégradé : recherche depuis le centre d'Abidjan, sans position
+  /// précise (proposé quand la localisation est refusée ou indisponible).
+  Future<void> searchWithApproximatePosition() async {
+    final MedicalNeed? need = state.selectedNeed;
+    if (need == null) {
+      return;
+    }
+    state = state.copyWith(
+      phase: OrientationPhase.searching,
+      clearLocationFailure: true,
+    );
+    try {
+      await _search(need, _fallbackLatitude, _fallbackLongitude, approximate: true);
+    } on Exception {
+      state = state.copyWith(
+        phase: OrientationPhase.error,
+        errorMessage:
+            'La recherche a échoué. Vérifiez votre connexion puis réessayez.',
+      );
+    }
+  }
+
+  /// Ouvre les réglages adaptés à la cause d'échec de localisation.
+  Future<void> openLocationSettings() {
+    final LocationFailure? failure = state.locationFailure;
+    return failure == null
+        ? Future.value()
+        : _locationService.openSettings(failure);
+  }
+
+  Future<void> _search(
+      MedicalNeed need, double latitude, double longitude,
+      {required bool approximate}) async {
+    state = state.copyWith(
+      userLatitude: latitude,
+      userLongitude: longitude,
+      approximatePosition: approximate,
+    );
+    final results = await _repository.recommend(
+      latitude: latitude,
+      longitude: longitude,
+      serviceCode: need.code,
+    );
+    state = state.copyWith(
+      phase: results.isEmpty ? OrientationPhase.empty : OrientationPhase.results,
+      results: results,
+    );
   }
 
   /// Réessaie l'action pertinente selon l'état courant.

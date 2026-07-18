@@ -35,14 +35,20 @@ class FakeOrientationRepository implements OrientationRepository {
 /// Fausse localisation, substituable à Geolocator.
 class FakeLocationService implements LocationService {
   bool denied = false;
+  LocationFailure failure = LocationFailure.denied;
+  final List<LocationFailure> settingsOpened = [];
 
   @override
   Future<UserPosition> currentPosition() async {
     if (denied) {
-      throw const LocationUnavailableException('Autorisation refusée.');
+      throw LocationUnavailableException('Autorisation refusée.', failure);
     }
     return const UserPosition(latitude: 5.35, longitude: -4.0);
   }
+
+  @override
+  Future<void> openSettings(LocationFailure failure) async =>
+      settingsOpened.add(failure);
 }
 
 void main() {
@@ -108,7 +114,7 @@ void main() {
     expect(state().phase, OrientationPhase.empty);
   });
 
-  test('localisation refusée → erreur avec message dédié', () async {
+  test('localisation refusée → erreur qualifiée avec la cause', () async {
     location.denied = true;
     viewModel();
     await flush();
@@ -117,6 +123,33 @@ void main() {
 
     expect(state().phase, OrientationPhase.error);
     expect(state().errorMessage, contains('Autorisation'));
+    expect(state().locationFailure, LocationFailure.denied);
+  });
+
+  test('parcours dégradé : recherche sans position précise après refus', () async {
+    location.denied = true;
+    repository.results = const [center];
+    viewModel();
+    await flush();
+    await viewModel().searchFor(need);
+
+    await viewModel().searchWithApproximatePosition();
+
+    expect(state().phase, OrientationPhase.results);
+    expect(state().approximatePosition, isTrue);
+    expect(state().locationFailure, isNull);
+  });
+
+  test('refus permanent → ouverture des réglages adaptés', () async {
+    location.denied = true;
+    location.failure = LocationFailure.deniedForever;
+    viewModel();
+    await flush();
+    await viewModel().searchFor(need);
+
+    await viewModel().openLocationSettings();
+
+    expect(location.settingsOpened, [LocationFailure.deniedForever]);
   });
 
   test('échec réseau du catalogue → erreur puis retry recharge', () async {

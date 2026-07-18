@@ -3,6 +3,8 @@ import 'package:app_foundation/app_foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/calls/emergency_caller.dart';
+import '../core/consent/consent_store.dart';
+import '../core/consent/shared_prefs_consent_store.dart';
 import '../core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
 import '../features/orientation/data/api_orientation_repository.dart';
@@ -32,3 +34,15 @@ final locationServiceProvider = Provider<LocationService>(
 final emergencyCallerProvider = Provider<EmergencyCaller>(
   (ref) => const DialerEmergencyCaller(),
 );
+
+/// Persistance du consentement (version des conditions acceptée).
+final consentStoreProvider = Provider<ConsentStore>(
+  (ref) => const SharedPrefsConsentStore(),
+);
+
+/// Vrai si la version courante des conditions a été acceptée. Invalidé après
+/// acceptation pour rafraîchir le portail d'entrée.
+final consentUpToDateProvider = FutureProvider<bool>((ref) async {
+  final accepted = await ref.watch(consentStoreProvider).acceptedTermsVersion();
+  return isConsentUpToDate(accepted);
+});
