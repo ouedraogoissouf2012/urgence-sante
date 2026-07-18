@@ -26,6 +26,8 @@ tags:
     description: Disponibilité des services par établissement.
   - name: Routing
     description: Itinéraires et temps de trajet.
+  - name: Orientation
+    description: Recommandation du centre adapté le plus proche.
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -214,6 +216,61 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /orientation:
+    get:
+      tags: [Orientation]
+      operationId: recommendFacilities
+      summary: Recommander les centres adaptés pour un besoin médical
+      description: >-
+        Classe les établissements offrant le service demandé selon la proximité,
+        la disponibilité (un statut périmé est traité comme non confirmé) et le
+        temps de trajet, avec une explication lisible.
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -90, maximum: 90 }
+        - name: lon
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -180, maximum: 180 }
+        - name: service
+          in: query
+          required: true
+          description: Code du service médical recherché (catalogue).
+          schema:
+            type: string
+            maxLength: 64
+        - name: radiusMeters
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100000
+            default: 15000
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 20
+            default: 5
+      responses:
+        '200':
+          description: Recommandations classées (meilleure en premier).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recommendation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
 components:
   parameters:
@@ -452,3 +509,27 @@ components:
           type: number
           format: double
           description: Durée estimée du trajet en secondes.
+
+    Recommendation:
+      type: object
+      description: Établissement recommandé pour le besoin exprimé.
+      required: [facilityId, name, distanceMeters, status, explanation]
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        distanceMeters:
+          type: number
+          format: double
+          description: Distance à vol d'oiseau depuis la position du patient.
+        travelTimeSeconds:
+          type: number
+          format: double
+          description: Temps de trajet estimé (absent si indisponible).
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        explanation:
+          type: string
+          description: Raison lisible de la recommandation.
