@@ -15,7 +15,7 @@ class PortalApp extends StatelessWidget {
     return MaterialApp(
       title: 'Portail hospitalier — Urgence Santé',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.hospital(),
       home: HomePage(environment: config.environment),
     );
   }

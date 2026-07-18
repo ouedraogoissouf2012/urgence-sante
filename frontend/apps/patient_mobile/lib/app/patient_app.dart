@@ -15,7 +15,7 @@ class PatientApp extends StatelessWidget {
     return MaterialApp(
       title: 'Urgence Santé',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.patient(),
       home: HomePage(environment: config.environment),
     );
   }
