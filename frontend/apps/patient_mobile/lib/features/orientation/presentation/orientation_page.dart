@@ -45,6 +45,14 @@ class OrientationPage extends ConsumerWidget {
     };
   }
 
+  /// Libellé lisible de la date de synchronisation des données locales.
+  static String _syncLabel(DateTime syncedAt) {
+    final local = syncedAt.toLocal();
+    String two(int value) => value.toString().padLeft(2, '0');
+    return 'synchronisées le ${two(local.day)}/${two(local.month)} '
+        'à ${two(local.hour)}:${two(local.minute)}';
+  }
+
   /// Erreur avec actions adaptées : réessai, réglages si nécessaire, et
   /// parcours dégradé sans localisation précise quand la position est en cause.
   Widget _error(OrientationState state, OrientationViewModel viewModel) {
@@ -100,6 +108,23 @@ class OrientationPage extends ConsumerWidget {
           onSelected: viewModel.searchFor,
         ),
         const SizedBox(height: AppSpacing.md),
+        if (state.offlineSyncedAt != null) ...[
+          Card(
+            color: AppColors.statusSaturated.withValues(alpha: 0.12),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Text(
+                state.offlineResults
+                    ? 'Hors ligne : derniers centres connus '
+                        '(${_syncLabel(state.offlineSyncedAt!)}). '
+                        'Disponibilités non confirmées.'
+                    : 'Hors ligne : données locales (${_syncLabel(state.offlineSyncedAt!)}).',
+                style: AppTypography.caption,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         if (state.approximatePosition) ...[
           Card(
             color: AppColors.statusLimited.withValues(alpha: 0.12),

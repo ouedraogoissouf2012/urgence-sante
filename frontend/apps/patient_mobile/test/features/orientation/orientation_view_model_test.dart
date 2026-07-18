@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
+import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
@@ -14,11 +15,17 @@ class FakeOrientationRepository implements OrientationRepository {
   List<RecommendedCenter> results = const [];
   bool failNeeds = false;
   bool failRecommend = false;
+  Cached<List<MedicalNeed>>? cachedNeeds;
+  Cached<List<RecommendedCenter>>? knownCenters;
 
   @override
-  Future<List<MedicalNeed>> loadNeeds() async {
-    if (failNeeds) throw Exception('réseau');
-    return needs;
+  Future<Cached<List<MedicalNeed>>> loadNeeds() async {
+    if (failNeeds) {
+      final fallback = cachedNeeds;
+      if (fallback != null) return fallback;
+      throw Exception('réseau');
+    }
+    return Cached.live(needs);
   }
 
   @override
@@ -30,6 +37,9 @@ class FakeOrientationRepository implements OrientationRepository {
     if (failRecommend) throw Exception('réseau');
     return results;
   }
+
+  @override
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => knownCenters;
 }
 
 /// Fausse localisation, substituable à Geolocator.
@@ -153,6 +163,58 @@ void main() {
     await viewModel().openLocationSettings();
 
     expect(location.settingsOpened, [LocationFailure.deniedForever]);
+  });
+
+  test('panne réseau : le catalogue vient du cache avec sa date', () async {
+    repository.failNeeds = true;
+    repository.cachedNeeds = Cached.fromStore(
+      const [need],
+      syncedAt: DateTime.utc(2026, 7, 17, 10),
+    );
+    viewModel();
+    await flush();
+
+    expect(state().phase, OrientationPhase.ready);
+    expect(state().needs, [need]);
+    expect(state().offlineSyncedAt, DateTime.utc(2026, 7, 17, 10));
+  });
+
+  test('panne réseau en recherche : derniers centres connus, non temps réel',
+      () async {
+    repository.failRecommend = true;
+    repository.knownCenters = Cached.fromStore(
+      const [
+        RecommendedCenter(
+          facilityId: 'id-1',
+          name: 'CHU de Cocody',
+          latitude: 5.3496,
+          longitude: -3.9851,
+          distanceMeters: 2800,
+          status: 'UNKNOWN',
+          explanation: 'données locales, disponibilité non confirmée',
+        ),
+      ],
+      syncedAt: DateTime.utc(2026, 7, 17, 9),
+    );
+    viewModel();
+    await flush();
+
+    await viewModel().searchFor(need);
+
+    expect(state().phase, OrientationPhase.results);
+    expect(state().offlineResults, isTrue);
+    expect(state().offlineSyncedAt, DateTime.utc(2026, 7, 17, 9));
+    expect(state().results.single.status, 'UNKNOWN');
+  });
+
+  test('panne réseau en recherche SANS cache → erreur', () async {
+    repository.failRecommend = true;
+    viewModel();
+    await flush();
+
+    await viewModel().searchFor(need);
+
+    expect(state().phase, OrientationPhase.error);
   });
 
   test('échec réseau du catalogue → erreur puis retry recharge', () async {

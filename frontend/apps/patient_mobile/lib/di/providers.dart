@@ -8,7 +8,9 @@ import '../core/consent/shared_prefs_consent_store.dart';
 import '../core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
 import '../core/navigation/navigation_launcher.dart';
+import '../core/storage/key_value_store.dart';
 import '../features/orientation/data/api_orientation_repository.dart';
+import '../features/orientation/data/cached_orientation_repository.dart';
 import '../features/orientation/domain/repository/orientation_repository.dart';
 
 /// Configuration d'environnement, fournie au démarrage (bootstrap).
@@ -21,9 +23,18 @@ final apiClientProvider = Provider<ApiClient>(
   (ref) => ApiClient(basePath: ref.watch(appConfigProvider).apiBaseUrl),
 );
 
-/// Accès aux données du parcours d'orientation.
+/// Stockage local (cache hors ligne, Lot 1).
+final keyValueStoreProvider = Provider<KeyValueStore>(
+  (ref) => const SharedPrefsKeyValueStore(),
+);
+
+/// Accès aux données du parcours d'orientation : adaptateur API décoré du
+/// cache hors ligne (réseau d'abord, repli local daté).
 final orientationRepositoryProvider = Provider<OrientationRepository>(
-  (ref) => ApiOrientationRepository(ref.watch(apiClientProvider)),
+  (ref) => CachedOrientationRepository(
+    ApiOrientationRepository(ref.watch(apiClientProvider)),
+    ref.watch(keyValueStoreProvider),
+  ),
 );
 
 /// Accès à la position de l'utilisateur.
