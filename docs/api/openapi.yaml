@@ -182,6 +182,12 @@ paths:
                 $ref: '#/components/schemas/ServiceAvailability'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          description: Le service n'est pas offert par cet établissement.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 
   /routes:
     get:

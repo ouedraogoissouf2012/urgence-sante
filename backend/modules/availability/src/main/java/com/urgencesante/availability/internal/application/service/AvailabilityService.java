@@ -8,7 +8,9 @@ import com.urgencesante.availability.internal.application.port.in.UpdateAvailabi
 import com.urgencesante.availability.internal.application.result.AvailabilityHistoryEntry;
 import com.urgencesante.availability.internal.application.port.out.AvailabilityEventPublisher;
 import com.urgencesante.availability.internal.application.port.out.LoadAvailabilityPort;
+import com.urgencesante.availability.internal.application.port.out.OfferedServicePort;
 import com.urgencesante.availability.internal.application.port.out.SaveAvailabilityPort;
+import com.urgencesante.availability.internal.domain.exception.ServiceNotOfferedException;
 import com.urgencesante.availability.internal.application.result.FacilityAvailabilitySnapshot;
 import com.urgencesante.availability.internal.application.result.ServiceAvailabilitySnapshot;
 import com.urgencesante.availability.internal.domain.model.Availability;
@@ -28,6 +30,7 @@ public class AvailabilityService
 
     private final SaveAvailabilityPort saveAvailabilityPort;
     private final LoadAvailabilityPort loadAvailabilityPort;
+    private final OfferedServicePort offeredServicePort;
     private final AvailabilityEventPublisher eventPublisher;
     private final Clock clock;
     private final FreshnessPolicy freshnessPolicy;
@@ -35,11 +38,13 @@ public class AvailabilityService
     public AvailabilityService(
             SaveAvailabilityPort saveAvailabilityPort,
             LoadAvailabilityPort loadAvailabilityPort,
+            OfferedServicePort offeredServicePort,
             AvailabilityEventPublisher eventPublisher,
             Clock clock,
             FreshnessPolicy freshnessPolicy) {
         this.saveAvailabilityPort = Objects.requireNonNull(saveAvailabilityPort);
         this.loadAvailabilityPort = Objects.requireNonNull(loadAvailabilityPort);
+        this.offeredServicePort = Objects.requireNonNull(offeredServicePort);
         this.eventPublisher = Objects.requireNonNull(eventPublisher);
         this.clock = Objects.requireNonNull(clock);
         this.freshnessPolicy = Objects.requireNonNull(freshnessPolicy);
@@ -47,6 +52,10 @@ public class AvailabilityService
 
     @Override
     public ServiceAvailabilitySnapshot update(UpdateAvailabilityCommand command) {
+        // Le couple (établissement, service) doit correspondre à une offre réelle.
+        if (!offeredServicePort.offers(command.facilityId(), command.serviceCode())) {
+            throw new ServiceNotOfferedException(command.facilityId(), command.serviceCode());
+        }
         final Instant now = clock.instant();
         final Availability availability =
                 Availability.of(command.facilityId(), command.serviceCode(), command.status(), now);

@@ -6,7 +6,9 @@ import com.urgencesante.availability.AvailabilityUpdated;
 import com.urgencesante.availability.internal.application.command.UpdateAvailabilityCommand;
 import com.urgencesante.availability.internal.application.port.out.AvailabilityEventPublisher;
 import com.urgencesante.availability.internal.application.port.out.LoadAvailabilityPort;
+import com.urgencesante.availability.internal.application.port.out.OfferedServicePort;
 import com.urgencesante.availability.internal.application.port.out.SaveAvailabilityPort;
+import com.urgencesante.availability.internal.domain.exception.ServiceNotOfferedException;
 import com.urgencesante.availability.internal.application.result.FacilityAvailabilitySnapshot;
 import com.urgencesante.availability.internal.application.result.ServiceAvailabilitySnapshot;
 import com.urgencesante.availability.internal.domain.model.Availability;
@@ -45,8 +47,12 @@ class AvailabilityServiceTest {
     };
     private final AvailabilityEventPublisher publisher = published::add;
 
+    /** Faux port d'offre : tout est offert par défaut, contrôlable par test. */
+    private boolean serviceOffered = true;
+    private final OfferedServicePort offeredPort = (facilityId, serviceCode) -> serviceOffered;
+
     private final AvailabilityService service = new AvailabilityService(
-            savePort, loadPort, publisher,
+            savePort, loadPort, offeredPort, publisher,
             Clock.fixed(NOW, ZoneOffset.UTC), FreshnessPolicy.defaults());
 
     @Test
@@ -62,6 +68,18 @@ class AvailabilityServiceTest {
         assertThat(published).hasSize(1);
         assertThat(published.get(0).status()).isEqualTo("LIMITED");
         assertThat(published.get(0).facilityId()).isEqualTo(FACILITY);
+    }
+
+    @Test
+    void refuse_un_service_non_offert_par_l_etablissement() {
+        serviceOffered = false;
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.update(
+                new UpdateAvailabilityCommand(FACILITY, "maternity", AvailabilityStatus.LIMITED)))
+                .isInstanceOf(ServiceNotOfferedException.class);
+
+        assertThat(saved).isEmpty();
+        assertThat(published).isEmpty();
     }
 
     @Test
