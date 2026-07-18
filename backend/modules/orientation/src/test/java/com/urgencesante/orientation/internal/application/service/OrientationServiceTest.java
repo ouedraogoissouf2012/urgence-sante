@@ -43,7 +43,7 @@ class OrientationServiceTest {
 
     private UUID givenCandidate(String name, double lat, double lon, String status, String freshness) {
         final UUID id = UUID.randomUUID();
-        candidates.add(new CandidateFacilityPort.CandidateFacility(id, name, lat, lon));
+        candidates.add(new CandidateFacilityPort.CandidateFacility(id, name, lat, lon, "+22501000000"));
         if (status != null) {
             statuses.put(id, new AvailabilityLookupPort.ServiceStatus(status, freshness));
         }

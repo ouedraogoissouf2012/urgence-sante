@@ -21,7 +21,7 @@ class FacilityCandidateAdapter implements CandidateFacilityPort {
         return facilityFacade.findNearbyOffering(serviceCode, latitude, longitude, radiusMeters, limit)
                 .stream()
                 .map(view -> new CandidateFacility(
-                        view.id(), view.name(), view.latitude(), view.longitude()))
+                        view.id(), view.name(), view.latitude(), view.longitude(), view.phone()))
                 .toList();
     }
 }

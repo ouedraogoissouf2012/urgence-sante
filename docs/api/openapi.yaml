@@ -564,13 +564,18 @@ components:
     Recommendation:
       type: object
       description: Établissement recommandé pour le besoin exprimé.
-      required: [facilityId, name, distanceMeters, status, explanation]
+      required: [facilityId, name, location, distanceMeters, status, explanation]
       properties:
         facilityId:
           type: string
           format: uuid
         name:
           type: string
+        location:
+          $ref: '#/components/schemas/GeoPoint'
+        phone:
+          type: string
+          description: Téléphone du centre (absent si inconnu).
         distanceMeters:
           type: number
           format: double

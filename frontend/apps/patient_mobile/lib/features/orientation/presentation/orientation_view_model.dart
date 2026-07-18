@@ -53,6 +53,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
       phase: OrientationPhase.searching,
       selectedNeed: need,
       clearLocationFailure: true,
+      clearSelectedCenter: true,
       approximatePosition: false,
     );
     try {
@@ -120,6 +121,11 @@ class OrientationViewModel extends Notifier<OrientationState> {
       phase: results.isEmpty ? OrientationPhase.empty : OrientationPhase.results,
       results: results,
     );
+  }
+
+  /// Sélectionne un centre (synchronisation carte ↔ liste).
+  void selectCenter(String facilityId) {
+    state = state.copyWith(selectedCenterId: facilityId);
   }
 
   /// Réessaie l'action pertinente selon l'état courant.

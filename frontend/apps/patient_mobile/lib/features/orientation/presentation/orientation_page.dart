@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../di/providers.dart';
 import 'orientation_state.dart';
 import 'orientation_view_model.dart';
 import 'widgets/emergency_call_bar.dart';
@@ -25,12 +26,12 @@ class OrientationPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Urgence Santé')),
-      body: _body(state, viewModel),
+      body: _body(state, viewModel, ref),
       bottomNavigationBar: const EmergencyCallBar(),
     );
   }
 
-  Widget _body(OrientationState state, OrientationViewModel viewModel) {
+  Widget _body(OrientationState state, OrientationViewModel viewModel, WidgetRef ref) {
     return switch (state.phase) {
       OrientationPhase.loadingNeeds =>
         const AsyncStateView.loading(message: 'Chargement des besoins médicaux…'),
@@ -40,7 +41,7 @@ class OrientationPage extends ConsumerWidget {
       OrientationPhase.ready ||
       OrientationPhase.empty ||
       OrientationPhase.results =>
-        _content(state, viewModel),
+        _content(state, viewModel, ref),
     };
   }
 
@@ -87,7 +88,7 @@ class OrientationPage extends ConsumerWidget {
     );
   }
 
-  Widget _content(OrientationState state, OrientationViewModel viewModel) {
+  Widget _content(OrientationState state, OrientationViewModel viewModel, WidgetRef ref) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
@@ -121,6 +122,9 @@ class OrientationPage extends ConsumerWidget {
               child: PositionMap(
                 latitude: state.userLatitude!,
                 longitude: state.userLongitude!,
+                centers: state.results,
+                selectedCenterId: state.selectedCenterId,
+                onCenterTap: (center) => viewModel.selectCenter(center.facilityId),
               ),
             ),
           ),
@@ -133,7 +137,20 @@ class OrientationPage extends ConsumerWidget {
         if (state.phase == OrientationPhase.results) ...[
           const Text('Centres recommandés', style: AppTypography.title),
           const SizedBox(height: AppSpacing.sm),
-          for (final center in state.results) RecommendationCard(center: center),
+          for (final center in state.results)
+            RecommendationCard(
+              center: center,
+              selected: center.facilityId == state.selectedCenterId,
+              onTap: () => viewModel.selectCenter(center.facilityId),
+              onCall: center.phone == null
+                  ? null
+                  : () => ref.read(emergencyCallerProvider).call(center.phone!),
+              onNavigate: () => ref.read(navigationLauncherProvider).navigateTo(
+                    latitude: center.latitude,
+                    longitude: center.longitude,
+                    label: center.name,
+                  ),
+            ),
         ],
       ],
     );

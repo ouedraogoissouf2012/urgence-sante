@@ -7,6 +7,7 @@ import '../core/consent/consent_store.dart';
 import '../core/consent/shared_prefs_consent_store.dart';
 import '../core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
+import '../core/navigation/navigation_launcher.dart';
 import '../features/orientation/data/api_orientation_repository.dart';
 import '../features/orientation/domain/repository/orientation_repository.dart';
 
@@ -33,6 +34,11 @@ final locationServiceProvider = Provider<LocationService>(
 /// Déclenchement des appels d'urgence.
 final emergencyCallerProvider = Provider<EmergencyCaller>(
   (ref) => const DialerEmergencyCaller(),
+);
+
+/// Lancement d'un itinéraire vers un centre (application cartographique).
+final navigationLauncherProvider = Provider<NavigationLauncher>(
+  (ref) => const ExternalMapNavigationLauncher(),
 );
 
 /// Persistance du consentement (version des conditions acceptée).

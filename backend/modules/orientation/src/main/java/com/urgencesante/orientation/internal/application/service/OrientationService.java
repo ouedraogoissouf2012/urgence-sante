@@ -100,7 +100,9 @@ public class OrientationService implements RecommendFacilitiesUseCase {
         }
 
         return Optional.of(new Recommendation(
-                candidate.facilityId(), candidate.name(), distance, travelSeconds,
+                candidate.facilityId(), candidate.name(),
+                candidate.latitude(), candidate.longitude(), candidate.phone(),
+                distance, travelSeconds,
                 effectiveStatus, totalScore, String.join(" · ", reasons)));
     }
 }

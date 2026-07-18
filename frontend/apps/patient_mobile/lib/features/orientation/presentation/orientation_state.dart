@@ -35,6 +35,7 @@ class OrientationState {
     this.errorMessage,
     this.locationFailure,
     this.approximatePosition = false,
+    this.selectedCenterId,
   });
 
   final OrientationPhase phase;
@@ -52,6 +53,9 @@ class OrientationState {
   /// sans localisation automatique) — affiché clairement à l'utilisateur.
   final bool approximatePosition;
 
+  /// Centre sélectionné (synchronisation carte ↔ liste), ou `null`.
+  final String? selectedCenterId;
+
   bool get hasPosition => userLatitude != null && userLongitude != null;
 
   OrientationState copyWith({
@@ -64,7 +68,9 @@ class OrientationState {
     String? errorMessage,
     LocationFailure? locationFailure,
     bool? approximatePosition,
+    String? selectedCenterId,
     bool clearLocationFailure = false,
+    bool clearSelectedCenter = false,
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
@@ -77,6 +83,8 @@ class OrientationState {
       locationFailure:
           clearLocationFailure ? null : (locationFailure ?? this.locationFailure),
       approximatePosition: approximatePosition ?? this.approximatePosition,
+      selectedCenterId:
+          clearSelectedCenter ? null : (selectedCenterId ?? this.selectedCenterId),
     );
   }
 }

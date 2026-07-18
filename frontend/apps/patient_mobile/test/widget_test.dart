@@ -88,20 +88,29 @@ void main() {
     expect(find.text('SAMU 185'), findsOneWidget);
   });
 
-  testWidgets('la carte de recommandation montre statut, distance et raison',
+  const sampleCenter = RecommendedCenter(
+    facilityId: 'id-1',
+    name: 'CHU de Cocody',
+    latitude: 5.3496,
+    longitude: -3.9851,
+    phone: '+2250100000001',
+    distanceMeters: 2800,
+    travelTimeSeconds: 320,
+    status: 'AVAILABLE',
+    explanation: 'service disponible · à 2.8 km (~5 min)',
+  );
+
+  testWidgets('la fiche montre statut, distance, raison et actions',
       (tester) async {
+    var called = false;
+    var navigated = false;
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: RecommendationCard(
-            center: RecommendedCenter(
-              facilityId: 'id-1',
-              name: 'CHU de Cocody',
-              distanceMeters: 2800,
-              travelTimeSeconds: 320,
-              status: 'AVAILABLE',
-              explanation: 'service disponible · à 2.8 km (~5 min)',
-            ),
+            center: sampleCenter,
+            onCall: () => called = true,
+            onNavigate: () => navigated = true,
           ),
         ),
       ),
@@ -111,5 +120,34 @@ void main() {
     expect(find.text('Disponible'), findsOneWidget);
     expect(find.text('2.8 km · ~5 min'), findsOneWidget);
     expect(find.textContaining('service disponible'), findsOneWidget);
+
+    await tester.tap(find.text('Appeler'));
+    await tester.tap(find.text('Itinéraire'));
+    expect(called, isTrue);
+    expect(navigated, isTrue);
+  });
+
+  testWidgets("sans téléphone connu, l'action Appeler est absente",
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: RecommendationCard(
+            center: RecommendedCenter(
+              facilityId: 'id-2',
+              name: 'Centre sans téléphone',
+              latitude: 5.30,
+              longitude: -4.00,
+              distanceMeters: 1200,
+              status: 'UNKNOWN',
+              explanation: 'disponibilité non confirmée',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Appeler'), findsNothing);
+    expect(find.text('Itinéraire'), findsOneWidget);
   });
 }
