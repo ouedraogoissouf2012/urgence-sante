@@ -24,6 +24,8 @@ tags:
     description: Catalogue des services médicaux.
   - name: Availability
     description: Disponibilité des services par établissement.
+  - name: Routing
+    description: Itinéraires et temps de trajet.
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -178,6 +180,40 @@ paths:
                 $ref: '#/components/schemas/ServiceAvailability'
         '400':
           $ref: '#/components/responses/BadRequest'
+
+  /routes:
+    get:
+      tags: [Routing]
+      operationId: getRoute
+      summary: Calculer un itinéraire entre deux points
+      parameters:
+        - name: fromLat
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -90, maximum: 90 }
+        - name: fromLon
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -180, maximum: 180 }
+        - name: toLat
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -90, maximum: 90 }
+        - name: toLon
+          in: query
+          required: true
+          schema: { type: number, format: double, minimum: -180, maximum: 180 }
+      responses:
+        '200':
+          description: Itinéraire calculé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   parameters:
@@ -402,3 +438,17 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/AvailabilityStatus'
+
+    Route:
+      type: object
+      description: Itinéraire entre deux points.
+      required: [distanceMeters, durationSeconds]
+      properties:
+        distanceMeters:
+          type: number
+          format: double
+          description: Distance de l'itinéraire en mètres.
+        durationSeconds:
+          type: number
+          format: double
+          description: Durée estimée du trajet en secondes.

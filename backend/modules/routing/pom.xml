@@ -16,10 +16,20 @@
     <description>Itinéraires et temps de trajet (derrière un port fournisseur)</description>
 
     <dependencies>
-        <!-- Socle transverse partagé, sans métier. -->
         <dependency>
             <groupId>com.urgencesante</groupId>
             <artifactId>building-blocks</artifactId>
+        </dependency>
+        <!-- Adaptateur web entrant + client HTTP sortant (OSRM). Aucune persistance. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
