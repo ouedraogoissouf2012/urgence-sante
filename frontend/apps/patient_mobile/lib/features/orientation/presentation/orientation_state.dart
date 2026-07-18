@@ -1,3 +1,4 @@
+import '../../../core/location/location_service.dart';
 import '../domain/model/medical_need.dart';
 import '../domain/model/recommended_center.dart';
 
@@ -32,6 +33,8 @@ class OrientationState {
     this.userLatitude,
     this.userLongitude,
     this.errorMessage,
+    this.locationFailure,
+    this.approximatePosition = false,
   });
 
   final OrientationPhase phase;
@@ -41,6 +44,13 @@ class OrientationState {
   final double? userLatitude;
   final double? userLongitude;
   final String? errorMessage;
+
+  /// Cause de l'échec de localisation (pour proposer l'action adaptée).
+  final LocationFailure? locationFailure;
+
+  /// Vrai si la recherche a utilisé une position approximative (mode dégradé
+  /// sans localisation automatique) — affiché clairement à l'utilisateur.
+  final bool approximatePosition;
 
   bool get hasPosition => userLatitude != null && userLongitude != null;
 
@@ -52,6 +62,9 @@ class OrientationState {
     double? userLatitude,
     double? userLongitude,
     String? errorMessage,
+    LocationFailure? locationFailure,
+    bool? approximatePosition,
+    bool clearLocationFailure = false,
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
@@ -61,6 +74,9 @@ class OrientationState {
       userLatitude: userLatitude ?? this.userLatitude,
       userLongitude: userLongitude ?? this.userLongitude,
       errorMessage: errorMessage ?? this.errorMessage,
+      locationFailure:
+          clearLocationFailure ? null : (locationFailure ?? this.locationFailure),
+      approximatePosition: approximatePosition ?? this.approximatePosition,
     );
   }
 }

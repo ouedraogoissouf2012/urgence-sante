@@ -26,8 +26,11 @@ class _FakeRepository implements OrientationRepository {
 
 class _DeniedLocation implements LocationService {
   @override
-  Future<UserPosition> currentPosition() async =>
-      throw const LocationUnavailableException('Autorisation refusée.');
+  Future<UserPosition> currentPosition() async => throw
+      const LocationUnavailableException('Autorisation refusée.', LocationFailure.denied);
+
+  @override
+  Future<void> openSettings(LocationFailure failure) async {}
 }
 
 class _RecordingCaller implements EmergencyCaller {
@@ -43,6 +46,8 @@ Widget _app(_RecordingCaller caller) {
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
       locationServiceProvider.overrideWithValue(_DeniedLocation()),
       emergencyCallerProvider.overrideWithValue(caller),
+      // Conditions déjà acceptées : ces tests ciblent le parcours principal.
+      consentUpToDateProvider.overrideWith((ref) async => true),
     ],
     child: const PatientApp(),
   );

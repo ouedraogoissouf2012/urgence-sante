@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/location/location_service.dart';
 import 'orientation_state.dart';
 import 'orientation_view_model.dart';
 import 'widgets/emergency_call_bar.dart';
@@ -35,15 +36,55 @@ class OrientationPage extends ConsumerWidget {
         const AsyncStateView.loading(message: 'Chargement des besoins médicaux…'),
       OrientationPhase.searching =>
         const AsyncStateView.loading(message: 'Recherche des centres adaptés…'),
-      OrientationPhase.error => AsyncStateView.error(
-          message: state.errorMessage ?? 'Une erreur est survenue.',
-          onRetry: viewModel.retry,
-        ),
+      OrientationPhase.error => _error(state, viewModel),
       OrientationPhase.ready ||
       OrientationPhase.empty ||
       OrientationPhase.results =>
         _content(state, viewModel),
     };
+  }
+
+  /// Erreur avec actions adaptées : réessai, réglages si nécessaire, et
+  /// parcours dégradé sans localisation précise quand la position est en cause.
+  Widget _error(OrientationState state, OrientationViewModel viewModel) {
+    final LocationFailure? failure = state.locationFailure;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              state.errorMessage ?? 'Une erreur est survenue.',
+              style: AppTypography.body,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            if (failure == LocationFailure.deniedForever ||
+                failure == LocationFailure.serviceDisabled)
+              FilledButton.icon(
+                onPressed: viewModel.openLocationSettings,
+                icon: const Icon(Icons.settings),
+                label: const Text('Ouvrir les réglages'),
+              )
+            else
+              FilledButton(
+                onPressed: viewModel.retry,
+                child: const Text('Réessayer'),
+              ),
+            if (failure != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              TextButton(
+                onPressed: viewModel.searchWithApproximatePosition,
+                child: const Text('Continuer sans position précise'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _content(OrientationState state, OrientationViewModel viewModel) {
@@ -58,6 +99,20 @@ class OrientationPage extends ConsumerWidget {
           onSelected: viewModel.searchFor,
         ),
         const SizedBox(height: AppSpacing.md),
+        if (state.approximatePosition) ...[
+          Card(
+            color: AppColors.statusLimited.withValues(alpha: 0.12),
+            child: const Padding(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              child: Text(
+                'Position approximative (centre d\'Abidjan) : les distances '
+                'sont indicatives.',
+                style: AppTypography.caption,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         if (state.hasPosition) ...[
           SizedBox(
             height: 220,
