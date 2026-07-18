@@ -33,6 +33,7 @@ part 'api/medical_services_api.dart';
 part 'api/orientation_api.dart';
 part 'api/routing_api.dart';
 
+part 'model/availability_history_entry.dart';
 part 'model/availability_status.dart';
 part 'model/facility.dart';
 part 'model/facility_availability.dart';

@@ -182,6 +182,8 @@ class ApiClient {
           return valueString == 'true' || valueString == '1';
         case 'DateTime':
           return value is DateTime ? value : DateTime.tryParse(value);
+        case 'AvailabilityHistoryEntry':
+          return AvailabilityHistoryEntry.fromJson(value);
         case 'AvailabilityStatus':
           return AvailabilityStatusTypeTransformer().decode(value);
         case 'Facility':

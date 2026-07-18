@@ -40,4 +40,12 @@ public class AvailabilityHistoryJpaEntity {
         this.status = status;
         this.updatedAt = updatedAt;
     }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }

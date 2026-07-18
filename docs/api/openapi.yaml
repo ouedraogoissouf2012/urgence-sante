@@ -217,6 +217,40 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /facilities/{facilityId}/availability/{serviceCode}/history:
+    get:
+      tags: [Availability]
+      operationId: getAvailabilityHistory
+      summary: Historique des mises à jour de statut d'un service
+      parameters:
+        - $ref: '#/components/parameters/FacilityIdParam'
+        - name: serviceCode
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Mises à jour, la plus récente en premier.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailabilityHistoryEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /orientation:
     get:
       tags: [Orientation]
@@ -495,6 +529,17 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/AvailabilityStatus'
+
+    AvailabilityHistoryEntry:
+      type: object
+      description: Mise à jour passée du statut d'un service.
+      required: [status, updatedAt]
+      properties:
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        updatedAt:
+          type: string
+          format: date-time
 
     Route:
       type: object

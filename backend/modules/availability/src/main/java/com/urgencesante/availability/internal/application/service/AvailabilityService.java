@@ -2,8 +2,10 @@ package com.urgencesante.availability.internal.application.service;
 
 import com.urgencesante.availability.AvailabilityUpdated;
 import com.urgencesante.availability.internal.application.command.UpdateAvailabilityCommand;
+import com.urgencesante.availability.internal.application.port.in.GetAvailabilityHistoryUseCase;
 import com.urgencesante.availability.internal.application.port.in.GetFacilityAvailabilityUseCase;
 import com.urgencesante.availability.internal.application.port.in.UpdateAvailabilityUseCase;
+import com.urgencesante.availability.internal.application.result.AvailabilityHistoryEntry;
 import com.urgencesante.availability.internal.application.port.out.AvailabilityEventPublisher;
 import com.urgencesante.availability.internal.application.port.out.LoadAvailabilityPort;
 import com.urgencesante.availability.internal.application.port.out.SaveAvailabilityPort;
@@ -21,7 +23,8 @@ import java.util.UUID;
  * Cas d'usage de disponibilité. Java pur ; l'horloge et la politique de
  * fraîcheur sont injectées, ce qui rend le comportement temporel testable.
  */
-public class AvailabilityService implements UpdateAvailabilityUseCase, GetFacilityAvailabilityUseCase {
+public class AvailabilityService
+        implements UpdateAvailabilityUseCase, GetFacilityAvailabilityUseCase, GetAvailabilityHistoryUseCase {
 
     private final SaveAvailabilityPort saveAvailabilityPort;
     private final LoadAvailabilityPort loadAvailabilityPort;
@@ -66,6 +69,15 @@ public class AvailabilityService implements UpdateAvailabilityUseCase, GetFacili
                 .map(availability -> toSnapshot(availability, now))
                 .toList();
         return new FacilityAvailabilitySnapshot(facilityId, services);
+    }
+
+    @Override
+    public List<AvailabilityHistoryEntry> history(UUID facilityId, String serviceCode, int limit) {
+        Objects.requireNonNull(facilityId, "L'établissement est requis");
+        Objects.requireNonNull(serviceCode, "Le service est requis");
+        return loadAvailabilityPort.history(facilityId, serviceCode, limit).stream()
+                .map(entry -> new AvailabilityHistoryEntry(entry.status(), entry.updatedAt()))
+                .toList();
     }
 
     private ServiceAvailabilitySnapshot toSnapshot(Availability availability, Instant now) {
