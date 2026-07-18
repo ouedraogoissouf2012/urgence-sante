@@ -1,6 +1,7 @@
 package com.urgencesante.availability.internal.adapter.in.web;
 
 import com.urgencesante.availability.internal.domain.exception.AvailabilityValidationException;
+import com.urgencesante.availability.internal.domain.exception.ServiceNotOfferedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +16,14 @@ public class AvailabilityExceptionHandler {
         final ProblemDetail problem =
                 ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
         problem.setTitle("Requête invalide");
+        return problem;
+    }
+
+    @ExceptionHandler(ServiceNotOfferedException.class)
+    public ProblemDetail handleNotOffered(ServiceNotOfferedException exception) {
+        final ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
+        problem.setTitle("Service non offert par cet établissement");
         return problem;
     }
 }

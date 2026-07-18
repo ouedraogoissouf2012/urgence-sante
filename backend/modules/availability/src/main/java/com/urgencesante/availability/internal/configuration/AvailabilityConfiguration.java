@@ -2,6 +2,7 @@ package com.urgencesante.availability.internal.configuration;
 
 import com.urgencesante.availability.internal.application.port.out.AvailabilityEventPublisher;
 import com.urgencesante.availability.internal.application.port.out.LoadAvailabilityPort;
+import com.urgencesante.availability.internal.application.port.out.OfferedServicePort;
 import com.urgencesante.availability.internal.application.port.out.SaveAvailabilityPort;
 import com.urgencesante.availability.internal.application.service.AvailabilityService;
 import com.urgencesante.availability.internal.domain.policy.FreshnessPolicy;
@@ -30,10 +31,12 @@ public class AvailabilityConfiguration {
     AvailabilityService availabilityService(
             SaveAvailabilityPort saveAvailabilityPort,
             LoadAvailabilityPort loadAvailabilityPort,
+            OfferedServicePort offeredServicePort,
             AvailabilityEventPublisher eventPublisher,
             Clock clock,
             FreshnessPolicy freshnessPolicy) {
         return new AvailabilityService(
-                saveAvailabilityPort, loadAvailabilityPort, eventPublisher, clock, freshnessPolicy);
+                saveAvailabilityPort, loadAvailabilityPort, offeredServicePort,
+                eventPublisher, clock, freshnessPolicy);
     }
 }

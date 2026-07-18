@@ -26,8 +26,15 @@ class ApiPortalRepository implements PortalRepository {
 
   @override
   Future<List<ServiceLine>> loadBoard(String facilityId) async {
+    // Seuls les services réellement OFFERTS par l'établissement sont affichés
+    // (issue #37) ; le catalogue ne sert qu'aux libellés.
+    final Facility? facility = await _facilitiesApi.getFacility(facilityId);
+    final List<String> offered = facility?.services ?? const [];
     final List<MedicalService> catalogue =
         await _medicalServicesApi.listMedicalServices() ?? const [];
+    final Map<String, String> labelByCode = {
+      for (final service in catalogue) service.code: service.label,
+    };
     final FacilityAvailability? availability =
         await _availabilityApi.getFacilityAvailability(facilityId);
     final Map<String, ServiceAvailability> byCode = {
@@ -35,11 +42,11 @@ class ApiPortalRepository implements PortalRepository {
         service.serviceCode: service,
     };
 
-    return catalogue.map((service) {
-      final ServiceAvailability? current = byCode[service.code];
+    return offered.map((code) {
+      final ServiceAvailability? current = byCode[code];
       return ServiceLine(
-        serviceCode: service.code,
-        label: service.label,
+        serviceCode: code,
+        label: labelByCode[code] ?? code,
         status: current?.status.value ?? 'UNKNOWN',
         freshness: current?.freshness.value,
         updatedAt: current?.updatedAt,
