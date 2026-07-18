@@ -202,6 +202,8 @@ class ApiClient {
           return PagedFacilities.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
+        case 'Recommendation':
+          return Recommendation.fromJson(value);
         case 'Route':
           return Route.fromJson(value);
         case 'ServiceAvailability':

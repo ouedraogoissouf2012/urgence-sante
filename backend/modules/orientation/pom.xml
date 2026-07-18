@@ -16,10 +16,38 @@
     <description>Éligibilité, classement et explication des recommandations</description>
 
     <dependencies>
-        <!-- Socle transverse partagé, sans métier. -->
         <dependency>
             <groupId>com.urgencesante</groupId>
             <artifactId>building-blocks</artifactId>
+        </dependency>
+
+        <!-- Orchestration via les API publiques des modules (matrice autorisée). -->
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>facility</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>medical-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>availability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>routing</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
