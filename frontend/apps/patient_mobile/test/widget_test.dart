@@ -1,19 +1,110 @@
-import 'package:app_foundation/app_foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_mobile/app/patient_app.dart';
+import 'package:patient_mobile/core/calls/emergency_caller.dart';
+import 'package:patient_mobile/core/location/location_service.dart';
+import 'package:patient_mobile/di/providers.dart';
+import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
+import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
+import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
+import 'package:patient_mobile/features/orientation/presentation/widgets/recommendation_card.dart';
+
+class _FakeRepository implements OrientationRepository {
+  @override
+  Future<List<MedicalNeed>> loadNeeds() async =>
+      const [MedicalNeed(code: 'maternity', label: 'Maternité')];
+
+  @override
+  Future<List<RecommendedCenter>> recommend({
+    required double latitude,
+    required double longitude,
+    required String serviceCode,
+  }) async =>
+      const [];
+}
+
+class _DeniedLocation implements LocationService {
+  @override
+  Future<UserPosition> currentPosition() async =>
+      throw const LocationUnavailableException('Autorisation refusée.');
+}
+
+class _RecordingCaller implements EmergencyCaller {
+  final List<String> calls = [];
+
+  @override
+  Future<void> call(String phoneNumber) async => calls.add(phoneNumber);
+}
+
+Widget _app(_RecordingCaller caller) {
+  return ProviderScope(
+    overrides: [
+      orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
+      locationServiceProvider.overrideWithValue(_DeniedLocation()),
+      emergencyCallerProvider.overrideWithValue(caller),
+    ],
+    child: const PatientApp(),
+  );
+}
 
 void main() {
-  testWidgets("l'accueil affiche le titre et l'environnement", (tester) async {
+  testWidgets('le catalogue des besoins et les appels 185/180 sont visibles',
+      (tester) async {
+    await tester.pumpWidget(_app(_RecordingCaller()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maternité'), findsOneWidget);
+    expect(find.text('SAMU 185'), findsOneWidget);
+    expect(find.text('Pompiers 180'), findsOneWidget);
+  });
+
+  testWidgets("le bouton SAMU déclenche l'appel du 185", (tester) async {
+    final caller = _RecordingCaller();
+    await tester.pumpWidget(_app(caller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('SAMU 185'));
+
+    expect(caller.calls, ['185']);
+  });
+
+  testWidgets("une localisation refusée affiche l'erreur et le réessai",
+      (tester) async {
+    await tester.pumpWidget(_app(_RecordingCaller()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Maternité'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Autorisation refusée'), findsOneWidget);
+    expect(find.text('Réessayer'), findsOneWidget);
+    // Les appels d'urgence restent accessibles pendant l'erreur.
+    expect(find.text('SAMU 185'), findsOneWidget);
+  });
+
+  testWidgets('la carte de recommandation montre statut, distance et raison',
+      (tester) async {
     await tester.pumpWidget(
-      const PatientApp(
-        config: AppConfig(
-          environment: AppEnvironment.development,
-          apiBaseUrl: 'http://localhost:8080/api/v1',
+      const MaterialApp(
+        home: Scaffold(
+          body: RecommendationCard(
+            center: RecommendedCenter(
+              facilityId: 'id-1',
+              name: 'CHU de Cocody',
+              distanceMeters: 2800,
+              travelTimeSeconds: 320,
+              status: 'AVAILABLE',
+              explanation: 'service disponible · à 2.8 km (~5 min)',
+            ),
+          ),
         ),
       ),
     );
 
-    expect(find.text('Urgence Santé'), findsWidgets);
-    expect(find.textContaining('development'), findsOneWidget);
+    expect(find.text('CHU de Cocody'), findsOneWidget);
+    expect(find.text('Disponible'), findsOneWidget);
+    expect(find.text('2.8 km · ~5 min'), findsOneWidget);
+    expect(find.textContaining('service disponible'), findsOneWidget);
   });
 }
