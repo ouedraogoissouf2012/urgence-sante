@@ -1,35 +1,51 @@
 package com.urgencesante;
 
 import org.junit.jupiter.api.Tag;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /**
  * Base des tests d'intégration nécessitant une base PostGIS réelle.
  *
- * <p>{@code disabledWithoutDocker = true} constitue le <b>profil développeur
- * rapide</b>, explicite et assumé : sans Docker joignable, ces tests sont
- * ignorés localement. Ce contournement ne peut PAS passer inaperçu en CI :
- * {@link DockerAvailabilityGuardTest} fait échouer le build lorsque
- * {@code REQUIRE_DOCKER_TESTS=true} (positionné par le workflow) et que
- * Docker est indisponible — aucun test critique ne peut être silencieusement
- * ignoré.
- *
- * <p>L'image {@code postgis} est déclarée compatible avec le driver
- * {@code postgres} ; {@link ServiceConnection} câble la source de données Spring
- * vers le conteneur, sans configuration codée en dur.
+ * <p>Deux sources de base, choisies par {@link DatabaseAvailableCondition} :
+ * une base EXTERNE fournie par la validation interne ({@code IT_DB_URL},
+ * démarrée par {@code scripts/verify-all.sh} via Docker Compose), sinon un
+ * conteneur Testcontainers éphémère. Sans aucune des deux, les tests sont
+ * ignorés (profil développeur rapide) — jamais silencieusement en validation :
+ * la garde {@link DockerAvailabilityGuardTest} et le rapport du script de
+ * vérification l'imposent.
  */
 @Tag("integration")
-@Testcontainers(disabledWithoutDocker = true)
+@ExtendWith(DatabaseAvailableCondition.class)
 abstract class AbstractPostgisIntegrationTest {
 
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGIS =
-            new PostgreSQLContainer<>(
-                    DockerImageName.parse("postgis/postgis:16-3.4")
-                            .asCompatibleSubstituteFor("postgres"));
+    private static final DockerImageName POSTGIS_IMAGE =
+            DockerImageName.parse("postgis/postgis:16-3.4")
+                    .asCompatibleSubstituteFor("postgres");
+
+    private static PostgreSQLContainer<?> container;
+
+    @DynamicPropertySource
+    static void databaseProperties(DynamicPropertyRegistry registry) {
+        final String externalUrl = System.getenv("IT_DB_URL");
+        if (externalUrl != null && !externalUrl.isBlank()) {
+            registry.add("spring.datasource.url", () -> externalUrl);
+            registry.add("spring.datasource.username",
+                    () -> System.getenv().getOrDefault("IT_DB_USER", "urgence_sante"));
+            registry.add("spring.datasource.password",
+                    () -> System.getenv().getOrDefault("IT_DB_PASSWORD", ""));
+            return;
+        }
+        // La condition d'exécution garantit ici la disponibilité de Docker.
+        if (container == null) {
+            container = new PostgreSQLContainer<>(POSTGIS_IMAGE);
+            container.start();
+        }
+        registry.add("spring.datasource.url", container::getJdbcUrl);
+        registry.add("spring.datasource.username", container::getUsername);
+        registry.add("spring.datasource.password", container::getPassword);
+    }
 }
