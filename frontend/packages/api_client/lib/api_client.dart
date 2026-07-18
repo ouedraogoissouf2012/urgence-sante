@@ -188,6 +188,8 @@ class ApiClient {
           return FieldError.fromJson(value);
         case 'GeoPoint':
           return GeoPoint.fromJson(value);
+        case 'MedicalService':
+          return MedicalService.fromJson(value);
         case 'PageMetadata':
           return PageMetadata.fromJson(value);
         case 'PagedFacilities':

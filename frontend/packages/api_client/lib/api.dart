@@ -28,10 +28,12 @@ part 'auth/http_basic_auth.dart';
 part 'auth/http_bearer_auth.dart';
 
 part 'api/facilities_api.dart';
+part 'api/medical_services_api.dart';
 
 part 'model/facility.dart';
 part 'model/field_error.dart';
 part 'model/geo_point.dart';
+part 'model/medical_service.dart';
 part 'model/page_metadata.dart';
 part 'model/paged_facilities.dart';
 part 'model/problem.dart';
