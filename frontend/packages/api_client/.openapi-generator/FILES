@@ -1,5 +1,6 @@
 lib/api.dart
 lib/api/facilities_api.dart
+lib/api/medical_services_api.dart
 lib/api_client.dart
 lib/api_exception.dart
 lib/api_helper.dart
@@ -11,6 +12,7 @@ lib/auth/oauth.dart
 lib/model/facility.dart
 lib/model/field_error.dart
 lib/model/geo_point.dart
+lib/model/medical_service.dart
 lib/model/page_metadata.dart
 lib/model/paged_facilities.dart
 lib/model/problem.dart

@@ -20,6 +20,8 @@ servers:
 tags:
   - name: Facilities
     description: Établissements de santé et recherche géographique.
+  - name: MedicalServices
+    description: Catalogue des services médicaux.
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -103,6 +105,31 @@ paths:
                 $ref: '#/components/schemas/Facility'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /medical-services:
+    get:
+      tags: [MedicalServices]
+      operationId: listMedicalServices
+      summary: Lister le catalogue des services médicaux
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Filtre optionnel sur la catégorie d'un service.
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: Catalogue des services médicaux.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedicalService'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
 components:
   parameters:
@@ -260,3 +287,18 @@ components:
             $ref: '#/components/schemas/Facility'
         page:
           $ref: '#/components/schemas/PageMetadata'
+
+    MedicalService:
+      type: object
+      description: Service médical du catalogue.
+      required: [code, label]
+      properties:
+        code:
+          type: string
+          description: Code unique et stable (ex. « maternity »).
+        label:
+          type: string
+          description: Libellé lisible (ex. « Maternité »).
+        category:
+          type: string
+          description: Catégorie de regroupement (ex. « emergency »).
