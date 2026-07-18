@@ -1,5 +1,6 @@
 package com.urgencesante;
 
+import org.junit.jupiter.api.Tag;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -9,15 +10,19 @@ import org.testcontainers.utility.DockerImageName;
 /**
  * Base des tests d'intégration nécessitant une base PostGIS réelle.
  *
- * <p>{@code disabledWithoutDocker = true} : si aucun environnement Docker n'est
- * joignable, les tests de cette hiérarchie sont <em>ignorés</em> plutôt qu'en
- * échec. Ils s'exécutent réellement en CI (runner Linux) et sur toute machine
- * où Docker est disponible pour Testcontainers.
+ * <p>{@code disabledWithoutDocker = true} constitue le <b>profil développeur
+ * rapide</b>, explicite et assumé : sans Docker joignable, ces tests sont
+ * ignorés localement. Ce contournement ne peut PAS passer inaperçu en CI :
+ * {@link DockerAvailabilityGuardTest} fait échouer le build lorsque
+ * {@code REQUIRE_DOCKER_TESTS=true} (positionné par le workflow) et que
+ * Docker est indisponible — aucun test critique ne peut être silencieusement
+ * ignoré.
  *
  * <p>L'image {@code postgis} est déclarée compatible avec le driver
  * {@code postgres} ; {@link ServiceConnection} câble la source de données Spring
  * vers le conteneur, sans configuration codée en dur.
  */
+@Tag("integration")
 @Testcontainers(disabledWithoutDocker = true)
 abstract class AbstractPostgisIntegrationTest {
 

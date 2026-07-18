@@ -26,6 +26,13 @@ n’est pas considérée comme protégée.
 - tests PostgreSQL/PostGIS avec Testcontainers ;
 - tests des clients externes avec serveur simulé.
 
+Les tests d'intégration PostGIS portent `@Tag("integration")`. Le **profil
+développeur rapide** (Docker indisponible → tests ignorés, visibles en
+`Skipped`) est explicite et local uniquement : en CI, `REQUIRE_DOCKER_TESTS=true`
+active une garde qui **fait échouer le build** si Docker/Testcontainers est
+injoignable, et le workflow vérifie qu'un nombre non nul de tests PostGIS a
+réellement tourné.
+
 ### Modules et architecture
 
 - `ApplicationModules.verify()` bloque cycles et accès internes ;

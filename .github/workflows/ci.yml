@@ -26,9 +26,38 @@ jobs:
 
       # `verify` exécute la compilation, les tests, la vérification Spring
       # Modulith (frontières, cycles, packages internal) et les règles ArchUnit.
+      # REQUIRE_DOCKER_TESTS force l'exécution réelle des tests PostGIS :
+      # si Docker/Testcontainers est indisponible, le build ÉCHOUE au lieu
+      # d'ignorer silencieusement les tests d'intégration.
       - name: Build, tests et vérification d'architecture
         working-directory: backend
+        env:
+          REQUIRE_DOCKER_TESTS: 'true'
         run: ./mvnw -B --no-transfer-progress verify
+
+      # Rapport lisible : tests exécutés et ignorés, et preuve qu'un nombre
+      # non nul de tests PostGIS a réellement tourné.
+      - name: Rapport des tests (exécutés / ignorés)
+        if: always()
+        working-directory: backend
+        run: |
+          {
+            echo "## Tests backend"
+            echo '```'
+            grep -h "Tests run:" bootstrap/target/surefire-reports/*.txt \
+              modules/*/target/surefire-reports/*.txt \
+              architecture-tests/target/surefire-reports/*.txt 2>/dev/null | sort
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          executed=$(grep -h "Tests run:" bootstrap/target/surefire-reports/com.urgencesante.FacilityApiIntegrationTest.txt \
+            bootstrap/target/surefire-reports/com.urgencesante.PostgisMigrationIntegrationTests.txt \
+            bootstrap/target/surefire-reports/com.urgencesante.ReferentialIntegrityIntegrationTest.txt 2>/dev/null \
+            | grep -c "Skipped: 0" || true)
+          if [ "$executed" -lt 3 ]; then
+            echo "ÉCHEC : des tests d'intégration PostGIS ont été ignorés en CI." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "✓ Tests PostGIS réellement exécutés." >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
     name: Frontend — analyse & tests Flutter
