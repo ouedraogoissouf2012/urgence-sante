@@ -32,7 +32,17 @@ class AvailabilityServiceTest {
     private final List<AvailabilityUpdated> published = new ArrayList<>();
 
     private final SaveAvailabilityPort savePort = saved::add;
-    private final LoadAvailabilityPort loadPort = facilityId -> stored;
+    private final LoadAvailabilityPort loadPort = new LoadAvailabilityPort() {
+        @Override
+        public List<Availability> findByFacility(UUID facilityId) {
+            return stored;
+        }
+
+        @Override
+        public List<Availability> history(UUID facilityId, String serviceCode, int limit) {
+            return stored.stream().limit(limit).toList();
+        }
+    };
     private final AvailabilityEventPublisher publisher = published::add;
 
     private final AvailabilityService service = new AvailabilityService(
@@ -52,6 +62,17 @@ class AvailabilityServiceTest {
         assertThat(published).hasSize(1);
         assertThat(published.get(0).status()).isEqualTo("LIMITED");
         assertThat(published.get(0).facilityId()).isEqualTo(FACILITY);
+    }
+
+    @Test
+    void l_historique_restitue_les_statuts_passes() {
+        stored.add(Availability.of(
+                FACILITY, "maternity", AvailabilityStatus.LIMITED, NOW.minus(Duration.ofMinutes(5))));
+
+        final var history = service.history(FACILITY, "maternity", 10);
+
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).status()).isEqualTo(AvailabilityStatus.LIMITED);
     }
 
     @Test

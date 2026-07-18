@@ -12,6 +12,7 @@ lib/auth/authentication.dart
 lib/auth/http_basic_auth.dart
 lib/auth/http_bearer_auth.dart
 lib/auth/oauth.dart
+lib/model/availability_history_entry.dart
 lib/model/availability_status.dart
 lib/model/facility.dart
 lib/model/facility_availability.dart

@@ -15,6 +15,78 @@ class AvailabilityApi {
 
   final ApiClient apiClient;
 
+  /// Historique des mises à jour de statut d'un service
+  ///
+  /// Note: This method returns the HTTP [Response].
+  ///
+  /// Parameters:
+  ///
+  /// * [String] facilityId (required):
+  ///   Identifiant unique de l'établissement.
+  ///
+  /// * [String] serviceCode (required):
+  ///
+  /// * [int] limit:
+  Future<Response> getAvailabilityHistoryWithHttpInfo(String facilityId, String serviceCode, { int? limit, Future<void>? abortTrigger, }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/facilities/{facilityId}/availability/{serviceCode}/history'
+      .replaceAll('{facilityId}', facilityId)
+      .replaceAll('{serviceCode}', serviceCode);
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    if (limit != null) {
+      queryParams.addAll(_queryParams('', 'limit', limit));
+    }
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'GET',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Historique des mises à jour de statut d'un service
+  ///
+  /// Parameters:
+  ///
+  /// * [String] facilityId (required):
+  ///   Identifiant unique de l'établissement.
+  ///
+  /// * [String] serviceCode (required):
+  ///
+  /// * [int] limit:
+  Future<List<AvailabilityHistoryEntry>?> getAvailabilityHistory(String facilityId, String serviceCode, { int? limit, Future<void>? abortTrigger, }) async {
+    final response = await getAvailabilityHistoryWithHttpInfo(facilityId, serviceCode, limit: limit, abortTrigger: abortTrigger,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+    // When a remote server returns no body with a status of 204, we shall not decode it.
+    // At the time of writing this, `dart:convert` will throw an "Unexpected end of input"
+    // FormatException when trying to decode an empty string.
+    if (response.body.isNotEmpty && response.statusCode != HttpStatus.noContent) {
+      final responseBody = await _decodeBodyBytes(response);
+      return (await apiClient.deserializeAsync(responseBody, 'List<AvailabilityHistoryEntry>') as List)
+        .cast<AvailabilityHistoryEntry>()
+        .toList(growable: false);
+
+    }
+    return null;
+  }
+
   /// Consulter la disponibilité des services d'un établissement
   ///
   /// Note: This method returns the HTTP [Response].

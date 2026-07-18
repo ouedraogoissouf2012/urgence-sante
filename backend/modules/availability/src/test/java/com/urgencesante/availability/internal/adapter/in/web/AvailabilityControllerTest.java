@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.urgencesante.availability.internal.adapter.in.web.mapper.AvailabilityWebMapper;
+import com.urgencesante.availability.internal.application.port.in.GetAvailabilityHistoryUseCase;
 import com.urgencesante.availability.internal.application.port.in.GetFacilityAvailabilityUseCase;
 import com.urgencesante.availability.internal.application.port.in.UpdateAvailabilityUseCase;
+import com.urgencesante.availability.internal.application.result.AvailabilityHistoryEntry;
 import com.urgencesante.availability.internal.application.result.FacilityAvailabilitySnapshot;
 import com.urgencesante.availability.internal.application.result.ServiceAvailabilitySnapshot;
 import com.urgencesante.availability.internal.domain.model.AvailabilityStatus;
@@ -37,12 +39,15 @@ class AvailabilityControllerTest {
     @Mock
     private UpdateAvailabilityUseCase updateAvailability;
 
+    @Mock
+    private GetAvailabilityHistoryUseCase getHistory;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         final AvailabilityController controller = new AvailabilityController(
-                getFacilityAvailability, updateAvailability, new AvailabilityWebMapper());
+                getFacilityAvailability, updateAvailability, getHistory, new AvailabilityWebMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new AvailabilityExceptionHandler())
                 .build();
@@ -72,6 +77,20 @@ class AvailabilityControllerTest {
                         .content("{\"status\":\"AVAILABLE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AVAILABLE"));
+    }
+
+    @Test
+    void restitue_l_historique_du_plus_recent_au_plus_ancien() throws Exception {
+        given(getHistory.history(FACILITY, "maternity", 20)).willReturn(List.of(
+                new AvailabilityHistoryEntry(
+                        AvailabilityStatus.SATURATED, Instant.parse("2026-01-01T13:00:00Z")),
+                new AvailabilityHistoryEntry(
+                        AvailabilityStatus.AVAILABLE, Instant.parse("2026-01-01T12:00:00Z"))));
+
+        mockMvc.perform(get("/api/v1/facilities/{id}/availability/{svc}/history", FACILITY, "maternity"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("SATURATED"))
+                .andExpect(jsonPath("$[1].status").value("AVAILABLE"));
     }
 
     @Test

@@ -8,9 +8,11 @@ import com.urgencesante.availability.internal.adapter.out.persistence.repository
 import com.urgencesante.availability.internal.application.port.out.LoadAvailabilityPort;
 import com.urgencesante.availability.internal.application.port.out.SaveAvailabilityPort;
 import com.urgencesante.availability.internal.domain.model.Availability;
+import com.urgencesante.availability.internal.domain.model.AvailabilityStatus;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,19 @@ public class AvailabilityPersistenceAdapter implements SaveAvailabilityPort, Loa
     public List<Availability> findByFacility(UUID facilityId) {
         return currentRepository.findByFacilityIdOrderByServiceCodeAsc(facilityId).stream()
                 .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Availability> history(UUID facilityId, String serviceCode, int limit) {
+        return historyRepository
+                .findByFacilityIdAndServiceCodeOrderByUpdatedAtDesc(
+                        facilityId, serviceCode, PageRequest.of(0, limit))
+                .stream()
+                .map(entry -> Availability.of(
+                        facilityId, serviceCode,
+                        AvailabilityStatus.valueOf(entry.getStatus()),
+                        entry.getUpdatedAt()))
                 .toList();
     }
 }

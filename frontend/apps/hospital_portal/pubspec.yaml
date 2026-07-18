@@ -11,6 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  # Injection et observation d'état (ADR-003).
+  flutter_riverpod: ^3.0.0
+  # Format des horodatages affichés.
+  intl: any
   app_foundation:
     path: ../../packages/app_foundation
   design_system:

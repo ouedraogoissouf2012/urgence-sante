@@ -1,14 +1,13 @@
-import 'package:app_foundation/app_foundation.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 
-import '../features/home/home_page.dart';
+import '../features/board/presentation/portal_page.dart';
 
 /// Racine du portail hospitalier.
+///
+/// La configuration d'environnement est fournie par les providers (bootstrap).
 class PortalApp extends StatelessWidget {
-  const PortalApp({required this.config, super.key});
-
-  final AppConfig config;
+  const PortalApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +15,7 @@ class PortalApp extends StatelessWidget {
       title: 'Portail hospitalier — Urgence Santé',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.hospital(),
-      home: HomePage(environment: config.environment),
+      home: const PortalPage(),
     );
   }
 }
