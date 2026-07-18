@@ -22,6 +22,8 @@ tags:
     description: Établissements de santé et recherche géographique.
   - name: MedicalServices
     description: Catalogue des services médicaux.
+  - name: Availability
+    description: Disponibilité des services par établissement.
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -131,6 +133,52 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /facilities/{facilityId}/availability:
+    get:
+      tags: [Availability]
+      operationId: getFacilityAvailability
+      summary: Consulter la disponibilité des services d'un établissement
+      parameters:
+        - $ref: '#/components/parameters/FacilityIdParam'
+      responses:
+        '200':
+          description: Disponibilité courante par service.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacilityAvailability'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /facilities/{facilityId}/availability/{serviceCode}:
+    put:
+      tags: [Availability]
+      operationId: updateAvailability
+      summary: Mettre à jour le statut d'un service (agent hospitalier)
+      parameters:
+        - $ref: '#/components/parameters/FacilityIdParam'
+        - name: serviceCode
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAvailabilityRequest'
+      responses:
+        '200':
+          description: Disponibilité mise à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceAvailability'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
 components:
   parameters:
     PageParam:
@@ -154,6 +202,14 @@ components:
         minimum: 1
         maximum: 100
         default: 20
+    FacilityIdParam:
+      name: facilityId
+      in: path
+      required: true
+      description: Identifiant unique de l'établissement.
+      schema:
+        type: string
+        format: uuid
 
   responses:
     BadRequest:
@@ -302,3 +358,47 @@ components:
         category:
           type: string
           description: Catégorie de regroupement (ex. « emergency »).
+
+    AvailabilityStatus:
+      type: string
+      description: Statut de disponibilité d'un service.
+      enum: [AVAILABLE, LIMITED, SATURATED, CLOSED, UNKNOWN]
+
+    Freshness:
+      type: string
+      description: Fraîcheur de l'information, calculée depuis sa dernière mise à jour.
+      enum: [FRESH, AGING, STALE]
+
+    ServiceAvailability:
+      type: object
+      required: [serviceCode, status, freshness]
+      properties:
+        serviceCode:
+          type: string
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Horodatage de la dernière mise à jour (absent si jamais renseigné).
+
+    FacilityAvailability:
+      type: object
+      required: [facilityId, services]
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceAvailability'
+
+    UpdateAvailabilityRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
