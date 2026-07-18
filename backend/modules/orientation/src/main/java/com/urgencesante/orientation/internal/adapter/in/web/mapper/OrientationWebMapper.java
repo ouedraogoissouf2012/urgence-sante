@@ -12,6 +12,9 @@ public class OrientationWebMapper {
         return new RecommendationResponse(
                 recommendation.facilityId().toString(),
                 recommendation.name(),
+                new RecommendationResponse.GeoPointResponse(
+                        recommendation.latitude(), recommendation.longitude()),
+                recommendation.phone(),
                 Math.round(recommendation.distanceMeters() * 10.0) / 10.0,
                 recommendation.travelTimeSeconds(),
                 recommendation.status(),

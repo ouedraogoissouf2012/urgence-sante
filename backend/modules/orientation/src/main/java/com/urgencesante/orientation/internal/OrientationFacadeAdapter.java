@@ -26,6 +26,9 @@ class OrientationFacadeAdapter implements OrientationFacade {
                 .map(recommendation -> new RecommendationView(
                         recommendation.facilityId(),
                         recommendation.name(),
+                        recommendation.latitude(),
+                        recommendation.longitude(),
+                        recommendation.phone(),
                         recommendation.distanceMeters(),
                         recommendation.travelTimeSeconds(),
                         recommendation.status(),

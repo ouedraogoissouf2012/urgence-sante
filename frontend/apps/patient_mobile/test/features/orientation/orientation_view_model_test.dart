@@ -56,6 +56,9 @@ void main() {
   const center = RecommendedCenter(
     facilityId: 'id-1',
     name: 'CHU de Cocody',
+    latitude: 5.3496,
+    longitude: -3.9851,
+    phone: '+2250100000001',
     distanceMeters: 2800,
     travelTimeSeconds: 320,
     status: 'AVAILABLE',

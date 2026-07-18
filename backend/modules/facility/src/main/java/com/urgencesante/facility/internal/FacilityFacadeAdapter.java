@@ -49,6 +49,7 @@ class FacilityFacadeAdapter implements FacilityFacade {
                 facility.name(),
                 facility.location().latitude(),
                 facility.location().longitude(),
+                facility.phone().orElse(null),
                 facility.services().stream()
                         .map(MedicalServiceCode::value)
                         .collect(Collectors.toUnmodifiableSet()));

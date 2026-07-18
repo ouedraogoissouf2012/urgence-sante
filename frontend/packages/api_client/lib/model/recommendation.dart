@@ -14,6 +14,8 @@ class Recommendation {
   Recommendation({
     required this.facilityId,
     required this.name,
+    required this.location,
+    this.phone,
     required this.distanceMeters,
     this.travelTimeSeconds,
     required this.status,
@@ -23,6 +25,17 @@ class Recommendation {
   String facilityId;
 
   String name;
+
+  GeoPoint location;
+
+  /// Téléphone du centre (absent si inconnu).
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? phone;
 
   /// Distance à vol d'oiseau depuis la position du patient.
   double distanceMeters;
@@ -45,6 +58,8 @@ class Recommendation {
   bool operator ==(Object other) => identical(this, other) || other is Recommendation &&
     other.facilityId == facilityId &&
     other.name == name &&
+    other.location == location &&
+    other.phone == phone &&
     other.distanceMeters == distanceMeters &&
     other.travelTimeSeconds == travelTimeSeconds &&
     other.status == status &&
@@ -55,18 +70,26 @@ class Recommendation {
     // ignore: unnecessary_parenthesis
     (facilityId.hashCode) +
     (name.hashCode) +
+    (location.hashCode) +
+    (phone == null ? 0 : phone!.hashCode) +
     (distanceMeters.hashCode) +
     (travelTimeSeconds == null ? 0 : travelTimeSeconds!.hashCode) +
     (status.hashCode) +
     (explanation.hashCode);
 
   @override
-  String toString() => 'Recommendation[facilityId=$facilityId, name=$name, distanceMeters=$distanceMeters, travelTimeSeconds=$travelTimeSeconds, status=$status, explanation=$explanation]';
+  String toString() => 'Recommendation[facilityId=$facilityId, name=$name, location=$location, phone=$phone, distanceMeters=$distanceMeters, travelTimeSeconds=$travelTimeSeconds, status=$status, explanation=$explanation]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
       json[r'facilityId'] = this.facilityId;
       json[r'name'] = this.name;
+      json[r'location'] = this.location;
+    if (this.phone != null) {
+      json[r'phone'] = this.phone;
+    } else {
+      json[r'phone'] = null;
+    }
       json[r'distanceMeters'] = this.distanceMeters;
     if (this.travelTimeSeconds != null) {
       json[r'travelTimeSeconds'] = this.travelTimeSeconds;
@@ -93,6 +116,8 @@ class Recommendation {
         assert(json[r'facilityId'] != null, 'Required key "Recommendation[facilityId]" has a null value in JSON.');
         assert(json.containsKey(r'name'), 'Required key "Recommendation[name]" is missing from JSON.');
         assert(json[r'name'] != null, 'Required key "Recommendation[name]" has a null value in JSON.');
+        assert(json.containsKey(r'location'), 'Required key "Recommendation[location]" is missing from JSON.');
+        assert(json[r'location'] != null, 'Required key "Recommendation[location]" has a null value in JSON.');
         assert(json.containsKey(r'distanceMeters'), 'Required key "Recommendation[distanceMeters]" is missing from JSON.');
         assert(json[r'distanceMeters'] != null, 'Required key "Recommendation[distanceMeters]" has a null value in JSON.');
         assert(json.containsKey(r'status'), 'Required key "Recommendation[status]" is missing from JSON.');
@@ -105,6 +130,8 @@ class Recommendation {
       return Recommendation(
         facilityId: mapValueOfType<String>(json, r'facilityId')!,
         name: mapValueOfType<String>(json, r'name')!,
+        location: GeoPoint.fromJson(json[r'location'])!,
+        phone: mapValueOfType<String>(json, r'phone'),
         distanceMeters: mapValueOfType<double>(json, r'distanceMeters')!,
         travelTimeSeconds: mapValueOfType<double>(json, r'travelTimeSeconds'),
         status: AvailabilityStatus.fromJson(json[r'status'])!,
@@ -158,6 +185,7 @@ class Recommendation {
   static const requiredKeys = <String>{
     'facilityId',
     'name',
+    'location',
     'distanceMeters',
     'status',
     'explanation',

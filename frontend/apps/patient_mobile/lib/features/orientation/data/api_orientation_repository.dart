@@ -36,6 +36,9 @@ class ApiOrientationRepository implements OrientationRepository {
         .map((r) => RecommendedCenter(
               facilityId: r.facilityId,
               name: r.name,
+              latitude: r.location.latitude,
+              longitude: r.location.longitude,
+              phone: r.phone,
               distanceMeters: r.distanceMeters,
               travelTimeSeconds: r.travelTimeSeconds,
               status: r.status.value,
