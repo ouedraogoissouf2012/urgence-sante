@@ -45,8 +45,12 @@ fi
 
 echo "▶ 3/5 Backend sur le port $DEMO_PORT"
 start_backend() {
+  # CORS de démonstration : le portail Flutter Web tourne sur un port local
+  # aléatoire ; on autorise localhost/127.0.0.1 (interdit en production par
+  # CorsPolicy). Surchargeable : CORS_ALLOWED_ORIGINS=... bash scripts/demo-up.sh
   DB_PASSWORD="$POSTGRES_PASSWORD" DB_HOST=localhost DB_PORT="$DB_PORT_HOST" \
   DB_NAME="${POSTGRES_DB:-urgence_sante}" DB_USER="${POSTGRES_USER:-urgence_sante}" \
+  CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:*,http://127.0.0.1:*}" \
     java -jar "$JAR" --spring.profiles.active=local --server.port="$DEMO_PORT" \
     > /tmp/urgence-sante-demo.log 2>&1 &
   echo $! > /tmp/urgence-sante-demo.pid
