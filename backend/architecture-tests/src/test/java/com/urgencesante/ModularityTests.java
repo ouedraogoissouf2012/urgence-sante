@@ -1,5 +1,6 @@
 package com.urgencesante;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
@@ -18,8 +19,11 @@ import org.springframework.modulith.core.ApplicationModules;
  */
 class ModularityTests {
 
-    private static final ApplicationModules MODULES =
-            ApplicationModules.of(UrgenceSanteApplication.class);
+    // building-blocks est un socle partagé (kernel), pas un module métier : il
+    // est exclu de la détection de modules pour rester librement réutilisable.
+    private static final ApplicationModules MODULES = ApplicationModules.of(
+            UrgenceSanteApplication.class,
+            JavaClass.Predicates.resideInAnyPackage("com.urgencesante.buildingblocks.."));
 
     @Test
     void les_frontieres_de_modules_sont_respectees() {
