@@ -46,7 +46,7 @@ class IdentityServiceTest {
     @Test
     void un_admin_agit_sur_tout_etablissement() {
         final PortalPrincipalView admin =
-                new PortalPrincipalView("Régulation", PortalRole.ADMIN, null);
+                new PortalPrincipalView(UUID.randomUUID(), "Régulation", PortalRole.ADMIN, null);
 
         assertThat(admin.canActOn(UUID.randomUUID())).isTrue();
         assertThat(admin.canActOn(FACILITY)).isTrue();

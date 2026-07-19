@@ -131,6 +131,29 @@ void main() {
     expect(navigated, isTrue);
   });
 
+  testWidgets('un temps ESTIMATED (mode dégradé) est signalé', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: RecommendationCard(
+            center: RecommendedCenter(
+              facilityId: 'id-3',
+              name: 'Centre dégradé',
+              latitude: 5.30,
+              longitude: -4.00,
+              distanceMeters: 3400,
+              travelTimeQuality: 'ESTIMATED',
+              status: 'UNKNOWN',
+              explanation: 'temps non fourni par le routage',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('temps estimé'), findsOneWidget);
+  });
+
   testWidgets("sans téléphone connu, l'action Appeler est absente",
       (tester) async {
     await tester.pumpWidget(

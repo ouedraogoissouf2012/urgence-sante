@@ -103,8 +103,13 @@ for member in packages/app_foundation packages/design_system packages/api_client
   run_step "Frontend — tests $member" bash -c "cd frontend/$member && flutter test"
 done
 
-# 6. APK (optionnel : dépend du SDK Android)
-if [[ -n "${ANDROID_HOME:-}" && -d "${ANDROID_HOME:-/nonexistent}/platforms" ]]; then
+# 6. APK (optionnel : dépend du SDK Android ET d'un chemin ASCII)
+# Le compilateur de shaders Flutter échoue sur un chemin non-ASCII (Windows) ;
+# ce dépôt vit sous « propre à moi » (accent). Quand c'est le cas, on délègue
+# à la CI GitHub Actions (job « APK Android », build Linux en chemin ASCII).
+if printf '%s' "$ROOT" | LC_ALL=C grep -q '[^ -~]'; then
+  record "APK Android (debug)" "⚪ N/A" "chemin non-ASCII : build délégué à la CI (job APK, Linux)"
+elif [[ -n "${ANDROID_HOME:-}" && -d "${ANDROID_HOME:-/nonexistent}/platforms" ]]; then
   run_step "APK Android (debug)" \
     bash -c "cd frontend/apps/patient_mobile && flutter build apk --debug -t lib/main_development.dart"
 else

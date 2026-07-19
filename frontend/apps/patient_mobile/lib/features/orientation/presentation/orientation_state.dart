@@ -84,18 +84,20 @@ class OrientationState {
     bool clearLocationFailure = false,
     bool clearSelectedCenter = false,
     bool clearOffline = false,
+    bool clearPosition = false,
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
       needs: needs ?? this.needs,
       selectedNeed: selectedNeed ?? this.selectedNeed,
       results: results ?? this.results,
-      userLatitude: userLatitude ?? this.userLatitude,
-      userLongitude: userLongitude ?? this.userLongitude,
+      userLatitude: clearPosition ? null : (userLatitude ?? this.userLatitude),
+      userLongitude: clearPosition ? null : (userLongitude ?? this.userLongitude),
       errorMessage: errorMessage ?? this.errorMessage,
       locationFailure:
           clearLocationFailure ? null : (locationFailure ?? this.locationFailure),
-      approximatePosition: approximatePosition ?? this.approximatePosition,
+      approximatePosition:
+          clearPosition ? false : (approximatePosition ?? this.approximatePosition),
       selectedCenterId:
           clearSelectedCenter ? null : (selectedCenterId ?? this.selectedCenterId),
       offlineSyncedAt:

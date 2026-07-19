@@ -29,7 +29,11 @@ class RecommendationCard extends StatelessWidget {
     final double km = center.distanceMeters / 1000.0;
     final double? seconds = center.travelTimeSeconds;
     if (seconds == null) {
-      return '${km.toStringAsFixed(1)} km';
+      // Aucun temps de trajet du fournisseur. On signale le mode dégradé
+      // (qualité « ESTIMATED ») pour ne pas laisser croire à un simple manque.
+      final String suffix =
+          center.travelTimeQuality == 'ESTIMATED' ? ' · temps estimé' : '';
+      return '${km.toStringAsFixed(1)} km$suffix';
     }
     final int minutes = (seconds / 60).round().clamp(1, 999);
     return '${km.toStringAsFixed(1)} km · ~$minutes min';

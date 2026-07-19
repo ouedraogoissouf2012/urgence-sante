@@ -33,6 +33,10 @@ class ExternalMapNavigationLauncher implements NavigationLauncher {
     }
     final Uri web = Uri.parse(
         'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude');
-    await launchUrl(web, mode: LaunchMode.externalApplication);
+    // Repli web AUSSI gardé : sur un appareil sans handler (kiosque), lancer
+    // sans vérifier lèverait une exception non gérée dans un chemin d'urgence.
+    if (await canLaunchUrl(web)) {
+      await launchUrl(web, mode: LaunchMode.externalApplication);
+    }
   }
 }

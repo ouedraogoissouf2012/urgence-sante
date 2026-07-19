@@ -12,9 +12,18 @@ import org.springframework.stereotype.Component;
 /**
  * Relais de l'outbox : publie les événements en attente puis les marque
  * publiés. Un échec laisse l'événement en attente (attempts++) : REPRISE au
- * prochain passage. Livraison AU MOINS UNE FOIS — si une panne survient entre
- * publication et marquage, l'événement est republié : les consommateurs
- * dédupliquent par {@code eventId}.
+ * prochain passage.
+ *
+ * <p>Garantie : livraison AU MOINS UNE FOIS. Si une panne survient entre la
+ * publication et le marquage, l'événement est republié — un {@code eventId}
+ * stable est fourni pour permettre la déduplication. La consommation
+ * idempotente (table de déduplication côté consommateur) reste À FOURNIR :
+ * aucun consommateur idempotent n'est livré ici. Dette tracée.
+ *
+ * <p>Ordonnancement mono-instance : ce relais suppose une seule instance
+ * active. En multi-instances, il faudrait un verrou (ex.
+ * {@code FOR UPDATE SKIP LOCKED}) pour éviter les doubles publications
+ * concurrentes — hors périmètre du MVP mono-instance.
  */
 @Component
 public class OutboxRelay {

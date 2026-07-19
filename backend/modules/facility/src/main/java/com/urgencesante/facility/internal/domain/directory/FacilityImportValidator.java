@@ -13,8 +13,12 @@ import java.util.regex.Pattern;
  */
 public final class FacilityImportValidator {
 
-    /** Téléphone ivoirien : +225 optionnel puis 10 chiffres (post-2021). */
-    private static final Pattern CI_PHONE = Pattern.compile("(\\+225)?[0-9]{10}");
+    /**
+     * Téléphone ivoirien : +225 optionnel puis 10 chiffres commençant par 0
+     * (numérotation post-2021 : 01/05/07 mobile, 21/25/27 fixe). Rejette les
+     * suites triviales comme « 0000000000 » (préfixe opérateur invalide).
+     */
+    private static final Pattern CI_PHONE = Pattern.compile("(\\+225)?0[157]\\d{8}|(\\+225)?2[157]\\d{8}");
 
     private final Predicate<String> knownService;
 

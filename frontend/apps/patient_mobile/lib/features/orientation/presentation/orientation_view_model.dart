@@ -88,11 +88,16 @@ class OrientationViewModel extends Notifier<OrientationState> {
       );
       return;
     }
+    // Hors ligne : on ne dispose pas d'une position fiable du patient. On
+    // efface toute position (y compris le repli « approximatif ») pour ne pas
+    // afficher une carte trompeuse ni un bandeau « position approximative »
+    // contradictoire avec des distances issues du cache.
     state = state.copyWith(
       phase: OrientationPhase.results,
       results: cached.value,
       offlineResults: true,
       offlineSyncedAt: cached.syncedAt,
+      clearPosition: true,
     );
   }
 

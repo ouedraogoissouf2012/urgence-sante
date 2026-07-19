@@ -84,6 +84,25 @@ class CircuitBreakerTest {
     }
 
     @Test
+    void semi_ouvert_n_autorise_qu_un_seul_essai_concurrent() {
+        breaker.recordFailure();
+        breaker.recordFailure();
+        breaker.recordFailure();
+        clock.advance(Duration.ofSeconds(31));
+
+        // Le premier passage en semi-ouvert autorise un essai...
+        assertThat(breaker.allowRequest()).isTrue();
+        // ...mais les appels concurrents suivants sont refusés tant que l'essai
+        // n'est pas résolu : le fournisseur en reprise n'est pas martelé.
+        assertThat(breaker.allowRequest()).isFalse();
+        assertThat(breaker.allowRequest()).isFalse();
+
+        // Une fois l'essai réussi, le circuit se referme et autorise à nouveau.
+        breaker.recordSuccess();
+        assertThat(breaker.allowRequest()).isTrue();
+    }
+
+    @Test
     void semi_ouvert_puis_echec_rouvre_immediatement() {
         breaker.recordFailure();
         breaker.recordFailure();

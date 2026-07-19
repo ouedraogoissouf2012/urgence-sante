@@ -26,6 +26,8 @@ public final class CircuitBreaker {
     private State state = State.CLOSED;
     private int consecutiveFailures = 0;
     private Instant openedAt;
+    /** Vrai quand un essai de reprise (semi-ouvert) est déjà en vol. */
+    private boolean trialInFlight = false;
 
     public CircuitBreaker(int failureThreshold, Duration openDuration, Clock clock) {
         if (failureThreshold < 1) {
@@ -36,24 +38,41 @@ public final class CircuitBreaker {
         this.clock = Objects.requireNonNull(clock);
     }
 
-    /** Vrai si un appel peut être tenté (FERMÉ, ou essai SEMI-OUVERT). */
+    /**
+     * Vrai si un appel peut être tenté (FERMÉ, ou UNIQUE essai SEMI-OUVERT).
+     *
+     * <p>En semi-ouvert, un seul appel d'essai est autorisé à la fois : les
+     * appels concurrents suivants sont refusés tant que l'essai n'a pas été
+     * résolu par {@link #recordSuccess()} ou {@link #recordFailure()} — le
+     * fournisseur en cours de reprise n'est jamais martelé.
+     */
     public synchronized boolean allowRequest() {
         if (state == State.OPEN
                 && Duration.between(openedAt, clock.instant()).compareTo(openDuration) >= 0) {
             state = State.HALF_OPEN;
+            trialInFlight = false;
         }
-        return state != State.OPEN;
+        if (state == State.HALF_OPEN) {
+            if (trialInFlight) {
+                return false;
+            }
+            trialInFlight = true;
+            return true;
+        }
+        return state == State.CLOSED;
     }
 
     /** Signale un succès : referme le circuit. */
     public synchronized void recordSuccess() {
         consecutiveFailures = 0;
+        trialInFlight = false;
         state = State.CLOSED;
     }
 
     /** Signale un échec : ouvre le circuit au seuil, ou depuis SEMI-OUVERT. */
     public synchronized void recordFailure() {
         consecutiveFailures++;
+        trialInFlight = false;
         if (state == State.HALF_OPEN || consecutiveFailures >= failureThreshold) {
             state = State.OPEN;
             openedAt = clock.instant();

@@ -1,15 +1,17 @@
 package com.urgencesante.security;
 
+import com.urgencesante.identity.IdentityFacade;
 import java.time.Clock;
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * Assemblage de la sécurité du portail : limiteurs de débit (horloge injectée)
- * du filtre {@link PortalSecurityFilter}. Valeurs configurables par
- * l'environnement.
+ * et {@link PortalSecurityInterceptor}. L'enregistrement MVC est fait par
+ * {@link PortalSecurityWebConfig}. Valeurs configurables par l'environnement.
  */
 @Configuration
 public class SecurityConfiguration {
@@ -30,5 +32,14 @@ public class SecurityConfiguration {
             @Value("${security.portal.rate.updates-per-principal:60}") int capacity,
             @Value("${security.portal.rate.window-ms:60000}") long windowMs) {
         return new RateLimiter(capacity, Duration.ofMillis(windowMs), clock);
+    }
+
+    @Bean
+    PortalSecurityInterceptor portalSecurityInterceptor(
+            IdentityFacade identityFacade,
+            @Qualifier("authAttemptsPerIp") RateLimiter authAttemptsPerIp,
+            @Qualifier("updatesPerPrincipal") RateLimiter updatesPerPrincipal) {
+        return new PortalSecurityInterceptor(
+                identityFacade, authAttemptsPerIp, updatesPerPrincipal);
     }
 }

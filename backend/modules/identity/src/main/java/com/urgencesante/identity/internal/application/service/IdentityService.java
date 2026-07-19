@@ -33,6 +33,6 @@ public class IdentityService implements AuthenticatePortalUseCase {
 
     private static PortalPrincipalView toPrincipal(PortalCredential credential) {
         return new PortalPrincipalView(
-                credential.label(), credential.role(), credential.facilityId());
+                credential.id(), credential.label(), credential.role(), credential.facilityId());
     }
 }

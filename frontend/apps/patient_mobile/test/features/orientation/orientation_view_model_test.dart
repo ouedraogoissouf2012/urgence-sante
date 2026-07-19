@@ -139,6 +139,38 @@ void main() {
     expect(state().locationFailure, LocationFailure.denied);
   });
 
+  test('dégradé approximatif PUIS panne réseau : pas d\'état contradictoire', () async {
+    // Refus de localisation → recherche approximative → mais le réseau tombe.
+    location.denied = true;
+    repository.failRecommend = true;
+    repository.knownCenters = Cached.fromStore(
+      const [
+        RecommendedCenter(
+          facilityId: 'id-1',
+          name: 'CHU',
+          latitude: 5.3496,
+          longitude: -3.9851,
+          distanceMeters: 2800,
+          status: 'UNKNOWN',
+          explanation: 'données locales',
+        ),
+      ],
+      syncedAt: DateTime.utc(2026, 7, 19, 9),
+    );
+    viewModel();
+    await flush();
+    await viewModel().searchFor(need);
+
+    await viewModel().searchWithApproximatePosition();
+
+    // Le repli hors ligne neutralise « approximatif » et la position :
+    // aucun bandeau contradictoire, aucune carte trompeuse.
+    expect(state().phase, OrientationPhase.results);
+    expect(state().offlineResults, isTrue);
+    expect(state().approximatePosition, isFalse);
+    expect(state().hasPosition, isFalse);
+  });
+
   test('parcours dégradé : recherche sans position précise après refus', () async {
     location.denied = true;
     repository.results = const [center];
