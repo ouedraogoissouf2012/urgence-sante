@@ -57,3 +57,11 @@ INSERT INTO facility_service (facility_id, service_code) VALUES
   ('11111111-0000-0000-0000-000000000014', 'maternity'),
   ('11111111-0000-0000-0000-000000000015', 'maternity'),
   ('11111111-0000-0000-0000-000000000015', 'pediatrics');
+
+-- Identifiant de démonstration : jeton ADMIN (régulation type SAMU) autorisé à
+-- mettre à jour tout établissement. Le jeton en clair est « demo-samu-admin-2026 »
+-- (empreinte SHA-256 ci-dessous) — usage DÉMO uniquement, jamais en production.
+INSERT INTO portal_credential (id, label, token_hash, role, facility_id, active) VALUES
+  ('22222222-0000-0000-0000-000000000001', '[DÉMO] Régulation SAMU',
+   '7c0cc15a3c14dd8d28ef14e73235e2ff07c4ed2ebcb4a6bd00c52941751cbc33', 'ADMIN', NULL, TRUE)
+ON CONFLICT (id) DO NOTHING;

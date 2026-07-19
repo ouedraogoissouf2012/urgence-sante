@@ -145,6 +145,8 @@ class AvailabilityApi {
 
   /// Mettre à jour le statut d'un service (agent hospitalier)
   ///
+  /// Réservé au portail hospitalier authentifié. Nécessite un jeton porteur (rôle opérateur de l'établissement visé, ou administrateur). Débit limité.
+  ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
@@ -184,6 +186,8 @@ class AvailabilityApi {
   }
 
   /// Mettre à jour le statut d'un service (agent hospitalier)
+  ///
+  /// Réservé au portail hospitalier authentifié. Nécessite un jeton porteur (rôle opérateur de l'établissement visé, ou administrateur). Débit limité.
   ///
   /// Parameters:
   ///

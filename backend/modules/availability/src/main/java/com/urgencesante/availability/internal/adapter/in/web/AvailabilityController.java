@@ -23,8 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Adaptateur entrant REST de la disponibilité. Conforme au contrat OpenAPI.
  *
- * <p>Note : la mise à jour sera protégée par le module identity (authentification
- * de l'agent) lorsqu'il sera disponible — dette tracée.
+ * <p>La mise à jour (PUT) est protégée à l'assemblage par le filtre de sécurité
+ * du portail (module identity) : jeton porteur, portée par établissement et
+ * limitation de débit (401/403/429). Les lectures restent publiques.
  */
 @RestController
 @RequestMapping("/api/v1/facilities/{facilityId}/availability")
