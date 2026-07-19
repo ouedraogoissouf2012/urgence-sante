@@ -27,9 +27,19 @@ public class MedicalServiceController {
         this.mapper = mapper;
     }
 
+    /** Longueur maximale du filtre de catégorie (alignée sur le contrat). */
+    private static final int MAX_CATEGORY_LENGTH = 64;
+
     @GetMapping
     public List<MedicalServiceResponse> list(@RequestParam(required = false) String category) {
-        return listMedicalServices.list(Optional.ofNullable(category)).stream()
+        if (category != null && category.length() > MAX_CATEGORY_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Catégorie trop longue (max " + MAX_CATEGORY_LENGTH + " caractères)");
+        }
+        // Une catégorie blanche est traitée comme absente (pas de filtre).
+        final Optional<String> filter =
+                Optional.ofNullable(category).map(String::trim).filter(value -> !value.isEmpty());
+        return listMedicalServices.list(filter).stream()
                 .map(mapper::toResponse)
                 .toList();
     }

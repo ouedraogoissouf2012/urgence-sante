@@ -29,4 +29,13 @@ class GeoLocationTest {
                 .isInstanceOf(FacilityValidationException.class)
                 .hasMessageContaining("Longitude");
     }
+
+    @Test
+    void refuse_les_coordonnees_non_finies() {
+        assertThatThrownBy(() -> new GeoLocation(Double.NaN, 0.0))
+                .isInstanceOf(FacilityValidationException.class)
+                .hasMessageContaining("non finies");
+        assertThatThrownBy(() -> new GeoLocation(0.0, Double.POSITIVE_INFINITY))
+                .isInstanceOf(FacilityValidationException.class);
+    }
 }

@@ -31,7 +31,9 @@ class MedicalServiceControllerTest {
     void setUp() {
         final MedicalServiceController controller =
                 new MedicalServiceController(listMedicalServices, new MedicalServiceWebMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new MedicalServiceExceptionHandler())
+                .build();
     }
 
     @Test
@@ -44,5 +46,12 @@ class MedicalServiceControllerTest {
                 .andExpect(jsonPath("$[0].code").value("maternity"))
                 .andExpect(jsonPath("$[0].label").value("Maternité"))
                 .andExpect(jsonPath("$[0].category").value("maternal"));
+    }
+
+    @Test
+    void retourne_400_si_categorie_trop_longue() throws Exception {
+        mockMvc.perform(get("/api/v1/medical-services").param("category", "x".repeat(65)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requête invalide"));
     }
 }

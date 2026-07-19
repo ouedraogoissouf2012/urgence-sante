@@ -64,4 +64,21 @@ class OrientationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Requête invalide"));
     }
+
+    @Test
+    void retourne_400_si_limite_au_dela_du_maximum() throws Exception {
+        mockMvc.perform(get("/api/v1/orientation")
+                        .param("lat", "5.35").param("lon", "-4.0")
+                        .param("service", "maternity").param("limit", "21"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requête invalide"));
+    }
+
+    @Test
+    void retourne_400_si_rayon_au_dela_du_maximum() throws Exception {
+        mockMvc.perform(get("/api/v1/orientation")
+                        .param("lat", "5.35").param("lon", "-4.0")
+                        .param("service", "maternity").param("radiusMeters", "100001"))
+                .andExpect(status().isBadRequest());
+    }
 }

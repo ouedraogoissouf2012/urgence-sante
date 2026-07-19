@@ -96,4 +96,20 @@ class FacilityControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Requête invalide"));
     }
+
+    @Test
+    void retourne_400_si_rayon_au_dela_du_maximum() throws Exception {
+        mockMvc.perform(get("/api/v1/facilities")
+                        .param("lat", "5.35").param("lon", "-4.0")
+                        .param("radiusMeters", "100001"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requête invalide"));
+    }
+
+    @Test
+    void retourne_400_si_latitude_NaN() throws Exception {
+        mockMvc.perform(get("/api/v1/facilities")
+                        .param("lat", "NaN").param("lon", "-4.0"))
+                .andExpect(status().isBadRequest());
+    }
 }

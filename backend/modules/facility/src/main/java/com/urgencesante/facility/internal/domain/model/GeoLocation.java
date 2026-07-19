@@ -8,6 +8,11 @@ import com.urgencesante.facility.internal.domain.exception.FacilityValidationExc
 public record GeoLocation(double latitude, double longitude) {
 
     public GeoLocation {
+        // NaN/Infini échappent aux comparaisons de bornes : rejet explicite.
+        if (!Double.isFinite(latitude) || !Double.isFinite(longitude)) {
+            throw new FacilityValidationException(
+                    "Coordonnées non finies (NaN/Infini) refusées");
+        }
         if (latitude < -90.0 || latitude > 90.0) {
             throw new FacilityValidationException(
                     "Latitude hors bornes [-90, 90] : " + latitude);

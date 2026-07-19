@@ -55,6 +55,13 @@ class FacilityTest {
     }
 
     @Test
+    void refuse_un_code_de_service_trop_long() {
+        assertThatThrownBy(() -> MedicalServiceCode.of("x".repeat(65)))
+                .isInstanceOf(FacilityValidationException.class)
+                .hasMessageContaining("64");
+    }
+
+    @Test
     void l_egalite_repose_sur_l_identite() {
         final Facility a = Facility.of(AN_ID, "Nom A", A_LOCATION, null, Set.of());
         final Facility b = Facility.of(AN_ID, "Nom B", new GeoLocation(0, 0), "123", Set.of());
