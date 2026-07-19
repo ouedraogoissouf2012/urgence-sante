@@ -34,8 +34,20 @@ class GeolocatorLocationService implements LocationService {
       );
     }
 
-    final Position position = await Geolocator.getCurrentPosition();
-    return UserPosition(latitude: position.latitude, longitude: position.longitude);
+    // Délai borné : sans réponse (permission jamais accordée, GPS lent), on
+    // échoue proprement au lieu de laisser l'utilisateur bloqué sur « Recherche… ».
+    // Le parcours dégradé (« Continuer sans position précise ») prend le relais.
+    try {
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(timeLimit: Duration(seconds: 12)),
+      );
+      return UserPosition(latitude: position.latitude, longitude: position.longitude);
+    } on Exception {
+      throw const LocationUnavailableException(
+        "Impossible d'obtenir votre position à temps.",
+        LocationFailure.denied,
+      );
+    }
   }
 
   @override
