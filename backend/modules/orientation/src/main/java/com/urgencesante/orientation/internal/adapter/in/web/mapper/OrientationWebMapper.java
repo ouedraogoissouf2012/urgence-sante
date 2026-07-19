@@ -17,6 +17,7 @@ public class OrientationWebMapper {
                 recommendation.phone(),
                 Math.round(recommendation.distanceMeters() * 10.0) / 10.0,
                 recommendation.travelTimeSeconds(),
+                recommendation.travelTimeQuality().name(),
                 recommendation.status(),
                 recommendation.explanation());
     }

@@ -31,14 +31,20 @@ class OrientationServiceTest {
     private final List<CandidateFacilityPort.CandidateFacility> candidates = new ArrayList<>();
     private final Map<UUID, AvailabilityLookupPort.ServiceStatus> statuses = new HashMap<>();
     private boolean travelTimeAvailable = true;
+    private int travelTimeCalls = 0;
 
     private final OrientationService service = new OrientationService(
             serviceCode -> !"unknown-service".equals(serviceCode),
             (serviceCode, lat, lon, radius, limit) -> List.copyOf(candidates),
             (facilityId, serviceCode) -> Optional.ofNullable(statuses.get(facilityId)),
-            (fromLat, fromLon, toLat, toLon) -> travelTimeAvailable
-                    ? OptionalDouble.of(600.0)
-                    : OptionalDouble.empty(),
+            (fromLat, fromLon, destinations) -> {
+                travelTimeCalls++;
+                return destinations.stream()
+                        .map(d -> travelTimeAvailable
+                                ? OptionalDouble.of(600.0)
+                                : OptionalDouble.empty())
+                        .toList();
+            },
             List.of(new AvailabilityStrategy(), new ProximityStrategy()));
 
     private UUID givenCandidate(String name, double lat, double lon, String status, String freshness) {
@@ -93,7 +99,25 @@ class OrientationServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).status()).isEqualTo("UNKNOWN");
         assertThat(result.get(0).travelTimeSeconds()).isNull();
+        assertThat(result.get(0).travelTimeQuality())
+                .isEqualTo(com.urgencesante.orientation.internal.domain.model.TravelTimeQuality.ESTIMATED);
         assertThat(result.get(0).explanation()).contains("estimé");
+    }
+
+    @Test
+    void un_seul_appel_de_trajet_quel_que_soit_le_nombre_de_candidats() {
+        for (int i = 0; i < 5; i++) {
+            givenCandidate("Centre " + i, 5.30 + i * 0.01, -4.00, "AVAILABLE", "FRESH");
+        }
+
+        final List<Recommendation> result = service.recommend(QUERY);
+
+        assertThat(result).hasSize(5);
+        assertThat(travelTimeCalls)
+                .as("la latence ne doit pas dépendre du nombre de candidats")
+                .isEqualTo(1);
+        assertThat(result.get(0).travelTimeQuality())
+                .isEqualTo(com.urgencesante.orientation.internal.domain.model.TravelTimeQuality.REAL);
     }
 
     @Test

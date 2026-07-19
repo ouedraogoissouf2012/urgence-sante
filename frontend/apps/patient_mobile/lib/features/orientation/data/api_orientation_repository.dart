@@ -42,6 +42,7 @@ class ApiOrientationRepository implements OrientationRemote {
               phone: r.phone,
               distanceMeters: r.distanceMeters,
               travelTimeSeconds: r.travelTimeSeconds,
+              travelTimeQuality: r.travelTimeQuality.value,
               status: r.status.value,
               explanation: r.explanation,
             ))
