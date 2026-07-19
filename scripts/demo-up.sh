@@ -54,8 +54,10 @@ start_backend() {
     java -jar "$JAR" --spring.profiles.active=local --server.port="$DEMO_PORT" \
     > /tmp/urgence-sante-demo.log 2>&1 &
   echo $! > /tmp/urgence-sante-demo.pid
+  # Readiness applicative (inclut la base) plutôt qu'un endpoint métier.
   for _ in $(seq 1 45); do
-    curl -sf "http://localhost:$DEMO_PORT/api/v1/medical-services" >/dev/null 2>&1 && return 0
+    curl -sf "http://localhost:$DEMO_PORT/actuator/health/readiness" 2>/dev/null \
+      | grep -q '"UP"' && return 0
     kill -0 "$(cat /tmp/urgence-sante-demo.pid)" 2>/dev/null || return 1
     sleep 2
   done

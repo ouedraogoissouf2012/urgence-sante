@@ -1,0 +1,12 @@
+# Profil production : logs STRUCTURÉS (ECS JSON) pour l'agrégation, détails de
+# santé masqués aux clients non authentifiés.
+logging:
+  structured:
+    format:
+      console: ecs
+
+management:
+  endpoint:
+    health:
+      show-components: never
+      show-details: never

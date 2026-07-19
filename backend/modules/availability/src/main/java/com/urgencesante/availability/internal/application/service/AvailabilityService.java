@@ -71,8 +71,8 @@ public class AvailabilityService
         final UUID eventId = UUID.randomUUID();
         final AvailabilityUpdated event = new AvailabilityUpdated(
                 eventId,
-                // Corrélation de requête complète prévue avec l'observabilité (#46).
-                eventId.toString(),
+                // Corrélation de la requête d'origine ; repli sur l'eventId.
+                command.correlationId() != null ? command.correlationId() : eventId.toString(),
                 availability.facilityId(),
                 availability.serviceCode(),
                 availability.status().name(),
