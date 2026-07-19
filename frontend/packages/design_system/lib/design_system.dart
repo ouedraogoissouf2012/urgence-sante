@@ -8,5 +8,6 @@ export 'src/components/status_badge.dart';
 export 'src/theme/app_theme.dart';
 export 'src/tokens/app_colors.dart';
 export 'src/tokens/app_radius.dart';
+export 'src/tokens/app_sizing.dart';
 export 'src/tokens/app_spacing.dart';
 export 'src/tokens/app_typography.dart';

@@ -5,8 +5,13 @@ import 'package:flutter/material.dart';
 /// Toutes les couleurs des applications proviennent d'ici (aucune couleur codée
 /// en dur dans les widgets applicatifs).
 abstract final class AppColors {
-  /// Amorce du thème patient : contexte d'urgence médicale.
-  static const Color patientSeed = Color(0xFFB00020);
+  /// Amorce du thème patient : corail médical.
+  ///
+  /// Changer cette seule valeur repeint tout le thème patient (couleur
+  /// primaire, bordures de sélection, boutons remplis) via
+  /// [ColorScheme.fromSeed] dans `AppTheme`. C'est le point de contrôle
+  /// central de l'identité visuelle de l'application patient.
+  static const Color patientSeed = Color(0xFFE8483F);
 
   /// Amorce du thème hôpital : contexte institutionnel.
   static const Color hospitalSeed = Color(0xFF00579B);
@@ -21,5 +26,10 @@ abstract final class AppColors {
   static const Color statusUnknown = Color(0xFF9E9E9E);
 
   /// Couleur du bouton d'appel d'urgence (contraste AA sur blanc).
+  ///
+  /// Volontairement distincte de [patientSeed] : l'appel des secours
+  /// (SAMU 185, Pompiers 180) est une action vitale qui doit conserver une
+  /// couleur d'alerte forte et reconnaissable, indépendante de l'accent
+  /// d'interface. Ne pas dériver de la couleur primaire du thème.
   static const Color emergencyCall = Color(0xFFB00020);
 }

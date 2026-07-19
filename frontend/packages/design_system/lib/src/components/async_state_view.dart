@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../tokens/app_sizing.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 
@@ -34,12 +35,12 @@ class AsyncStateView extends StatelessWidget {
           ],
         ],
       _Kind.empty => [
-          const Icon(Icons.search_off, size: 48),
+          const Icon(Icons.search_off, size: AppSizing.iconLarge),
           const SizedBox(height: AppSpacing.md),
           Text(message!, style: AppTypography.body, textAlign: TextAlign.center),
         ],
       _Kind.error => [
-          const Icon(Icons.error_outline, size: 48),
+          const Icon(Icons.error_outline, size: AppSizing.iconLarge),
           const SizedBox(height: AppSpacing.md),
           Text(message!, style: AppTypography.body, textAlign: TextAlign.center),
           if (onRetry != null) ...[
