@@ -42,16 +42,16 @@ class RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: selected
-          ? RoundedRectangleBorder(
-              borderRadius: AppRadius.card,
-              side: BorderSide(
-                  color: Theme.of(context).colorScheme.primary, width: 2),
-            )
-          : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.cardLarge,
+        side: selected
+            ? BorderSide(
+                color: Theme.of(context).colorScheme.primary, width: 2)
+            : BorderSide.none,
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.card,
+        borderRadius: AppRadius.cardLarge,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
