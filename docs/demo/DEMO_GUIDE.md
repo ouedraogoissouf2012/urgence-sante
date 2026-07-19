@@ -124,14 +124,24 @@ itinéraire/appel → **panne réseau/hors ligne**) est prouvé par
 
 ## APK Android
 
-> ⚠️ **Dette tracée.** L'APK n'est pas fourni comme binaire téléchargeable dans
-> cet environnement : le poste n'a pas le SDK Android installé et la CI GitHub
-> Actions n'est pas financée (voir issue #35). Le job CI **« APK Android »**
-> existe et publie l'artefact `patient-mobile-debug-apk` dès que les runners
-> sont disponibles. Build local (SDK requis), depuis `frontend/apps/patient_mobile` :
-> ```bash
-> flutter build apk --debug -t lib/main_development.dart
-> ```
+**APK de démonstration téléchargeable** (build debug, cible `main_development`) :
+[Release `mvp-demo-apk`](https://github.com/ouedraogoissouf2012/urgence-sante/releases/tag/mvp-demo-apk)
+→ `urgence-sante-patient-mvp-debug.apk` (~151 Mo).
+
+> ⚠️ Debug + données simulées : à installer sur un appareil de test, avec le
+> backend de démo joignable (régler `API_BASE_URL` au build pour un appareil
+> physique — voir le tableau du scénario A).
+
+Reconstruire localement (SDK Android requis), depuis `frontend/apps/patient_mobile` :
+```bash
+flutter build apk --debug -t lib/main_development.dart
+```
+
+> **Windows — chemin non-ASCII :** si le chemin du dépôt contient un caractère
+> accentué (ici « à » dans « propre à moi »), le compilateur de shaders Flutter
+> échoue. Construire depuis un **chemin ASCII** (ex. un `git worktree` sous
+> `C:\tmp\...`). Le job CI **« APK Android »** publie aussi l'artefact quand les
+> runners sont disponibles.
 
 ## Limites assumées du MVP
 
