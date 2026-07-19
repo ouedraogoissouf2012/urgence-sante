@@ -71,9 +71,13 @@ docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
   psql -q -U "${POSTGRES_USER:-urgence_sante}" -d "${POSTGRES_DB:-urgence_sante}" \
   < infrastructure/demo/seed-demo.sql
 
-echo "▶ 5/5 Statuts initiaux (via l'API, comme un agent)"
+echo "▶ 5/5 Statuts initiaux (via l'API, comme un agent authentifié)"
+# Jeton ADMIN de démonstration (voir seed-demo.sql). L'endpoint de mise à jour
+# exige désormais une authentification (issue #42).
+DEMO_TOKEN="${DEMO_PORTAL_TOKEN:-demo-samu-admin-2026}"
 put() {
   curl -sf -X PUT "http://localhost:$DEMO_PORT/api/v1/facilities/$1/availability/$2" \
+    -H "Authorization: Bearer $DEMO_TOKEN" \
     -H "Content-Type: application/json" -d "{\"status\":\"$3\"}" >/dev/null
 }
 put 11111111-0000-0000-0000-000000000001 maternity AVAILABLE

@@ -159,6 +159,12 @@ paths:
       tags: [Availability]
       operationId: updateAvailability
       summary: Mettre à jour le statut d'un service (agent hospitalier)
+      description: >-
+        Réservé au portail hospitalier authentifié. Nécessite un jeton porteur
+        (rôle opérateur de l'établissement visé, ou administrateur). Débit
+        limité.
+      security:
+        - portalBearer: []
       parameters:
         - $ref: '#/components/parameters/FacilityIdParam'
         - name: serviceCode
@@ -182,8 +188,26 @@ paths:
                 $ref: '#/components/schemas/ServiceAvailability'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Jeton du portail absent ou invalide.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Agent non autorisé sur cet établissement.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '422':
           description: Le service n'est pas offert par cet établissement.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Débit dépassé.
           content:
             application/problem+json:
               schema:
@@ -313,6 +337,15 @@ paths:
           $ref: '#/components/responses/BadRequest'
 
 components:
+  securitySchemes:
+    portalBearer:
+      type: http
+      scheme: bearer
+      description: >-
+        Jeton porteur du portail hospitalier. Rôle opérateur (portée sur son
+        établissement) ou administrateur (portée globale). N'est requis que
+        pour les opérations d'écriture du portail ; les endpoints patient
+        restent publics.
   parameters:
     PageParam:
       name: page
