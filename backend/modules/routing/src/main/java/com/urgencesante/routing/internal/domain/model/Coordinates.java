@@ -6,6 +6,10 @@ import com.urgencesante.routing.internal.domain.exception.RoutingValidationExcep
 public record Coordinates(double latitude, double longitude) {
 
     public Coordinates {
+        // NaN/Infini échappent aux comparaisons de bornes : rejet explicite.
+        if (!Double.isFinite(latitude) || !Double.isFinite(longitude)) {
+            throw new RoutingValidationException("Coordonnées non finies (NaN/Infini) refusées");
+        }
         if (latitude < -90.0 || latitude > 90.0) {
             throw new RoutingValidationException("Latitude hors bornes [-90, 90] : " + latitude);
         }

@@ -26,10 +26,15 @@ public record FindFacilitiesQuery(
         if (near.isPresent() && radiusMeters.isEmpty()) {
             throw new IllegalArgumentException("Un rayon est requis lorsqu'une position est fournie");
         }
-        if (radiusMeters.isPresent() && radiusMeters.get() < 1) {
-            throw new IllegalArgumentException("Le rayon doit être >= 1 mètre");
+        if (radiusMeters.isPresent()
+                && (radiusMeters.get() < 1 || radiusMeters.get() > MAX_RADIUS_METERS)) {
+            throw new IllegalArgumentException(
+                    "Le rayon doit être dans [1, " + MAX_RADIUS_METERS + "] mètres");
         }
     }
+
+    /** Rayon maximal de recherche (aligné sur le contrat OpenAPI). */
+    public static final int MAX_RADIUS_METERS = 100_000;
 
     /** Vrai si la recherche doit être triée par proximité. */
     public boolean isProximitySearch() {

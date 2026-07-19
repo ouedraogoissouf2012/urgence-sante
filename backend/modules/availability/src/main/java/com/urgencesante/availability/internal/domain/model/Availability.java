@@ -29,11 +29,19 @@ public final class Availability {
         return new Availability(facilityId, serviceCode, status, updatedAt);
     }
 
+    /** Longueur maximale d'un code de service (alignée sur le contrat OpenAPI). */
+    public static final int MAX_SERVICE_CODE_LENGTH = 64;
+
     private static String requireServiceCode(String serviceCode) {
         if (serviceCode == null || serviceCode.isBlank()) {
             throw new AvailabilityValidationException("Le code de service est requis");
         }
-        return serviceCode.trim().toLowerCase(Locale.ROOT);
+        final String normalized = serviceCode.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() > MAX_SERVICE_CODE_LENGTH) {
+            throw new AvailabilityValidationException(
+                    "Code de service trop long (max " + MAX_SERVICE_CODE_LENGTH + " caractères)");
+        }
+        return normalized;
     }
 
     public UUID facilityId() {
