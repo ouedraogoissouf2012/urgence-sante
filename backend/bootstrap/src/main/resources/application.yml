@@ -37,10 +37,14 @@ management:
       probes:
         enabled: true
       show-components: always
-  health:
-    group:
-      readiness:
-        include: readinessState, db
+      # Groupes de santé (chemin exact : management.endpoint.health.group.*).
+      group:
+        readiness:
+          # La readiness inclut la base : une base indisponible la fait tomber.
+          include: readinessState,db
+          # Composants visibles (db notamment) : un opérateur/un test voit CE
+          # QUI rend l'application prête ou non.
+          show-components: always
 
 # Corrélation dans chaque ligne de log (X-Correlation-Id propagé ou généré).
 logging:
