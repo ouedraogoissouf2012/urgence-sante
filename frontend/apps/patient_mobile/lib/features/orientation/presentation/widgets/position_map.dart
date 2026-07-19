@@ -61,15 +61,15 @@ class _PositionMapState extends State<PositionMap> {
           markers: [
             Marker(
               point: position,
-              width: 44,
-              height: 44,
-              child: const Icon(Icons.my_location, size: 32),
+              width: AppSizing.markerTap,
+              height: AppSizing.markerTap,
+              child: const Icon(Icons.my_location, size: AppSizing.iconMarker),
             ),
             for (final center in widget.centers)
               Marker(
                 point: LatLng(center.latitude, center.longitude),
-                width: 44,
-                height: 44,
+                width: AppSizing.markerTap,
+                height: AppSizing.markerTap,
                 child: Semantics(
                   button: true,
                   label: 'Centre ${center.name}',
@@ -77,9 +77,13 @@ class _PositionMapState extends State<PositionMap> {
                     onTap: () => widget.onCenterTap?.call(center),
                     child: Icon(
                       Icons.location_pin,
-                      size: center.facilityId == widget.selectedCenterId ? 44 : 34,
+                      size: center.facilityId == widget.selectedCenterId
+                          ? AppSizing.markerTap
+                          : AppSizing.markerCenter,
+                      // Le centre sélectionné adopte l'accent du thème (corail) ;
+                      // les autres restent verts (disponibilité).
                       color: center.facilityId == widget.selectedCenterId
-                          ? AppColors.emergencyCall
+                          ? Theme.of(context).colorScheme.primary
                           : AppColors.statusAvailable,
                     ),
                   ),
