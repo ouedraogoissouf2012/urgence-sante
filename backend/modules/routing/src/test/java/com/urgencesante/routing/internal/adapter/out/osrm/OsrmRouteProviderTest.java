@@ -43,7 +43,8 @@ class OsrmRouteProviderTest {
             @Override public Clock withZone(java.time.ZoneId zone) { return this; }
         };
         provider = new OsrmRouteProvider(
-                builder.build(), new CircuitBreaker(3, Duration.ofSeconds(30), clock));
+                builder.build(), new CircuitBreaker(3, Duration.ofSeconds(30), clock),
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 
     @Test

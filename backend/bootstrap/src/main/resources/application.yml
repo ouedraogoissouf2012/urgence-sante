@@ -22,3 +22,27 @@ spring:
 app:
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:}
+
+# Santé et métriques.
+# - liveness : le processus est démarré ;
+# - readiness : PRÊT à servir — inclut la base de données ;
+# - osrm : signalé à part (DEGRADED n'empêche pas de servir : mode dégradé).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: always
+  health:
+    group:
+      readiness:
+        include: readinessState, db
+
+# Corrélation dans chaque ligne de log (X-Correlation-Id propagé ou généré).
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [${spring.application.name:-},%X{correlationId:-}] %logger{36} : %msg%n"

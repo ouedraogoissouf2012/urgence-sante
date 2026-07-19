@@ -35,11 +35,15 @@ public class OsrmRouteProvider implements RouteProviderPort {
 
     private final RestClient restClient;
     private final CircuitBreaker circuitBreaker;
+    private final io.micrometer.core.instrument.Counter errorCounter;
 
     public OsrmRouteProvider(
-            @Qualifier("osrmRestClient") RestClient restClient, CircuitBreaker circuitBreaker) {
+            @Qualifier("osrmRestClient") RestClient restClient,
+            CircuitBreaker circuitBreaker,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.restClient = restClient;
         this.circuitBreaker = circuitBreaker;
+        this.errorCounter = meterRegistry.counter("osrm.errors");
     }
 
     @Override
@@ -82,6 +86,7 @@ public class OsrmRouteProvider implements RouteProviderPort {
             return Optional.of(result);
         } catch (RestClientException exception) {
             circuitBreaker.recordFailure();
+            errorCounter.increment();
             LOG.warn("OSRM indisponible (circuit {}) : {}",
                     circuitBreaker.state(), exception.getMessage());
             return Optional.empty();

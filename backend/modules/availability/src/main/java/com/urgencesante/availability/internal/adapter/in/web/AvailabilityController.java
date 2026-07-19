@@ -59,8 +59,10 @@ public class AvailabilityController {
         if (request == null || request.status() == null) {
             throw new AvailabilityValidationException("Le statut est requis");
         }
-        return mapper.toResponse(updateAvailability.update(
-                new UpdateAvailabilityCommand(parseFacilityId(facilityId), serviceCode, request.status())));
+        // Corrélation posée par le filtre d'assemblage (X-Correlation-Id → MDC).
+        final String correlationId = org.slf4j.MDC.get("correlationId");
+        return mapper.toResponse(updateAvailability.update(new UpdateAvailabilityCommand(
+                parseFacilityId(facilityId), serviceCode, request.status(), correlationId)));
     }
 
     @GetMapping("/{serviceCode}/history")
