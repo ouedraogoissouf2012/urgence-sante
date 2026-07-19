@@ -45,9 +45,15 @@ class ServiceLineTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: Text(line.label, style: AppTypography.title)),
-                StatusBadge.fromApi(line.status),
+                const SizedBox(width: AppSpacing.sm),
+                // Badge à largeur bornée : repli du texte au lieu du débordement.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: StatusBadge.fromApi(line.status),
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -58,19 +64,28 @@ class ServiceLineTile extends StatelessWidget {
               runSpacing: AppSpacing.xs,
               children: [
                 for (final (value, label) in _choices)
-                  ChoiceChip(
-                    label: Text(label),
+                  Semantics(
+                    button: true,
                     selected: line.status == value,
-                    onSelected: updating ? null : (_) => onStatusSelected(value),
+                    label: 'Marquer ${line.label} : $label',
+                    child: ChoiceChip(
+                      label: Text(label),
+                      selected: line.status == value,
+                      onSelected: updating ? null : (_) => onStatusSelected(value),
+                    ),
                   ),
               ],
             ),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onHistoryRequested,
-                icon: const Icon(Icons.history),
-                label: const Text('Historique'),
+              child: Semantics(
+                button: true,
+                label: 'Historique de ${line.label}',
+                child: TextButton.icon(
+                  onPressed: onHistoryRequested,
+                  icon: const Icon(Icons.history),
+                  label: const Text('Historique'),
+                ),
               ),
             ),
           ],

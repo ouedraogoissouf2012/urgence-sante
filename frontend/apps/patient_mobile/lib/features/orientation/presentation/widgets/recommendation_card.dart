@@ -16,6 +16,9 @@ class RecommendationCard extends StatelessWidget {
     super.key,
   });
 
+  /// Largeur maximale du badge de statut avant repli du texte.
+  static const double _badgeMaxWidth = 140.0;
+
   final RecommendedCenter center;
   final bool selected;
   final VoidCallback? onTap;
@@ -51,9 +54,16 @@ class RecommendationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: Text(center.name, style: AppTypography.title)),
-                  StatusBadge.fromApi(center.status),
+                  const SizedBox(width: AppSpacing.sm),
+                  // Largeur bornée : à très grande police le texte du badge se
+                  // replie au lieu de déborder (issue #47).
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: _badgeMaxWidth),
+                    child: StatusBadge.fromApi(center.status),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -61,22 +71,32 @@ class RecommendationCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(center.explanation, style: AppTypography.caption),
               const SizedBox(height: AppSpacing.sm),
-              Row(
+              // Wrap (et non Row) : les actions passent à la ligne sur petit
+              // écran ou grande police au lieu de déborder (issue #47).
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 children: [
                   // Sans téléphone connu, l'action d'appel est absente
                   // (gestion explicite des données manquantes).
-                  if (center.phone != null) ...[
-                    OutlinedButton.icon(
-                      onPressed: onCall,
-                      icon: const Icon(Icons.call),
-                      label: const Text('Appeler'),
+                  if (center.phone != null)
+                    Semantics(
+                      button: true,
+                      label: 'Appeler ${center.name}',
+                      child: OutlinedButton.icon(
+                        onPressed: onCall,
+                        icon: const Icon(Icons.call),
+                        label: const Text('Appeler'),
+                      ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                  ],
-                  FilledButton.icon(
-                    onPressed: onNavigate,
-                    icon: const Icon(Icons.directions),
-                    label: const Text('Itinéraire'),
+                  Semantics(
+                    button: true,
+                    label: 'Itinéraire vers ${center.name}',
+                    child: FilledButton.icon(
+                      onPressed: onNavigate,
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Itinéraire'),
+                    ),
                   ),
                 ],
               ),
