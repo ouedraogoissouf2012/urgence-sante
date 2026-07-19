@@ -1,8 +1,26 @@
 # Guide de démonstration MVP — Urgence Santé
 
-> ⚠️ **Toutes les données de cette démonstration sont SIMULÉES** (établissements
-> suffixés « [DÉMO] », téléphones et statuts fictifs, coordonnées approximatives).
-> Elles ne représentent aucune information médicale réelle.
+> ⚠️ **Toutes les données de cette démonstration sont SIMULÉES.** Les 15
+> établissements portent `data_status = DEMO` en base (suffixe « [DÉMO] »,
+> téléphones et statuts fictifs, coordonnées approximatives) et le jeton du
+> portail est un jeton de démonstration. Aucune donnée réelle. Ces lignes
+> **ne peuvent pas être chargées en production** : l'import les refuse et le
+> démarrage en profil `production` échoue si des lignes `DEMO` existent
+> (issue #41).
+
+## Reproduire la démo et sa PREUVE en une commande
+
+```bash
+bash scripts/e2e-smoke.sh    # base vierge → migrations → seed → backend → parcours API mesuré
+```
+
+Le script part d'une **base PostGIS neuve**, applique les migrations (Flyway),
+charge le jeu de démonstration, démarre le backend puis exécute un parcours API
+**mesuré** (besoins, recommandation avec position et temps qualifié,
+disponibilité, sécurité du portail 401/200, itinéraire, readiness). Il écrit un
+**rapport horodaté** dans [`reports/e2e/`](../../reports/e2e/) (commit,
+environnement, latences). C'est la preuve automatisée conservée exigée par
+l'issue #48.
 
 ## Prérequis
 
@@ -66,33 +84,73 @@ raison → boutons **SAMU 185 / Pompiers 180** permanents.
 par `demo-up.sh` via `CORS_ALLOWED_ORIGINS` ; en production, seuls des domaines
 explicites sont acceptés, les motifs génériques font échouer le démarrage).*
 
-1. Écran « **Accès agent — démonstration** » : choisir *CHU de Cocody [DÉMO]*
-   (authentification réelle : phase ultérieure, module identity) ;
-2. tableau des services : la **maternité** est `Disponible` avec son horodatage ;
-3. passer la maternité à **Saturé** → mise à jour horodatée immédiate ;
-4. ouvrir l'**historique** : `SATURATED` puis `AVAILABLE`, plus récent d'abord ;
-5. relancer le scénario A : le CHU de Cocody est **déclassé** derrière un centre
+La mise à jour exige désormais une **authentification** (issue #42). Le jeu de
+démo fournit un jeton **ADMIN** de régulation : `demo-samu-admin-2026`.
+
+1. tableau des services : la **maternité** est `Disponible` avec son horodatage ;
+2. passer la maternité à **Saturé** → mise à jour horodatée immédiate ;
+3. ouvrir l'**historique** : `SATURATED` puis `AVAILABLE`, plus récent d'abord ;
+4. relancer le scénario A : le CHU de Cocody est **déclassé** derrière un centre
    mieux disponible — la boucle complète agent → patient est démontrée.
 
-Équivalent API :
+Équivalent API (jeton porteur requis ; sans jeton → `401`, hors périmètre → `403`) :
 ```bash
+TOKEN=demo-samu-admin-2026
 curl -X PUT "http://localhost:8090/api/v1/facilities/11111111-0000-0000-0000-000000000001/availability/maternity" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" -d '{"status":"SATURATED"}'
 curl "http://localhost:8090/api/v1/facilities/11111111-0000-0000-0000-000000000001/availability/maternity/history"
 ```
 
-## Performances et robustesse (constatées lors de la validation)
+## Performances et robustesse (mesurées — voir `reports/e2e/`)
 
-- `GET /orientation` (15 établissements, OSRM public joignable) : **≈ 3 s**
-  (mesuré 2,7 s — un appel OSRM par candidat ; mise en parallèle candidate à
-  une itération ultérieure) ; en mode dégradé sans OSRM, temps estimé par
-  distance et réponse bien plus rapide ;
+Protocole : `scripts/e2e-smoke.sh`, base neuve, poste de développement
+mono-instance, OSRM public, sans préchauffage. Latences **indicatives** (le
+rapport horodaté fait foi) :
+
+- `GET /orientation` : **premier appel** dominé par la latence OSRM publique
+  (mesuré ~4,3 s au démarrage à froid) ; **un seul appel groupé** OSRM Table
+  couvre tous les candidats (issue #44), la latence ne croît donc pas avec le
+  nombre de centres ; en mode dégradé (circuit ouvert) la réponse est immédiate
+  (temps estimé par distance, qualifié `ESTIMATED`) ;
+- lectures (catalogue, disponibilité, santé) : quelques dizaines de ms ;
 - recherche PostGIS (`ST_DWithin` + index GIST) : quelques millisecondes ;
 - erreurs au contrat : `400`/`404` en `application/problem+json` (RFC 9457) ;
 - statut vieilli (> 60 min) automatiquement présenté « non confirmé ».
 
+Le **parcours d'interface** complet (besoin → localisation → recommandation →
+itinéraire/appel → **panne réseau/hors ligne**) est prouvé par
+`test/parcours_complet_test.dart` (patient_mobile).
+
+## APK Android
+
+> ⚠️ **Dette tracée.** L'APK n'est pas fourni comme binaire téléchargeable dans
+> cet environnement : le poste n'a pas le SDK Android installé et la CI GitHub
+> Actions n'est pas financée (voir issue #35). Le job CI **« APK Android »**
+> existe et publie l'artefact `patient-mobile-debug-apk` dès que les runners
+> sont disponibles. Build local (SDK requis), depuis `frontend/apps/patient_mobile` :
+> ```bash
+> flutter build apk --debug -t lib/main_development.dart
+> ```
+
 ## Limites assumées du MVP
 
-- Aucune authentification (accès portail en mode démo explicite) ;
+- Authentification du portail par **jeton porteur** (démo : jeton ADMIN fourni) ;
+  un fournisseur d'identité complet reste une évolution ;
 - disponibilité saisie manuellement par les agents (pas d'interconnexion SI) ;
-- OSRM public : soumis à sa disponibilité — le mode dégradé prend le relais.
+- OSRM public : soumis à sa disponibilité — le mode dégradé prend le relais ;
+- limitation de débit **en mémoire** (mono-instance) — un limiteur partagé
+  (Redis) sera requis en multi-instances.
+
+## Inventaire des données simulées
+
+| Donnée | Nature | Isolation |
+|---|---|---|
+| 15 établissements « [DÉMO] » | fictifs (`data_status = DEMO`) | refus à l'import en prod + garde de démarrage |
+| Téléphones `+22501000000xx` | fictifs | idem |
+| Jeton `demo-samu-admin-2026` | identifiant de démonstration | seed démo uniquement |
+| Statuts initiaux | posés par `demo-up.sh` | rechargés à chaque exécution |
+
+Le **jeu de démarrage réel** (`infrastructure/directory/abidjan-starter.json`)
+est distinct : établissements publics, marqués `PROVISIONAL` (à vérifier), avec
+provenance — voir [ADR-005](../decisions/ADR-005-annuaire-perimetre.md).
