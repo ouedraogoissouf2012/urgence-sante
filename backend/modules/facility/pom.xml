@@ -21,6 +21,11 @@
             <groupId>com.urgencesante</groupId>
             <artifactId>building-blocks</artifactId>
         </dependency>
+        <!-- API publique du catalogue : validation des codes de service à l'import. -->
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>medical-service</artifactId>
+        </dependency>
 
         <!-- Adaptateur web entrant. -->
         <dependency>
