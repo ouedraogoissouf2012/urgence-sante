@@ -18,6 +18,7 @@ class Recommendation {
     this.phone,
     required this.distanceMeters,
     this.travelTimeSeconds,
+    required this.travelTimeQuality,
     required this.status,
     required this.explanation,
   });
@@ -40,7 +41,7 @@ class Recommendation {
   /// Distance à vol d'oiseau depuis la position du patient.
   double distanceMeters;
 
-  /// Temps de trajet estimé (absent si indisponible).
+  /// Temps de trajet (absent si indisponible).
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated
@@ -48,6 +49,9 @@ class Recommendation {
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
   double? travelTimeSeconds;
+
+  /// Qualification du temps présenté : REAL (fournisseur d'itinéraires), ESTIMATED (estimé depuis la distance, mode dégradé), UNAVAILABLE.
+  RecommendationTravelTimeQualityEnum travelTimeQuality;
 
   AvailabilityStatus status;
 
@@ -62,6 +66,7 @@ class Recommendation {
     other.phone == phone &&
     other.distanceMeters == distanceMeters &&
     other.travelTimeSeconds == travelTimeSeconds &&
+    other.travelTimeQuality == travelTimeQuality &&
     other.status == status &&
     other.explanation == explanation;
 
@@ -74,11 +79,12 @@ class Recommendation {
     (phone == null ? 0 : phone!.hashCode) +
     (distanceMeters.hashCode) +
     (travelTimeSeconds == null ? 0 : travelTimeSeconds!.hashCode) +
+    (travelTimeQuality.hashCode) +
     (status.hashCode) +
     (explanation.hashCode);
 
   @override
-  String toString() => 'Recommendation[facilityId=$facilityId, name=$name, location=$location, phone=$phone, distanceMeters=$distanceMeters, travelTimeSeconds=$travelTimeSeconds, status=$status, explanation=$explanation]';
+  String toString() => 'Recommendation[facilityId=$facilityId, name=$name, location=$location, phone=$phone, distanceMeters=$distanceMeters, travelTimeSeconds=$travelTimeSeconds, travelTimeQuality=$travelTimeQuality, status=$status, explanation=$explanation]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -96,6 +102,7 @@ class Recommendation {
     } else {
       json[r'travelTimeSeconds'] = null;
     }
+      json[r'travelTimeQuality'] = this.travelTimeQuality;
       json[r'status'] = this.status;
       json[r'explanation'] = this.explanation;
     return json;
@@ -120,6 +127,8 @@ class Recommendation {
         assert(json[r'location'] != null, 'Required key "Recommendation[location]" has a null value in JSON.');
         assert(json.containsKey(r'distanceMeters'), 'Required key "Recommendation[distanceMeters]" is missing from JSON.');
         assert(json[r'distanceMeters'] != null, 'Required key "Recommendation[distanceMeters]" has a null value in JSON.');
+        assert(json.containsKey(r'travelTimeQuality'), 'Required key "Recommendation[travelTimeQuality]" is missing from JSON.');
+        assert(json[r'travelTimeQuality'] != null, 'Required key "Recommendation[travelTimeQuality]" has a null value in JSON.');
         assert(json.containsKey(r'status'), 'Required key "Recommendation[status]" is missing from JSON.');
         assert(json[r'status'] != null, 'Required key "Recommendation[status]" has a null value in JSON.');
         assert(json.containsKey(r'explanation'), 'Required key "Recommendation[explanation]" is missing from JSON.');
@@ -134,6 +143,7 @@ class Recommendation {
         phone: mapValueOfType<String>(json, r'phone'),
         distanceMeters: mapValueOfType<double>(json, r'distanceMeters')!,
         travelTimeSeconds: mapValueOfType<double>(json, r'travelTimeSeconds'),
+        travelTimeQuality: RecommendationTravelTimeQualityEnum.fromJson(json[r'travelTimeQuality'])!,
         status: AvailabilityStatus.fromJson(json[r'status'])!,
         explanation: mapValueOfType<String>(json, r'explanation')!,
       );
@@ -187,8 +197,86 @@ class Recommendation {
     'name',
     'location',
     'distanceMeters',
+    'travelTimeQuality',
     'status',
     'explanation',
   };
 }
+
+/// Qualification du temps présenté : REAL (fournisseur d'itinéraires), ESTIMATED (estimé depuis la distance, mode dégradé), UNAVAILABLE.
+class RecommendationTravelTimeQualityEnum {
+  /// Instantiate a new enum with the provided [value].
+  const RecommendationTravelTimeQualityEnum._(this.value);
+
+  /// The underlying value of this enum member.
+  final String value;
+
+  @override
+  String toString() => value;
+
+  String toJson() => value;
+
+  static const REAL = RecommendationTravelTimeQualityEnum._(r'REAL');
+  static const ESTIMATED = RecommendationTravelTimeQualityEnum._(r'ESTIMATED');
+  static const UNAVAILABLE = RecommendationTravelTimeQualityEnum._(r'UNAVAILABLE');
+
+  /// List of all possible values in this [enum][RecommendationTravelTimeQualityEnum].
+  static const values = <RecommendationTravelTimeQualityEnum>[
+    REAL,
+    ESTIMATED,
+    UNAVAILABLE,
+  ];
+
+  static RecommendationTravelTimeQualityEnum? fromJson(dynamic value) => RecommendationTravelTimeQualityEnumTypeTransformer().decode(value);
+
+  static List<RecommendationTravelTimeQualityEnum> listFromJson(dynamic json, {bool growable = false,}) {
+    final result = <RecommendationTravelTimeQualityEnum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = RecommendationTravelTimeQualityEnum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [RecommendationTravelTimeQualityEnum] to String,
+/// and [decode] dynamic data back to [RecommendationTravelTimeQualityEnum].
+class RecommendationTravelTimeQualityEnumTypeTransformer {
+  factory RecommendationTravelTimeQualityEnumTypeTransformer() => _instance ??= const RecommendationTravelTimeQualityEnumTypeTransformer._();
+
+  const RecommendationTravelTimeQualityEnumTypeTransformer._();
+
+  String encode(RecommendationTravelTimeQualityEnum data) => data.value;
+
+  /// Decodes a [dynamic value][data] to a RecommendationTravelTimeQualityEnum.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  RecommendationTravelTimeQualityEnum? decode(dynamic data, {bool allowNull = true}) {
+    if (data != null) {
+      switch (data) {
+        case r'REAL': return RecommendationTravelTimeQualityEnum.REAL;
+        case r'ESTIMATED': return RecommendationTravelTimeQualityEnum.ESTIMATED;
+        case r'UNAVAILABLE': return RecommendationTravelTimeQualityEnum.UNAVAILABLE;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// Singleton [RecommendationTravelTimeQualityEnumTypeTransformer] instance.
+  static RecommendationTravelTimeQualityEnumTypeTransformer? _instance;
+}
+
 

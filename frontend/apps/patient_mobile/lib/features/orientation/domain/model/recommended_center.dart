@@ -11,6 +11,7 @@ class RecommendedCenter {
     required this.explanation,
     this.phone,
     this.travelTimeSeconds,
+    this.travelTimeQuality = 'UNAVAILABLE',
   });
 
   final String facilityId;
@@ -24,6 +25,10 @@ class RecommendedCenter {
 
   /// Temps de trajet estimé, absent si indisponible (mode dégradé).
   final double? travelTimeSeconds;
+
+  /// Qualification du temps présenté : « REAL » (fournisseur), « ESTIMATED »
+  /// (estimé depuis la distance, mode dégradé) ou « UNAVAILABLE ».
+  final String travelTimeQuality;
 
   /// Statut de disponibilité du contrat (ex. « AVAILABLE », « UNKNOWN »).
   final String status;

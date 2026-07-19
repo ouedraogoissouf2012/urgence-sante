@@ -13,6 +13,7 @@ import com.urgencesante.orientation.internal.domain.model.CandidateEvaluation;
 import com.urgencesante.orientation.internal.domain.model.GeoDistance;
 import com.urgencesante.orientation.internal.domain.model.Recommendation;
 import com.urgencesante.orientation.internal.domain.model.ScoreContribution;
+import com.urgencesante.orientation.internal.domain.model.TravelTimeQuality;
 import com.urgencesante.orientation.internal.domain.strategy.OrientationStrategy;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,9 +26,10 @@ import java.util.OptionalDouble;
  * Moteur d'orientation. Compose des stratégies (injectées) pour classer les
  * candidats sans être modifié à l'ajout d'une stratégie (principe ouvert/fermé).
  *
- * <p>Un statut de disponibilité périmé (fraîcheur STALE) est ramené à
- * « UNKNOWN » : l'information n'est pas confirmée. Le fonctionnement reste
- * dégradé mais utile si la disponibilité ou le temps de trajet manquent.
+ * <p>Les temps de trajet sont obtenus en UN SEUL appel groupé : la latence ne
+ * dépend pas du nombre de candidats, et une panne du fournisseur bascule en
+ * mode dégradé déterministe (temps estimé depuis la distance, qualifié comme
+ * tel). Un statut de disponibilité périmé (STALE) est ramené à « UNKNOWN ».
  */
 public class OrientationService implements RecommendFacilitiesUseCase {
 
@@ -58,19 +60,36 @@ public class OrientationService implements RecommendFacilitiesUseCase {
         if (!serviceCatalog.exists(query.serviceCode())) {
             throw new OrientationValidationException("Service médical inconnu : " + query.serviceCode());
         }
-        return candidateFacilityPort.findCandidates(
-                        query.serviceCode(), query.latitude(), query.longitude(),
-                        query.radiusMeters(), query.limit())
-                .stream()
-                .map(candidate -> evaluate(query, candidate))
-                .flatMap(Optional::stream)
-                .sorted(Comparator.comparingDouble(Recommendation::score).reversed()
-                        .thenComparingDouble(Recommendation::distanceMeters))
-                .limit(query.limit())
+        final List<CandidateFacility> candidates = candidateFacilityPort.findCandidates(
+                query.serviceCode(), query.latitude(), query.longitude(),
+                query.radiusMeters(), query.limit());
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        // UN appel groupé pour tous les temps de trajet.
+        final List<double[]> destinations = candidates.stream()
+                .map(candidate -> new double[] {candidate.latitude(), candidate.longitude()})
                 .toList();
+        final List<OptionalDouble> travelTimes = travelTimePort.travelTimesSeconds(
+                query.latitude(), query.longitude(), destinations);
+
+        final List<Recommendation> recommendations = new ArrayList<>();
+        for (int i = 0; i < candidates.size(); i++) {
+            final OptionalDouble travelTime = i < travelTimes.size()
+                    ? travelTimes.get(i)
+                    : OptionalDouble.empty();
+            evaluate(query, candidates.get(i), travelTime).ifPresent(recommendations::add);
+        }
+        recommendations.sort(Comparator.comparingDouble(Recommendation::score).reversed()
+                .thenComparingDouble(Recommendation::distanceMeters));
+        return recommendations.size() > query.limit()
+                ? List.copyOf(recommendations.subList(0, query.limit()))
+                : List.copyOf(recommendations);
     }
 
-    private Optional<Recommendation> evaluate(OrientationQuery query, CandidateFacility candidate) {
+    private Optional<Recommendation> evaluate(
+            OrientationQuery query, CandidateFacility candidate, OptionalDouble travelTime) {
         final Optional<ServiceStatus> availability =
                 availabilityLookupPort.lookup(candidate.facilityId(), query.serviceCode());
         final String freshness = availability.map(ServiceStatus::freshness).orElse(UNKNOWN);
@@ -80,9 +99,9 @@ public class OrientationService implements RecommendFacilitiesUseCase {
 
         final double distance = GeoDistance.meters(
                 query.latitude(), query.longitude(), candidate.latitude(), candidate.longitude());
-        final OptionalDouble travelTime = travelTimePort.travelTimeSeconds(
-                query.latitude(), query.longitude(), candidate.latitude(), candidate.longitude());
         final Double travelSeconds = travelTime.isPresent() ? travelTime.getAsDouble() : null;
+        final TravelTimeQuality quality =
+                travelSeconds != null ? TravelTimeQuality.REAL : TravelTimeQuality.ESTIMATED;
 
         final CandidateEvaluation evaluation = new CandidateEvaluation(
                 candidate.facilityId(), candidate.name(), candidate.latitude(), candidate.longitude(),
@@ -102,7 +121,7 @@ public class OrientationService implements RecommendFacilitiesUseCase {
         return Optional.of(new Recommendation(
                 candidate.facilityId(), candidate.name(),
                 candidate.latitude(), candidate.longitude(), candidate.phone(),
-                distance, travelSeconds,
+                distance, travelSeconds, quality,
                 effectiveStatus, totalScore, String.join(" · ", reasons)));
     }
 }

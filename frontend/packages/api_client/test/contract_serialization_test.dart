@@ -16,6 +16,7 @@ void main() {
       "phone": "+2250100000001",
       "distanceMeters": 2536.2,
       "travelTimeSeconds": 292.4,
+      "travelTimeQuality": "REAL",
       "status": "AVAILABLE",
       "explanation": "service disponible"
     }''';
@@ -25,6 +26,7 @@ void main() {
     expect(recommendation.name, 'CHU de Cocody');
     expect(recommendation.location.latitude, 5.3496);
     expect(recommendation.phone, '+2250100000001');
+    expect(recommendation.travelTimeQuality, RecommendationTravelTimeQualityEnum.REAL);
     expect(recommendation.status, AvailabilityStatus.AVAILABLE);
   });
 
@@ -35,6 +37,7 @@ void main() {
       "name": "Centre sans téléphone",
       "location": {"latitude": 5.30, "longitude": -4.00},
       "distanceMeters": 1200.0,
+      "travelTimeQuality": "ESTIMATED",
       "status": "UNKNOWN",
       "explanation": "disponibilité non confirmée"
     }''';

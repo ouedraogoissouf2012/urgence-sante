@@ -17,6 +17,7 @@ public record Recommendation(
         String phone,
         double distanceMeters,
         Double travelTimeSeconds,
+        TravelTimeQuality travelTimeQuality,
         String status,
         double score,
         String explanation) {

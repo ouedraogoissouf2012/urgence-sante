@@ -16,6 +16,7 @@ public record RecommendationView(
         String phone,
         double distanceMeters,
         Double travelTimeSeconds,
+        String travelTimeQuality,
         String status,
         String explanation) {
 }

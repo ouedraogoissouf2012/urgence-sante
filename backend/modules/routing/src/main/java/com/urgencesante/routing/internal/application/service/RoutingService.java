@@ -25,4 +25,12 @@ public class RoutingService implements GetRouteUseCase {
         Objects.requireNonNull(destination, "La destination est requise");
         return routeProvider.findRoute(origin, destination);
     }
+
+    /** Itinéraires groupés (un appel fournisseur pour toutes les destinations). */
+    public java.util.List<Optional<Route>> routes(
+            Coordinates origin, java.util.List<Coordinates> destinations) {
+        Objects.requireNonNull(origin, "L'origine est requise");
+        Objects.requireNonNull(destinations, "Les destinations sont requises");
+        return routeProvider.findRoutes(origin, destinations);
+    }
 }

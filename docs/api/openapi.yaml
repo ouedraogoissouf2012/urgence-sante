@@ -564,7 +564,7 @@ components:
     Recommendation:
       type: object
       description: Établissement recommandé pour le besoin exprimé.
-      required: [facilityId, name, location, distanceMeters, status, explanation]
+      required: [facilityId, name, location, distanceMeters, travelTimeQuality, status, explanation]
       properties:
         facilityId:
           type: string
@@ -583,7 +583,13 @@ components:
         travelTimeSeconds:
           type: number
           format: double
-          description: Temps de trajet estimé (absent si indisponible).
+          description: Temps de trajet (absent si indisponible).
+        travelTimeQuality:
+          type: string
+          description: >-
+            Qualification du temps présenté : REAL (fournisseur d'itinéraires),
+            ESTIMATED (estimé depuis la distance, mode dégradé), UNAVAILABLE.
+          enum: [REAL, ESTIMATED, UNAVAILABLE]
         status:
           $ref: '#/components/schemas/AvailabilityStatus'
         explanation:

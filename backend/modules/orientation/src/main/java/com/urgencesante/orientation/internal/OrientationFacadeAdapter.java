@@ -31,6 +31,7 @@ class OrientationFacadeAdapter implements OrientationFacade {
                         recommendation.phone(),
                         recommendation.distanceMeters(),
                         recommendation.travelTimeSeconds(),
+                        recommendation.travelTimeQuality().name(),
                         recommendation.status(),
                         recommendation.explanation()))
                 .toList();

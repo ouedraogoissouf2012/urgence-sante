@@ -14,4 +14,13 @@ import java.util.Optional;
 public interface RouteProviderPort {
 
     Optional<Route> findRoute(Coordinates origin, Coordinates destination);
+
+    /**
+     * Itinéraires d'une origine vers plusieurs destinations en UN SEUL appel
+     * fournisseur (OSRM Table) : la latence ne dépend pas du nombre de
+     * destinations. Retourne une liste alignée sur {@code destinations}
+     * (élément vide si l'itinéraire est indisponible).
+     */
+    java.util.List<Optional<Route>> findRoutes(
+            Coordinates origin, java.util.List<Coordinates> destinations);
 }
