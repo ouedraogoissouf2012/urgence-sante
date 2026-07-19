@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/app_colors.dart';
+import '../tokens/app_sizing.dart';
 import '../tokens/app_spacing.dart';
 
 /// Bouton d'appel d'urgence (SAMU 185, Pompiers 180).
@@ -34,7 +35,7 @@ class EmergencyCallButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.emergencyCall,
           foregroundColor: Colors.white,
-          minimumSize: const Size(120, 56),
+          minimumSize: AppSizing.emergencyButtonMin,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
