@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../../di/providers.dart';
+import 'center_detail_page.dart';
 import 'orientation_state.dart';
 import 'orientation_view_model.dart';
 import 'widgets/emergency_call_bar.dart';
@@ -25,13 +26,13 @@ class OrientationPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Urgence Santé')),
-      body: _body(state, viewModel, ref),
+      body: _body(context, state, viewModel, ref),
       bottomNavigationBar: const EmergencyCallBar(),
     );
   }
 
-  Widget _body(
-      OrientationState state, OrientationViewModel viewModel, WidgetRef ref) {
+  Widget _body(BuildContext context, OrientationState state,
+      OrientationViewModel viewModel, WidgetRef ref) {
     return switch (state.phase) {
       OrientationPhase.loadingNeeds =>
         const AsyncStateView.loading(message: 'Chargement des besoins médicaux…'),
@@ -44,7 +45,15 @@ class OrientationPage extends ConsumerWidget {
         OrientationResultsView(
           state: state,
           onNeedSelected: viewModel.searchFor,
-          onSelectCenter: (center) => viewModel.selectCenter(center.facilityId),
+          // Le tap sélectionne (synchro carte) puis ouvre la fiche détail.
+          onSelectCenter: (center) {
+            viewModel.selectCenter(center.facilityId);
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CenterDetailPage(center: center),
+              ),
+            );
+          },
           onCall: (center) =>
               ref.read(emergencyCallerProvider).call(center.phone!),
           onNavigate: (center) =>
