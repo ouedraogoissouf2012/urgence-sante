@@ -16,6 +16,9 @@ abstract final class AppSizing {
   /// Taille d'une icône illustrative (états vides, erreurs).
   static const double iconLarge = 48;
 
+  /// Taille de l'icône d'en-tête d'un écran (accueil).
+  static const double iconHero = 64;
+
   /// Taille d'une icône de marqueur cartographique.
   static const double iconMarker = 32;
 
