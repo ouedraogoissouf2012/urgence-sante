@@ -20,6 +20,9 @@ class PatientApp extends ConsumerWidget {
       title: 'Urgence Santé',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.patient(),
+      darkTheme: AppTheme.patientDark(),
+      // Suit le réglage clair/sombre du système.
+      themeMode: ThemeMode.system,
       home: consent.when(
         loading: () => const Scaffold(body: AsyncStateView.loading()),
         error: (_, _) => const OnboardingPage(),

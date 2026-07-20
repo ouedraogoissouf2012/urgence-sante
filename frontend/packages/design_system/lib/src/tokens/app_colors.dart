@@ -13,6 +13,13 @@ abstract final class AppColors {
   /// central de l'identité visuelle de l'application patient.
   static const Color patientSeed = Color(0xFFE8483F);
 
+  /// Corail vif de marque, imposé comme couleur primaire du thème patient.
+  ///
+  /// [ColorScheme.fromSeed] harmonise (et atténue) la couleur d'amorce ; on
+  /// force cette valeur exacte pour que les boutons gardent la vivacité de la
+  /// maquette validée, tout en conservant la palette harmonisée pour le reste.
+  static const Color patientAccent = Color(0xFFE5342B);
+
   /// Amorce du thème hôpital : contexte institutionnel.
   static const Color hospitalSeed = Color(0xFF00579B);
 

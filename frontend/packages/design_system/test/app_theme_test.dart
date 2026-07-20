@@ -1,4 +1,5 @@
 import 'package:design_system/design_system.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -12,6 +13,16 @@ void main() {
       patient.colorScheme.primary,
       isNot(equals(hospital.colorScheme.primary)),
     );
+  });
+
+  test('le thème patient impose le corail vif de marque', () {
+    expect(AppTheme.patient().colorScheme.primary, AppColors.patientAccent);
+  });
+
+  test('le thème sombre partage l\'accent et inverse la luminosité', () {
+    final dark = AppTheme.patientDark();
+    expect(dark.colorScheme.brightness, Brightness.dark);
+    expect(dark.colorScheme.primary, AppColors.patientAccent);
   });
 
   test('le thème light reste disponible (compatibilité)', () {
