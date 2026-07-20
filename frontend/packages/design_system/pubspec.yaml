@@ -19,3 +19,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Police serif de marque embarquée (licence Open Font). Fournie en asset pour
+  # un rendu identique hors ligne — google_fonts la détecte et évite tout
+  # téléchargement réseau au lancement (essentiel en contexte d'urgence).
+  fonts:
+    - family: Gelasio
+      fonts:
+        - asset: assets/fonts/Gelasio-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Gelasio-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Gelasio-Bold.ttf
+          weight: 700

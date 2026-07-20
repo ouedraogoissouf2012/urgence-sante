@@ -7,22 +7,41 @@ import '../tokens/app_typography.dart';
 
 /// Thèmes des applications, construits à partir des tokens.
 ///
-/// Source unique de vérité : la forme des boutons, l'arrondi des cartes, la
-/// typographie et les tailles tactiles dérivent tous des tokens du design
-/// system. Modifier un token (couleur d'amorce, rayon, taille) repeint
-/// l'ensemble des écrans sans toucher au code applicatif.
+/// Source unique de vérité : forme des boutons, arrondi des cartes, typographie
+/// et tailles tactiles dérivent des tokens du design system. Modifier un token
+/// repeint l'ensemble des écrans sans toucher au code applicatif.
 abstract final class AppTheme {
-  /// Thème de l'application patient (contexte d'urgence).
-  static ThemeData patient() => _base(AppColors.patientSeed);
+  /// Thème patient clair (contexte d'urgence).
+  static ThemeData patient() =>
+      _base(AppColors.patientSeed, AppColors.patientAccent, Brightness.light);
+
+  /// Thème patient sombre (mêmes tokens, luminosité inversée).
+  static ThemeData patientDark() =>
+      _base(AppColors.patientSeed, AppColors.patientAccent, Brightness.dark);
 
   /// Thème du portail hospitalier (contexte institutionnel).
-  static ThemeData hospital() => _base(AppColors.hospitalSeed);
+  static ThemeData hospital() =>
+      _base(AppColors.hospitalSeed, AppColors.hospitalSeed, Brightness.light);
 
   /// Thème neutre conservé pour compatibilité (équivaut au thème patient).
   static ThemeData light() => patient();
 
-  static ThemeData _base(Color seed) {
-    final ColorScheme scheme = ColorScheme.fromSeed(seedColor: seed);
+  /// Police serif de marque, embarquée en asset (aucun accès réseau).
+  static const String _serifFamily = 'Gelasio';
+  static const String _serifPackage = 'design_system';
+
+  /// Applique la police serif de marque (Gelasio) aux styles de titre.
+  ///
+  /// La police est fournie en asset du design system : rendu identique hors
+  /// ligne, sans téléchargement (essentiel en contexte d'urgence).
+  static TextStyle _serif(TextStyle base) =>
+      base.copyWith(fontFamily: _serifFamily, package: _serifPackage);
+
+  static ThemeData _base(Color seed, Color accent, Brightness brightness) {
+    final ColorScheme scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: brightness,
+    ).copyWith(primary: accent, onPrimary: Colors.white);
     const RoundedRectangleBorder pillShape =
         RoundedRectangleBorder(borderRadius: AppRadius.button);
     return ThemeData(
@@ -31,9 +50,10 @@ abstract final class AppTheme {
       // Cibles tactiles confortables (accessibilité, usage sous stress).
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.standard,
-      textTheme: const TextTheme(
-        headlineSmall: AppTypography.headline,
-        titleMedium: AppTypography.title,
+      textTheme: TextTheme(
+        // Titres en serif de marque ; corps en police système (lisibilité).
+        headlineSmall: _serif(AppTypography.headline),
+        titleMedium: _serif(AppTypography.title),
         bodyMedium: AppTypography.body,
         bodySmall: AppTypography.caption,
         labelLarge: AppTypography.buttonLabel,
