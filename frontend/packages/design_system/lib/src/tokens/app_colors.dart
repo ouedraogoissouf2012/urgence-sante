@@ -13,12 +13,12 @@ abstract final class AppColors {
   /// central de l'identité visuelle de l'application patient.
   static const Color patientSeed = Color(0xFFE8483F);
 
-  /// Corail vif de marque, imposé comme couleur primaire du thème patient.
+  /// Rouge médical franc, imposé comme couleur primaire du thème patient.
   ///
   /// [ColorScheme.fromSeed] harmonise (et atténue) la couleur d'amorce ; on
-  /// force cette valeur exacte pour que les boutons gardent la vivacité de la
-  /// maquette validée, tout en conservant la palette harmonisée pour le reste.
-  static const Color patientAccent = Color(0xFFE5342B);
+  /// force cette valeur exacte pour que les boutons gardent un rouge
+  /// institutionnel net, tout en conservant la palette harmonisée pour le reste.
+  static const Color patientAccent = Color(0xFFB00020);
 
   /// Amorce du thème hôpital : contexte institutionnel.
   static const Color hospitalSeed = Color(0xFF00579B);
@@ -34,9 +34,8 @@ abstract final class AppColors {
 
   /// Couleur du bouton d'appel d'urgence (contraste AA sur blanc).
   ///
-  /// Volontairement distincte de [patientSeed] : l'appel des secours
-  /// (SAMU 185, Pompiers 180) est une action vitale qui doit conserver une
-  /// couleur d'alerte forte et reconnaissable, indépendante de l'accent
-  /// d'interface. Ne pas dériver de la couleur primaire du thème.
-  static const Color emergencyCall = Color(0xFFB00020);
+  /// Volontairement plus foncée et intense que l'accent d'interface
+  /// ([patientAccent]) : l'appel des secours (SAMU 185, Pompiers 180) est une
+  /// action vitale qui doit se distinguer visuellement des autres boutons.
+  static const Color emergencyCall = Color(0xFF8E0018);
 }
