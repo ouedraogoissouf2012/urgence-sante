@@ -42,6 +42,7 @@ class OrientationResultsView extends StatelessWidget {
               longitude: state.userLongitude!,
               centers: state.results,
               selectedCenterId: state.selectedCenterId,
+              recenterSeq: state.recenterSeq,
               onCenterTap: onSelectCenter,
             ),
           )
