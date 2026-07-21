@@ -33,7 +33,7 @@ class AppConfig {
       return override.trim();
     }
     return switch (environment) {
-      // Aligné sur le port du backend de démonstration (scripts/demo-up.sh).
+      // Aligné sur le port du backend local (scripts/local-up.sh).
       AppEnvironment.development => 'http://localhost:8090/api/v1',
       AppEnvironment.staging => 'https://staging.urgence-sante.ci/api/v1',
       AppEnvironment.production => 'https://urgence-sante.ci/api/v1',

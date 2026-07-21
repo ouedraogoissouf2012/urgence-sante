@@ -20,7 +20,7 @@ PORT="${E2E_PORT:-8097}"
 DB_PORT="${E2E_DB_PORT:-55455}"
 DB_CONTAINER="urgence-e2e-postgis"
 DB_PASSWORD="e2e_$(date +%s)"
-DEMO_TOKEN="demo-samu-admin-2026"
+PORTAL_TOKEN="demo-samu-admin-2026"
 BASE="http://localhost:$PORT/api/v1"
 JAR="backend/bootstrap/target/bootstrap-0.1.0-SNAPSHOT-exec.jar"
 
@@ -114,7 +114,7 @@ read -r code ms < <(timed "$BASE/facilities/$FID/availability/maternity" "$b" \
   -X PUT -H "Content-Type: application/json" -d '{"status":"AVAILABLE"}')
 check "Mise à jour SANS jeton refusée" "401" "$code" "$ms"
 read -r code ms < <(timed "$BASE/facilities/$FID/availability/maternity" "$b" \
-  -X PUT -H "Authorization: Bearer $DEMO_TOKEN" \
+  -X PUT -H "Authorization: Bearer $PORTAL_TOKEN" \
   -H "Content-Type: application/json" -d '{"status":"AVAILABLE"}')
 check "Mise à jour AVEC jeton acceptée" "200" "$code" "$ms"
 

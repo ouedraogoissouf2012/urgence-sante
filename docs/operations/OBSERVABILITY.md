@@ -8,7 +8,7 @@
 | `GET /actuator/health/readiness` | **Prêt** : peut servir — inclut la base de données (`db`). |
 | `GET /actuator/health` (composant `osrm`) | **Dégradé** : `DEGRADED` quand le disjoncteur OSRM est ouvert — l'application reste PRÊTE (temps estimés). N'appartient volontairement pas au groupe readiness. |
 
-`scripts/demo-up.sh` attend la readiness (pas un endpoint métier).
+`scripts/local-up.sh` attend la readiness (pas un endpoint métier).
 
 ## Corrélation
 
