@@ -147,9 +147,15 @@ class OrientationViewModel extends Notifier<OrientationState> {
     );
   }
 
-  /// Sélectionne un centre (synchronisation carte ↔ liste).
+  /// Sélectionne un centre (synchronisation carte ↔ liste) et demande le
+  /// recentrage de la carte dessus. Le jeton est incrémenté à CHAQUE appel,
+  /// même pour le centre déjà sélectionné : re-taper doit ramener la carte sur
+  /// le centre (l'utilisateur a pu la déplacer à la main entre-temps).
   void selectCenter(String facilityId) {
-    state = state.copyWith(selectedCenterId: facilityId);
+    state = state.copyWith(
+      selectedCenterId: facilityId,
+      recenterSeq: state.recenterSeq + 1,
+    );
   }
 
   /// Réessaie l'action pertinente selon l'état courant.

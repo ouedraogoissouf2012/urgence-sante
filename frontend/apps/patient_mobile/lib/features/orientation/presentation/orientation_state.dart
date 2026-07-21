@@ -36,6 +36,7 @@ class OrientationState {
     this.locationFailure,
     this.approximatePosition = false,
     this.selectedCenterId,
+    this.recenterSeq = 0,
     this.offlineSyncedAt,
     this.offlineResults = false,
   });
@@ -58,6 +59,17 @@ class OrientationState {
   /// Centre sélectionné (synchronisation carte ↔ liste), ou `null`.
   final String? selectedCenterId;
 
+  /// Jeton d'intention de recentrage : incrémenté à CHAQUE sélection de centre,
+  /// même si le centre est identique. La carte recentre quand ce jeton change,
+  /// pas quand `selectedCenterId` change — sinon re-taper le même centre (pour
+  /// y revenir après avoir déplacé la carte à la main) ne recentrerait pas.
+  ///
+  /// Séparer la *commande* (recentrer) de l'*état* (quel centre est sélectionné)
+  /// avec un compteur est le compromis assumé ici. DETTE TRACÉE : si la carte
+  /// gagne d'autres commandes distinctes (zoomer, ajuster les bornes, animer),
+  /// basculer vers un canal de commandes dédié plutôt que d'empiler des jetons.
+  final int recenterSeq;
+
   /// Date de synchronisation des données affichées quand elles proviennent du
   /// cache local (mode hors ligne) ; `null` si les données sont en direct.
   final DateTime? offlineSyncedAt;
@@ -79,6 +91,7 @@ class OrientationState {
     LocationFailure? locationFailure,
     bool? approximatePosition,
     String? selectedCenterId,
+    int? recenterSeq,
     DateTime? offlineSyncedAt,
     bool? offlineResults,
     bool clearLocationFailure = false,
@@ -100,6 +113,7 @@ class OrientationState {
           clearPosition ? false : (approximatePosition ?? this.approximatePosition),
       selectedCenterId:
           clearSelectedCenter ? null : (selectedCenterId ?? this.selectedCenterId),
+      recenterSeq: recenterSeq ?? this.recenterSeq,
       offlineSyncedAt:
           clearOffline ? null : (offlineSyncedAt ?? this.offlineSyncedAt),
       offlineResults: clearOffline ? false : (offlineResults ?? this.offlineResults),
