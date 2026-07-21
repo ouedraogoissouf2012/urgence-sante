@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# Démarre la démonstration MVP de bout en bout :
+# Démarre l'environnement LOCAL de bout en bout :
 #   base PostGIS → backend → jeu de données simulées → statuts initiaux.
 #
 # Prérequis : Docker en marche, jar construit (sinon construit ici), et
 # infrastructure/.env présent (copié depuis .env.example).
-# Variables : DEMO_PORT (défaut 8090), POSTGRES_PORT lu depuis infrastructure/.env.
+# Variables : LOCAL_PORT (défaut 8090), POSTGRES_PORT lu depuis infrastructure/.env.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
-DEMO_PORT="${DEMO_PORT:-8090}"
+LOCAL_PORT="${LOCAL_PORT:-8090}"
 ENV_FILE="infrastructure/.env"
 [[ -f "$ENV_FILE" ]] || { echo "ÉCHEC : $ENV_FILE manquant (copiez infrastructure/.env.example)"; exit 1; }
 # shellcheck disable=SC1090
@@ -43,28 +43,33 @@ else
   echo "▶ 2/5 Jar présent"
 fi
 
-echo "▶ 3/5 Backend sur le port $DEMO_PORT"
+echo "▶ 3/5 Backend sur le port $LOCAL_PORT"
 start_backend() {
-  # CORS de démonstration : le portail Flutter Web tourne sur un port local
-  # aléatoire ; on autorise localhost/127.0.0.1 (interdit en production par
-  # CorsPolicy). Surchargeable : CORS_ALLOWED_ORIGINS=... bash scripts/demo-up.sh
+  # CORS local : le portail Flutter Web tourne sur un port local aléatoire ;
+  # on autorise localhost/127.0.0.1 (interdit en production par CorsPolicy).
+  # Surchargeable : CORS_ALLOWED_ORIGINS=... bash scripts/local-up.sh
+  #
+  # LOCAL_RADIUS_METERS élargit le rayon d'orientation par défaut (produit : 15 km)
+  # afin qu'un appareil de test situé loin du jeu de données d'Abidjan trouve
+  # quand même des établissements. N'affecte QUE ce lancement local.
   DB_PASSWORD="$POSTGRES_PASSWORD" DB_HOST=localhost DB_PORT="$DB_PORT_HOST" \
   DB_NAME="${POSTGRES_DB:-urgence_sante}" DB_USER="${POSTGRES_USER:-urgence_sante}" \
   CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:*,http://127.0.0.1:*}" \
-    java -jar "$JAR" --spring.profiles.active=local --server.port="$DEMO_PORT" \
-    > /tmp/urgence-sante-demo.log 2>&1 &
-  echo $! > /tmp/urgence-sante-demo.pid
+    java -jar "$JAR" --spring.profiles.active=local --server.port="$LOCAL_PORT" \
+    --orientation.default-radius-meters="${LOCAL_RADIUS_METERS:-100000}" \
+    > /tmp/urgence-sante-local.log 2>&1 &
+  echo $! > /tmp/urgence-sante-local.pid
   # Readiness applicative (inclut la base) plutôt qu'un endpoint métier.
   for _ in $(seq 1 45); do
-    curl -sf "http://localhost:$DEMO_PORT/actuator/health/readiness" 2>/dev/null \
+    curl -sf "http://localhost:$LOCAL_PORT/actuator/health/readiness" 2>/dev/null \
       | grep -q '"UP"' && return 0
-    kill -0 "$(cat /tmp/urgence-sante-demo.pid)" 2>/dev/null || return 1
+    kill -0 "$(cat /tmp/urgence-sante-local.pid)" 2>/dev/null || return 1
     sleep 2
   done
   return 1
 }
 start_backend || { echo "  reprise (démarrage précoce possible)…"; sleep 5; start_backend; } \
-  || { echo "ÉCHEC : backend injoignable (voir /tmp/urgence-sante-demo.log)"; exit 1; }
+  || { echo "ÉCHEC : backend injoignable (voir /tmp/urgence-sante-local.log)"; exit 1; }
 
 echo "▶ 4/5 Jeu de données simulées (15 établissements)"
 docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
@@ -72,12 +77,12 @@ docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
   < infrastructure/demo/seed-demo.sql
 
 echo "▶ 5/5 Statuts initiaux (via l'API, comme un agent authentifié)"
-# Jeton ADMIN de démonstration (voir seed-demo.sql). L'endpoint de mise à jour
+# Jeton ADMIN de régulation (voir seed-demo.sql). L'endpoint de mise à jour
 # exige désormais une authentification (issue #42).
-DEMO_TOKEN="${DEMO_PORTAL_TOKEN:-demo-samu-admin-2026}"
+PORTAL_TOKEN="${PORTAL_TOKEN:-demo-samu-admin-2026}"
 put() {
-  curl -sf -X PUT "http://localhost:$DEMO_PORT/api/v1/facilities/$1/availability/$2" \
-    -H "Authorization: Bearer $DEMO_TOKEN" \
+  curl -sf -X PUT "http://localhost:$LOCAL_PORT/api/v1/facilities/$1/availability/$2" \
+    -H "Authorization: Bearer $PORTAL_TOKEN" \
     -H "Content-Type: application/json" -d "{\"status\":\"$3\"}" >/dev/null
 }
 put 11111111-0000-0000-0000-000000000001 maternity AVAILABLE
@@ -87,5 +92,5 @@ put 11111111-0000-0000-0000-000000000002 emergency AVAILABLE
 put 11111111-0000-0000-0000-000000000006 emergency LIMITED
 
 echo ""
-echo "✓ Démo prête : http://localhost:$DEMO_PORT/api/v1"
-echo "  Guide : docs/demo/DEMO_GUIDE.md — arrêt : scripts/demo-down.sh"
+echo "✓ Environnement local prêt : http://localhost:$LOCAL_PORT/api/v1"
+echo "  Guide : docs/local/GUIDE_LOCAL.md — arrêt : scripts/local-down.sh"

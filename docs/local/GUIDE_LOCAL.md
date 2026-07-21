@@ -1,6 +1,6 @@
-# Guide de démonstration MVP — Urgence Santé
+# Guide local MVP — Urgence Santé
 
-> ⚠️ **Toutes les données de cette démonstration sont SIMULÉES.** Les 15
+> ⚠️ **Toutes les données de cet environnement local sont SIMULÉES.** Les 15
 > établissements portent `data_status = DEMO` en base (suffixe « [DÉMO] »,
 > téléphones et statuts fictifs, coordonnées approximatives) et le jeton du
 > portail est un jeton de démonstration. Aucune donnée réelle. Ces lignes
@@ -32,11 +32,11 @@ l'issue #48.
 ## Démarrer / arrêter
 
 ```bash
-bash scripts/demo-up.sh      # base + backend (port 8090) + 15 établissements + statuts
-bash scripts/demo-down.sh    # arrêt et nettoyage complet
+bash scripts/local-up.sh     # base + backend (port 8090) + 15 établissements + statuts
+bash scripts/local-down.sh   # arrêt et nettoyage complet
 ```
 
-`demo-up.sh` est **reproductible** : le jeu de données est vidé puis réinséré à
+`local-up.sh` est **reproductible** : le jeu de données est vidé puis réinséré à
 chaque exécution, et les statuts initiaux sont posés via l'API (historique réel).
 
 ## Scénario A — Patient (le cœur du produit)
@@ -80,8 +80,8 @@ raison → boutons **SAMU 185 / Pompiers 180** permanents.
 ## Scénario B — Agent hospitalier
 
 **Portail web** : `cd frontend/apps/hospital_portal && flutter run -d chrome -t lib/main_development.dart`
-*(le backend de démo autorise les origines `http://localhost:*` — CORS configuré
-par `demo-up.sh` via `CORS_ALLOWED_ORIGINS` ; en production, seuls des domaines
+*(le backend local autorise les origines `http://localhost:*` — CORS configuré
+par `local-up.sh` via `CORS_ALLOWED_ORIGINS` ; en production, seuls des domaines
 explicites sont acceptés, les motifs génériques font échouer le démarrage).*
 
 La mise à jour exige désormais une **authentification** (issue #42). Le jeu de
@@ -159,7 +159,7 @@ flutter build apk --debug -t lib/main_development.dart
 | 15 établissements « [DÉMO] » | fictifs (`data_status = DEMO`) | refus à l'import en prod + garde de démarrage |
 | Téléphones `+22501000000xx` | fictifs | idem |
 | Jeton `demo-samu-admin-2026` | identifiant de démonstration | seed démo uniquement |
-| Statuts initiaux | posés par `demo-up.sh` | rechargés à chaque exécution |
+| Statuts initiaux | posés par `local-up.sh` | rechargés à chaque exécution |
 
 Le **jeu de démarrage réel** (`infrastructure/directory/abidjan-starter.json`)
 est distinct : établissements publics, marqués `PROVISIONAL` (à vérifier), avec
