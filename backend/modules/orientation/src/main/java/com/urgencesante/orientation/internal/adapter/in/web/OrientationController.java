@@ -5,6 +5,7 @@ import com.urgencesante.orientation.internal.adapter.in.web.mapper.OrientationWe
 import com.urgencesante.orientation.internal.application.port.in.RecommendFacilitiesUseCase;
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,10 +25,21 @@ public class OrientationController {
     private final RecommendFacilitiesUseCase recommendFacilities;
     private final OrientationWebMapper mapper;
 
+    /**
+     * Rayon appliqué quand la requête n'en fournit pas. Vaut 15 km par défaut
+     * (produit) mais reste surchargeable — utile en local où l'appareil de test
+     * peut être loin du jeu de données d'Abidjan : {@code orientation.default-radius-meters}.
+     */
+    private final int defaultRadiusMeters;
+
     public OrientationController(
-            RecommendFacilitiesUseCase recommendFacilities, OrientationWebMapper mapper) {
+            RecommendFacilitiesUseCase recommendFacilities,
+            OrientationWebMapper mapper,
+            @Value("${orientation.default-radius-meters:" + DEFAULT_RADIUS_METERS + "}")
+                    int defaultRadiusMeters) {
         this.recommendFacilities = recommendFacilities;
         this.mapper = mapper;
+        this.defaultRadiusMeters = defaultRadiusMeters;
     }
 
     @GetMapping
@@ -39,7 +51,7 @@ public class OrientationController {
             @RequestParam(required = false) Integer limit) {
         final OrientationQuery query = new OrientationQuery(
                 lat, lon, service,
-                radiusMeters == null ? DEFAULT_RADIUS_METERS : radiusMeters,
+                radiusMeters == null ? defaultRadiusMeters : radiusMeters,
                 limit == null ? DEFAULT_LIMIT : limit);
         return recommendFacilities.recommend(query).stream().map(mapper::toResponse).toList();
     }
