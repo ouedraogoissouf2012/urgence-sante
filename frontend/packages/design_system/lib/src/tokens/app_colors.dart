@@ -26,11 +26,36 @@ abstract final class AppColors {
   // ── Couleurs sémantiques de disponibilité ────────────────────────────────
   // Toujours accompagnées d'un libellé texte : la couleur seule ne porte
   // jamais l'information (accessibilité).
+  //
+  // Trois rôles distincts par statut :
+  //  • la teinte d'identité (`status…`) — fond translucide + bordure du badge,
+  //    reconnaissable d'un coup d'œil, identique dans les deux thèmes ;
+  //  • la couleur de texte claire (`status…TextLight`) — assombrie, lisible sur
+  //    le fond clair du badge ;
+  //  • la couleur de texte sombre (`status…TextDark`) — éclaircie, lisible sur
+  //    le fond sombre du badge.
+  //
+  // Une seule couleur de texte ne peut pas convenir aux deux thèmes : mesuré
+  // sur les surfaces réelles Material 3 (fond clair #FFF8F7, fond sombre
+  // #1A1110), un texte foncé illisible en sombre et inversement. Le badge
+  // choisit la variante selon la luminosité du thème. Toutes atteignent
+  // ≥ 4.5:1 (AA texte normal) sur le fond réel du badge — voir
+  // `status_badge_test.dart` (garde des deux thèmes).
   static const Color statusAvailable = Color(0xFF2E7D32);
+  static const Color statusAvailableTextLight = Color(0xFF1B5E20);
+  static const Color statusAvailableTextDark = Color(0xFF81C784);
   static const Color statusLimited = Color(0xFFF9A825);
+  static const Color statusLimitedTextLight = Color(0xFF7A5000);
+  static const Color statusLimitedTextDark = Color(0xFFFFCA28);
   static const Color statusSaturated = Color(0xFFE65100);
+  static const Color statusSaturatedTextLight = Color(0xFFA93D00);
+  static const Color statusSaturatedTextDark = Color(0xFFFFA726);
   static const Color statusClosed = Color(0xFF757575);
+  static const Color statusClosedTextLight = Color(0xFF5A5A5A);
+  static const Color statusClosedTextDark = Color(0xFFBDBDBD);
   static const Color statusUnknown = Color(0xFF9E9E9E);
+  static const Color statusUnknownTextLight = Color(0xFF575757);
+  static const Color statusUnknownTextDark = Color(0xFFBDBDBD);
 
   /// Couleur du bouton d'appel d'urgence (contraste AA sur blanc).
   ///

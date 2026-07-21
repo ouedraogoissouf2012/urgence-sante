@@ -36,7 +36,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             const SizedBox(height: AppSpacing.lg),
-            const Icon(Icons.local_hospital, size: AppSizing.iconHero),
+            // Icône de marque dans un halo teinté : ancre l'identité dès le
+            // premier écran (couleurs dérivées du thème).
+            Center(
+              child: Container(
+                width: AppSizing.heroBadge,
+                height: AppSizing.heroBadge,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_hospital,
+                  size: AppSizing.iconHero,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
             const SizedBox(height: AppSpacing.md),
             const Text('Urgence Santé',
                 style: AppTypography.headline, textAlign: TextAlign.center),
