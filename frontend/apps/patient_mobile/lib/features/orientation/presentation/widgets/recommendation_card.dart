@@ -41,12 +41,17 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
     return Card(
+      // Carte du centre le mieux placé : légèrement teintée en permanence pour
+      // se détacher des recommandations compactes qui la suivent. La sélection
+      // ajoute bordure + élévation (profondeur), pas seulement un trait.
+      color: scheme.surfaceContainerHighest,
+      elevation: selected ? AppElevation.cardSelected : AppElevation.card,
       shape: RoundedRectangleBorder(
         borderRadius: AppRadius.cardLarge,
         side: selected
-            ? BorderSide(
-                color: Theme.of(context).colorScheme.primary, width: 2)
+            ? BorderSide(color: scheme.primary, width: 2)
             : BorderSide.none,
       ),
       child: InkWell(
@@ -71,9 +76,23 @@ class RecommendationCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text(_distanceLabel, style: AppTypography.body),
+              // Distance et temps de trajet : l'information décisive en urgence,
+              // donc mise en avant (couleur primaire + poids appuyé).
+              Text(
+                _distanceLabel,
+                style: AppTypography.body.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xs),
-              Text(center.explanation, style: AppTypography.caption),
+              // Raison de la recommandation : information secondaire, teintée en
+              // conséquence pour ne pas rivaliser avec le nom et la distance.
+              Text(
+                center.explanation,
+                style: AppTypography.caption
+                    .copyWith(color: scheme.onSurfaceVariant),
+              ),
               const SizedBox(height: AppSpacing.sm),
               // Wrap (et non Row) : les actions passent à la ligne sur petit
               // écran ou grande police au lieu de déborder (issue #47).

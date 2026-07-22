@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/app_colors.dart';
+import '../tokens/app_elevation.dart';
 import '../tokens/app_radius.dart';
 import '../tokens/app_sizing.dart';
 import '../tokens/app_typography.dart';
@@ -59,6 +60,7 @@ abstract final class AppTheme {
         labelLarge: AppTypography.buttonLabel,
       ),
       cardTheme: const CardThemeData(
+        elevation: AppElevation.card,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.card),
       ),
       // Boutons remplis : forme pilule dérivée du token.
@@ -78,8 +80,11 @@ abstract final class AppTheme {
           side: BorderSide(color: scheme.primary),
         ),
       ),
-      // Feuille glissante : haut arrondi dérivé du token.
+      // Feuille glissante : haut arrondi dérivé du token, élévation qui la fait
+      // flotter au-dessus de la carte immersive (résultats d'orientation).
       bottomSheetTheme: const BottomSheetThemeData(
+        elevation: AppElevation.sheet,
+        modalElevation: AppElevation.sheet,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
       ),
     );

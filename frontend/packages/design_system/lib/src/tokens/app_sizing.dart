@@ -19,6 +19,10 @@ abstract final class AppSizing {
   /// Taille de l'icône d'en-tête d'un écran (accueil).
   static const double iconHero = 64;
 
+  /// Diamètre du halo circulaire entourant l'icône d'en-tête (accueil) : ancre
+  /// visuellement la marque. Généreux autour de [iconHero] pour respirer.
+  static const double heroBadge = 112;
+
   /// Taille d'une icône de marqueur cartographique.
   static const double iconMarker = 32;
 
