@@ -6,6 +6,7 @@ import com.urgencesante.orientation.internal.application.port.in.RecommendFacili
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,6 +38,14 @@ public class OrientationController {
             OrientationWebMapper mapper,
             @Value("${orientation.default-radius-meters:" + DEFAULT_RADIUS_METERS + "}")
                     int defaultRadiusMeters) {
+        // Échec RAPIDE au démarrage : une valeur de configuration hors bornes est
+        // une faute serveur, pas une faute client. Sans ce contrôle, elle passerait
+        // inaperçue jusqu'à la première requête sans rayon, qui renverrait alors un
+        // 400 trompeur (validé côté OrientationQuery) au lieu de bloquer le boot.
+        Assert.isTrue(
+                defaultRadiusMeters >= 1 && defaultRadiusMeters <= OrientationQuery.MAX_RADIUS_METERS,
+                () -> "orientation.default-radius-meters doit être dans [1, "
+                        + OrientationQuery.MAX_RADIUS_METERS + "] mètres, reçu : " + defaultRadiusMeters);
         this.recommendFacilities = recommendFacilities;
         this.mapper = mapper;
         this.defaultRadiusMeters = defaultRadiusMeters;

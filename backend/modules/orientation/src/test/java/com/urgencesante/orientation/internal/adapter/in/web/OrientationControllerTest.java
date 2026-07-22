@@ -1,6 +1,7 @@
 package com.urgencesante.orientation.internal.adapter.in.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -128,5 +129,24 @@ class OrientationControllerTest {
 
         verify(recommendFacilities).recommend(queryCaptor.capture());
         assertThat(queryCaptor.getValue().radiusMeters()).isEqualTo(3000);
+    }
+
+    @Test
+    void refuse_de_demarrer_si_le_rayon_par_defaut_configure_est_nul_ou_negatif() {
+        // Une config serveur hors bornes doit échouer au DÉMARRAGE (fail-fast),
+        // pas se transformer en 400 trompeur à la première requête sans rayon.
+        assertThatThrownBy(() ->
+                        new OrientationController(recommendFacilities, new OrientationWebMapper(), 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("default-radius-meters");
+    }
+
+    @Test
+    void refuse_de_demarrer_si_le_rayon_par_defaut_configure_depasse_le_maximum() {
+        assertThatThrownBy(() -> new OrientationController(
+                        recommendFacilities, new OrientationWebMapper(),
+                        OrientationQuery.MAX_RADIUS_METERS + 1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("default-radius-meters");
     }
 }
