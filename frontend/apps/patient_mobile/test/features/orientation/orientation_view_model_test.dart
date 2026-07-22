@@ -223,4 +223,45 @@ void main() {
 
     expect(state().phase, OrientationPhase.results);
   });
+
+  group('sélection d\'un centre → jeton de recentrage', () {
+    test('sélectionner un centre change le centre ET incrémente le jeton', () async {
+      viewModel();
+      await flush();
+      final int before = state().recenterSeq;
+
+      viewModel().selectCenter('id-1');
+
+      expect(state().selectedCenterId, 'id-1');
+      expect(state().recenterSeq, before + 1);
+    });
+
+    test('re-sélectionner le MÊME centre incrémente encore le jeton', () async {
+      // Cœur du correctif : re-taper le centre déjà sélectionné doit produire une
+      // nouvelle intention de recentrage (l'utilisateur veut y revenir après avoir
+      // fait glisser la carte à la main), même si l'ID ne change pas.
+      viewModel();
+      await flush();
+      viewModel().selectCenter('id-1');
+      final int afterFirst = state().recenterSeq;
+
+      viewModel().selectCenter('id-1');
+
+      expect(state().selectedCenterId, 'id-1');
+      expect(state().recenterSeq, afterFirst + 1);
+    });
+
+    test('une recherche ne modifie PAS le jeton de recentrage', () async {
+      // Un changement de résultats ne doit pas déclencher de recentrage
+      // intempestif : seule une sélection explicite le fait.
+      repository.results = const [center];
+      viewModel();
+      await flush();
+      final int before = state().recenterSeq;
+
+      await viewModel().searchFor(need);
+
+      expect(state().recenterSeq, before);
+    });
+  });
 }
