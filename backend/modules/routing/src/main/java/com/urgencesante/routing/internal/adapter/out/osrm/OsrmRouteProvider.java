@@ -75,7 +75,18 @@ public class OsrmRouteProvider implements RouteProviderPort {
                 .orElseGet(() -> Collections.nCopies(destinations.size(), Optional.empty()));
     }
 
-    /** Exécute l'appel sous disjoncteur ; vide si circuit ouvert ou échec. */
+    /**
+     * Exécute l'appel sous disjoncteur ; vide si circuit ouvert ou échec.
+     *
+     * <p>TOUTE exception est traitée comme un échec du circuit, pas seulement
+     * {@link RestClientException}. C'est essentiel : {@code allowRequest()} pose
+     * un essai « en vol » en état semi-ouvert, que seul {@code recordSuccess} ou
+     * {@code recordFailure} relâche. Si une exception inattendue (réponse OSRM
+     * malformée → {@code IndexOutOfBoundsException}, désérialisation, etc.)
+     * échappait sans appeler {@code recordFailure}, l'essai resterait bloqué et
+     * le circuit refuserait tout appel futur À VIE. On garantit donc la
+     * libération de l'essai quelle que soit la trajectoire d'erreur.
+     */
     private <T> Optional<T> guarded(Supplier<T> call) {
         if (!circuitBreaker.allowRequest()) {
             return Optional.empty();
@@ -84,7 +95,7 @@ public class OsrmRouteProvider implements RouteProviderPort {
             final T result = call.get();
             circuitBreaker.recordSuccess();
             return Optional.of(result);
-        } catch (RestClientException exception) {
+        } catch (RuntimeException exception) {
             circuitBreaker.recordFailure();
             errorCounter.increment();
             LOG.warn("OSRM indisponible (circuit {}) : {}",
