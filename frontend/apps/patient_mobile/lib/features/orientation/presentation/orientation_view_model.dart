@@ -37,6 +37,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
         phase: OrientationPhase.ready,
         needs: cached.value,
         offlineSyncedAt: cached.fromCache ? cached.syncedAt : null,
+        clearErrorMessage: true,
       );
     } on Exception {
       state = state.copyWith(
@@ -98,6 +99,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
       offlineResults: true,
       offlineSyncedAt: cached.syncedAt,
       clearPosition: true,
+      clearErrorMessage: true,
     );
   }
 
@@ -144,6 +146,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
     state = state.copyWith(
       phase: results.isEmpty ? OrientationPhase.empty : OrientationPhase.results,
       results: results,
+      clearErrorMessage: true,
     );
   }
 

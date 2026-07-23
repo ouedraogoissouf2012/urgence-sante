@@ -224,6 +224,25 @@ void main() {
     expect(state().phase, OrientationPhase.results);
   });
 
+  test('une recherche réussie efface le message d\'erreur précédent', () async {
+    // Un échec réseau laisse un errorMessage ; la recherche suivante réussit.
+    // L'état de succès ne doit pas traîner le message d'erreur (état mensonger).
+    repository.failRecommend = true;
+    viewModel();
+    await flush();
+    await viewModel().searchFor(need);
+    expect(state().phase, OrientationPhase.error);
+    expect(state().errorMessage, isNotNull);
+
+    repository.failRecommend = false;
+    repository.results = const [center];
+    await viewModel().searchFor(need);
+
+    expect(state().phase, OrientationPhase.results);
+    expect(state().errorMessage, isNull,
+        reason: 'un succès ne doit pas conserver l\'erreur de la tentative précédente');
+  });
+
   group('sélection d\'un centre → jeton de recentrage', () {
     test('sélectionner un centre change le centre ET incrémente le jeton', () async {
       viewModel();
