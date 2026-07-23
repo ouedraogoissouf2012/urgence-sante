@@ -1,0 +1,53 @@
+# ============================================================================
+# Déploiement VPS — backend Urgence Santé (démo publique).
+#
+#   base PostGIS (NON exposée sur internet : réseau interne Docker uniquement)
+#   + API backend sur le port public 8086.
+#
+# Prérequis : deploy/.env avec DB_PASSWORD=<mot de passe fort> (jamais commité).
+# Lancer :   docker compose -f deploy/docker-compose.yml up -d --build
+# Mise à jour (méthode git) :
+#   git pull && docker compose -f deploy/docker-compose.yml up -d --build
+# ============================================================================
+name: urgence-sante
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: urgence-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: urgence_sante
+      POSTGRES_USER: urgence_sante
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?definir DB_PASSWORD dans deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Pas de "ports:" — la base n'est joignable QUE par l'API (réseau interne).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urgence_sante -d urgence_sante"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: urgence-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: urgence_sante
+      DB_USER: urgence_sante
+      DB_PASSWORD: ${DB_PASSWORD:?definir DB_PASSWORD dans deploy/.env}
+    ports:
+      - "8086:8090"
+    # Garde-fou mémoire : le VPS héberge d'autres projets.
+    mem_limit: 1536m
+
+volumes:
+  pgdata:
