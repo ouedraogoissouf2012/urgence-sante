@@ -16,6 +16,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Helper de contraste WCAG partagé (garde d'accessibilité).
+  testing_support:
+    path: ../testing_support
 
 flutter:
   uses-material-design: true
