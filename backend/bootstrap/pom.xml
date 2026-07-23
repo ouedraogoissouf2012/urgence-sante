@@ -139,10 +139,14 @@
             </plugin>
 
             <!--
-              Copie le CONTRAT (source de vérité, docs/api/openapi.yaml) en
-              ressource statique servie par l'application : Swagger UI l'affiche
-              tel quel. Ainsi la doc exposée ne peut pas diverger du contrat —
-              aucune copie versionnée en double, le fichier unique fait foi.
+              Ressources copiées depuis la racine du dépôt (fichiers UNIQUES,
+              aucune copie versionnée en double) :
+              1. le CONTRAT OpenAPI (docs/api/openapi.yaml) en statique — Swagger
+                 UI l'affiche tel quel, la doc ne peut pas diverger du contrat ;
+              2. le jeu de données local (infrastructure/demo/R__seed_demo.sql,
+                 aussi utilisé par local-up.sh et e2e-smoke.sh) en migration
+                 Flyway repeatable — référencé UNIQUEMENT par le profil local :
+                 `java -jar` seul donne une base utilisable.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -161,6 +165,24 @@
                                     <directory>${maven.multiModuleProjectDirectory}/../docs/api</directory>
                                     <includes>
                                         <include>openapi.yaml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copier-jeu-local</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/db/local-seed</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${maven.multiModuleProjectDirectory}/../infrastructure/demo</directory>
+                                    <includes>
+                                        <include>R__seed_demo.sql</include>
                                     </includes>
                                 </resource>
                             </resources>

@@ -74,10 +74,10 @@ start_backend || { echo "  reprise (démarrage précoce possible)…"; sleep 5; 
 echo "▶ 4/5 Jeu de données simulées (15 établissements)"
 docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
   psql -q -U "${POSTGRES_USER:-urgence_sante}" -d "${POSTGRES_DB:-urgence_sante}" \
-  < infrastructure/demo/seed-demo.sql
+  < infrastructure/demo/R__seed_demo.sql
 
 echo "▶ 5/5 Statuts initiaux (via l'API, comme un agent authentifié)"
-# Jeton ADMIN de régulation (voir seed-demo.sql). L'endpoint de mise à jour
+# Jeton ADMIN de régulation (voir R__seed_demo.sql). L'endpoint de mise à jour
 # exige désormais une authentification (issue #42).
 PORTAL_TOKEN="${PORTAL_TOKEN:-demo-samu-admin-2026}"
 put() {

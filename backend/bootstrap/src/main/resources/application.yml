@@ -66,3 +66,45 @@ springdoc:
     url: /openapi.yaml
     # Une seule spec (le contrat) : pas de sélecteur d'URL par défaut.
     disable-swagger-default-url: true
+
+# ============================================================================
+# Profil LOCAL — développement sur le poste, et rien d'autre.
+#
+# Objectif : `java -jar bootstrap-…-exec.jar` démarre SANS variable
+# d'environnement (voir COMMANDES.md à la racine). Chaque valeur reste
+# surchargeable par la variable habituelle, et un application-local.yml
+# personnel (volontairement NON versionné, voir .gitignore) prime encore
+# sur ce bloc. La production n'hérite de rien.
+# ============================================================================
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    # Aligné sur infrastructure/docker-compose.yml + .env.example :
+    # PostGIS local exposé sur 55432, mot de passe de développement.
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:55432}/${DB_NAME:urgence_sante}
+    password: ${DB_PASSWORD:dev_local_pwd}
+  flyway:
+    # Ajoute le jeu de données local (15 établissements DEMO) aux migrations :
+    # base utilisable dès le démarrage, sans script. `db/local-seed` n'est
+    # référencé QUE par ce profil ; en production, DemoDataProductionGuard
+    # refuse de toute façon les données DEMO (défense en profondeur).
+    locations: classpath:db/migration,classpath:db/local-seed
+
+# Port attendu par les applications Flutter (app_config.dart : localhost:8090)
+# et par la documentation locale.
+server:
+  port: ${SERVER_PORT:8090}
+
+# Le portail Flutter Web tourne sur un port local aléatoire : on autorise
+# localhost/127.0.0.1 (motifs interdits en production par CorsPolicy).
+app:
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+
+# Rayon de recherche élargi : le poste de test peut être loin d'Abidjan (où
+# vivent les données DEMO) ; 15 km n'y trouverait rien. Produit : 15 km.
+orientation:
+  default-radius-meters: ${ORIENTATION_DEFAULT_RADIUS_METERS:100000}
