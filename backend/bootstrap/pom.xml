@@ -125,6 +125,38 @@
                     <classifier>exec</classifier>
                 </configuration>
             </plugin>
+
+            <!--
+              Copie le jeu de données local (infrastructure/demo/R__seed_demo.sql,
+              fichier UNIQUE, aussi utilisé par scripts/local-up.sh et e2e-smoke.sh)
+              en migration Flyway repeatable sous db/local-seed. Cette location
+              n'est référencée QUE par le profil local (application-local.yml) :
+              `java -jar` seul donne une base utilisable, sans script ni variable.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copier-jeu-local</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/db/local-seed</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${maven.multiModuleProjectDirectory}/../infrastructure/demo</directory>
+                                    <includes>
+                                        <include>R__seed_demo.sql</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

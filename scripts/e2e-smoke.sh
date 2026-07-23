@@ -86,7 +86,7 @@ done
 
 # 4. Jeu de démonstration (identifié comme simulé : data_status = DEMO)
 docker exec -i -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" \
-  psql -q -U e2e -d e2e < infrastructure/demo/seed-demo.sql
+  psql -q -U e2e -d e2e < infrastructure/demo/R__seed_demo.sql
 
 # 5. Parcours API mesuré ────────────────────────────────────────────────────
 b=$(mktemp)
