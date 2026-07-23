@@ -1,6 +1,7 @@
 package com.urgencesante.facility.internal.adapter.out.directory;
 
 import com.urgencesante.facility.internal.application.port.out.FacilityDirectoryPort;
+import com.urgencesante.facility.internal.domain.directory.DataStatus;
 import com.urgencesante.facility.internal.domain.directory.FacilityImportRecord;
 import java.util.Objects;
 import java.util.UUID;
@@ -60,8 +61,12 @@ class FacilityDirectoryAdapter implements FacilityDirectoryPort {
 
     @Override
     public boolean hasDemoData() {
+        // Le libellé du statut vient de l'enum (DataStatus.DEMO), pas d'un
+        // littéral : renommer/retirer la valeur casserait la compilation ici au
+        // lieu de laisser une garde de sécurité silencieusement désynchronisée.
         final Boolean exists = jdbc.queryForObject(
-                "SELECT EXISTS(SELECT 1 FROM facility WHERE data_status = 'DEMO')", Boolean.class);
+                "SELECT EXISTS(SELECT 1 FROM facility WHERE data_status = ?)",
+                Boolean.class, DataStatus.DEMO.name());
         return Boolean.TRUE.equals(exists);
     }
 }
