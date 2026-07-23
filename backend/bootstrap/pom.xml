@@ -27,6 +27,18 @@
         </dependency>
 
         <!--
+          Swagger UI : sert le CONTRAT écrit à la main (docs/api/openapi.yaml,
+          source de vérité contract-first), copié en ressource statique au build.
+          La génération automatique depuis le code est désactivée (application.yml)
+          pour ne jamais diverger du contrat.
+        -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!--
           Source de données et migrations : préoccupation d'assemblage,
           configurée une seule fois ici pour tout le monolithe. Les modules
           consomment la datasource partagée via leurs adaptateurs de persistance.
@@ -127,16 +139,37 @@
             </plugin>
 
             <!--
-              Copie le jeu de données local (infrastructure/demo/R__seed_demo.sql,
-              fichier UNIQUE, aussi utilisé par scripts/local-up.sh et e2e-smoke.sh)
-              en migration Flyway repeatable sous db/local-seed. Cette location
-              n'est référencée QUE par le profil local (application-local.yml) :
-              `java -jar` seul donne une base utilisable, sans script ni variable.
+              Ressources copiées depuis la racine du dépôt (fichiers UNIQUES,
+              aucune copie versionnée en double) :
+              1. le CONTRAT OpenAPI (docs/api/openapi.yaml) en statique — Swagger
+                 UI l'affiche tel quel, la doc ne peut pas diverger du contrat ;
+              2. le jeu de données local (infrastructure/demo/R__seed_demo.sql,
+                 aussi utilisé par local-up.sh et e2e-smoke.sh) en migration
+                 Flyway repeatable — référencé UNIQUEMENT par le profil local :
+                 `java -jar` seul donne une base utilisable.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
+                    <execution>
+                        <id>copier-contrat-openapi</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${maven.multiModuleProjectDirectory}/../docs/api</directory>
+                                    <includes>
+                                        <include>openapi.yaml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>copier-jeu-local</id>
                         <phase>process-resources</phase>

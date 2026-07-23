@@ -51,6 +51,22 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [${spring.application.name:-},%X{correlationId:-}] %logger{36} : %msg%n"
 
+# Documentation d'API — Swagger UI (contract-first).
+# La source de vérité est le contrat écrit à la main (docs/api/openapi.yaml),
+# copié en ressource statique et servi sur /openapi.yaml. Swagger UI charge CE
+# contrat (springdoc.swagger-ui.url) au lieu d'une spec générée depuis le code,
+# de sorte que la doc exposée est TOUJOURS identique au contrat officiel.
+# NB : api-docs reste actif (springdoc monte son contrôleur Swagger UI à cette
+# condition) mais sa spec auto-générée n'est jamais affichée — l'UI pointe le
+# contrat statique.
+springdoc:
+  swagger-ui:
+    # Interface accessible sur http://<hôte>/swagger-ui/index.html
+    # Charge le contrat statique plutôt qu'une spec auto-générée.
+    url: /openapi.yaml
+    # Une seule spec (le contrat) : pas de sélecteur d'URL par défaut.
+    disable-swagger-default-url: true
+
 # ============================================================================
 # Profil LOCAL — développement sur le poste, et rien d'autre.
 #
