@@ -2,3 +2,4 @@
 library;
 
 export 'src/pump_app.dart';
+export 'src/wcag_contrast.dart';
