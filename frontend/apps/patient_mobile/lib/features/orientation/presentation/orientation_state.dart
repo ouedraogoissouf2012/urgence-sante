@@ -98,6 +98,7 @@ class OrientationState {
     bool clearSelectedCenter = false,
     bool clearOffline = false,
     bool clearPosition = false,
+    bool clearErrorMessage = false,
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
@@ -106,7 +107,7 @@ class OrientationState {
       results: results ?? this.results,
       userLatitude: clearPosition ? null : (userLatitude ?? this.userLatitude),
       userLongitude: clearPosition ? null : (userLongitude ?? this.userLongitude),
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       locationFailure:
           clearLocationFailure ? null : (locationFailure ?? this.locationFailure),
       approximatePosition:

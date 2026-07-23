@@ -1,6 +1,7 @@
 package com.urgencesante.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -45,5 +46,35 @@ class RateLimiterTest {
         now = now.plus(Duration.ofSeconds(31)); // ~1 jeton reconstitué
 
         assertThat(limiter.tryAcquire("k")).isTrue();
+    }
+
+    @Test
+    void refuse_un_refill_period_nul_au_demarrage() {
+        // Fail-fast : sans cette garde, refillPerMilli deviendrait infini/NaN et
+        // le limiteur bloquerait silencieusement tout le trafic.
+        assertThatThrownBy(() -> new RateLimiter(3, Duration.ZERO, clock))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("refillPeriod");
+    }
+
+    @Test
+    void un_seau_actif_n_est_jamais_evince_meme_sous_pression_memoire() {
+        // La borne mémoire ne doit JAMAIS fausser la limite d'un client actif :
+        // un seau partiellement consommé (en cours de limitation) est préservé,
+        // seuls les seaux revenus à pleine capacité (inactifs) sont évinçables.
+        final RateLimiter limiter = new RateLimiter(1, Duration.ofMinutes(1), clock);
+        // 'actif' consomme son unique jeton → seau à 0, en limitation.
+        assertThat(limiter.tryAcquire("actif")).isTrue();
+        assertThat(limiter.tryAcquire("actif")).isFalse();
+
+        // Beaucoup d'autres clés (simulent la pression mémoire). Même si une purge
+        // se déclenchait, 'actif' ne doit pas être remis à zéro.
+        for (int i = 0; i < 1000; i++) {
+            limiter.tryAcquire("bruit-" + i);
+        }
+
+        assertThat(limiter.tryAcquire("actif"))
+                .as("le seau actif reste limité, pas réinitialisé par une purge")
+                .isFalse();
     }
 }

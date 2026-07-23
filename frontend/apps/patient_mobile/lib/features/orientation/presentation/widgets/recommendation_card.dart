@@ -77,12 +77,16 @@ class RecommendationCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               // Distance et temps de trajet : l'information décisive en urgence,
-              // donc mise en avant (couleur primaire + poids appuyé).
+              // donc mise en avant par le POIDS et la taille (non par la couleur
+              // d'accent). L'accent `scheme.primary` (rouge médical foncé) tombe
+              // sous le seuil WCAG AA sur `surfaceContainerHighest` en thème
+              // sombre (mesuré ~1.7:1) : on utilise `onSurface`, dont Material
+              // garantit le contraste sur la surface dans les deux thèmes.
               Text(
                 _distanceLabel,
                 style: AppTypography.body.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),

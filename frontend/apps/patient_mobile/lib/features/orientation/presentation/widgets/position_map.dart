@@ -45,6 +45,12 @@ class PositionMap extends StatefulWidget {
 class _PositionMapState extends State<PositionMap> {
   late final MapController _controller = widget.controller ?? MapController();
 
+  /// Vrai si CE widget a créé le contrôleur (contrôleur non injecté par le
+  /// parent) : lui seul doit le fermer. Un contrôleur injecté appartient à
+  /// l'appelant (ex. un test qui l'observe après démontage) — le fermer ici
+  /// serait une double-libération.
+  late final bool _ownsController = widget.controller == null;
+
   /// Zoom appliqué au recentrage sur un centre.
   static const double _selectedZoom = 15;
 
@@ -65,6 +71,18 @@ class _PositionMapState extends State<PositionMap> {
       _pendingRecenterId = widget.selectedCenterId;
       _tryRecenter();
     }
+  }
+
+  @override
+  void dispose() {
+    // Ne fermer que le contrôleur créé en interne : un contrôleur injecté
+    // appartient à l'appelant. `MapController` détient un StreamController
+    // interne ; sans cette fermeture, chaque démontage de la carte (nouvelle
+    // recherche, bascule hors ligne, retour arrière) fuit un stream.
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
   }
 
   @override

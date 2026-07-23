@@ -94,6 +94,46 @@ class OsrmRouteProviderTest {
     }
 
     @Test
+    void une_erreur_non_reseau_ne_bloque_pas_le_circuit_a_vie() {
+        // Régression C1 : en semi-ouvert, allowRequest() pose un essai « en vol »
+        // que seul record{Success,Failure} relâche. Si l'essai lève une exception
+        // NON-réseau (réponse OSRM syntaxiquement Ok mais au JSON incompatible →
+        // erreur de désérialisation, pas une RestClientException), l'ancien code
+        // ne la rattrapait pas : l'essai restait bloqué et le circuit refusait
+        // tout appel À VIE. On prouve ici que le circuit reste opérationnel.
+
+        // 3 échecs réseau → circuit OUVERT.
+        server.expect(ExpectedCount.times(3), requestTo(Matchers.containsString("/table/")))
+                .andRespond(withServerError());
+        // Après le délai, l'essai semi-ouvert reçoit un corps au type incompatible
+        // ("durations" doit être un tableau de tableaux de nombres) → exception de
+        // conversion, NON-RestClientException.
+        server.expect(ExpectedCount.once(), requestTo(Matchers.containsString("/table/")))
+                .andRespond(withSuccess(
+                        "{\"code\":\"Ok\",\"durations\":\"pas-un-tableau\"}",
+                        MediaType.APPLICATION_JSON));
+        // Le circuit doit accepter un NOUVEL essai plus tard (preuve : non bloqué).
+        server.expect(ExpectedCount.once(), requestTo(Matchers.containsString("/table/")))
+                .andRespond(withSuccess(
+                        "{\"code\":\"Ok\",\"durations\":[[150.0]],\"distances\":[[800.0]]}",
+                        MediaType.APPLICATION_JSON));
+
+        for (int i = 0; i < 3; i++) {
+            provider.findRoutes(ORIGIN, List.of(DEST_A));
+        }
+        now = now.plus(Duration.ofSeconds(31)); // délai écoulé → 1er essai (malformé)
+        assertThat(provider.findRoutes(ORIGIN, List.of(DEST_A))).allMatch(Optional::isEmpty);
+
+        // Sans le correctif, l'essai resterait « en vol » et cet appel serait
+        // refusé sans requête. Avec le correctif, un nouvel essai est autorisé.
+        now = now.plus(Duration.ofSeconds(31));
+        final List<Optional<Route>> recovered = provider.findRoutes(ORIGIN, List.of(DEST_A));
+
+        assertThat(recovered.get(0)).contains(new Route(800.0, 150.0));
+        server.verify();
+    }
+
+    @Test
     void reprise_apres_le_delai_d_ouverture() {
         server.expect(ExpectedCount.times(3), requestTo(Matchers.containsString("/table/")))
                 .andRespond(withServerError());
