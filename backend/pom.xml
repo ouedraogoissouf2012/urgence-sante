@@ -25,6 +25,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-modulith.version>1.4.12</spring-modulith.version>
         <archunit.version>1.4.2</archunit.version>
+        <!-- Swagger UI (springdoc) : compatible Spring Boot 3.5.x. -->
+        <springdoc.version>2.7.0</springdoc.version>
     </properties>
 
     <!--
