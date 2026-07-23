@@ -32,7 +32,12 @@ public class FacilityJpaEntity {
     @Column(columnDefinition = "geography(Point,4326)", nullable = false)
     private Point location;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    // LAZY (et non EAGER) pour éviter un N+1 en lecture paginée : avec EAGER,
+    // charger N établissements déclenchait N requêtes supplémentaires (une par
+    // collection de services). Le chargement est garanti sans lazy-init par un
+    // @EntityGraph("services") sur les méthodes de lecture du repository, qui
+    // ramène les services en UN SEUL JOIN.
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "facility_service",
             joinColumns = @JoinColumn(name = "facility_id"))

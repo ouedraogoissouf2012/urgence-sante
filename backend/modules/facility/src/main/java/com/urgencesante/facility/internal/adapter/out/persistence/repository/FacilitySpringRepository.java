@@ -2,10 +2,13 @@ package com.urgencesante.facility.internal.adapter.out.persistence.repository;
 
 import com.urgencesante.facility.internal.adapter.out.persistence.entity.FacilityJpaEntity;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
 
 /**
  * Repository Spring Data (détail de persistance). Manipule uniquement les
@@ -16,6 +19,19 @@ import org.springframework.data.repository.query.Param;
  * évaluées que lorsqu'elles sont demandées.
  */
 public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntity, UUID> {
+
+    // Chargements par identifiant AVEC les services en un seul JOIN (@EntityGraph) :
+    // la collection `services` est LAZY (évite le N+1 en liste), ces méthodes
+    // garantissent qu'elle est hydratée sans lazy-init hors transaction.
+    @Override
+    @EntityGraph(attributePaths = "services")
+    @NonNull
+    Optional<FacilityJpaEntity> findById(@NonNull UUID id);
+
+    @Override
+    @EntityGraph(attributePaths = "services")
+    @NonNull
+    List<FacilityJpaEntity> findAllById(@NonNull Iterable<UUID> ids);
 
     @Query(value = """
             SELECT f.id FROM facility f
