@@ -49,3 +49,15 @@ Refaire l'étape 2 (le `scp`) après chaque modification de `site/`.
 - **Backend en ligne** : le même VPS pourra héberger le backend (Java +
   PostGIS) — c'est le chantier qui rendra l'APK utilisable partout, pas
   seulement sur le Wi-Fi de développement.
+
+## L'APK servi par le site
+
+Le fichier `site/urgence-sante.apk` est servi directement par le serveur
+(téléchargement immédiat au scan du QR, sans passer par GitHub). Il n'est
+**pas versionné** (voir .gitignore) : c'est le VPS qui le télécharge depuis
+la release GitHub. Pour le mettre à jour après une nouvelle release :
+
+```bash
+wget "https://github.com/ouedraogoissouf2012/urgence-sante/releases/download/mvp-demo-apk/app-debug.apk" \
+  -O ~/urgence-sante/site/urgence-sante.apk
+```
