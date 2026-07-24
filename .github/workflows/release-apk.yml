@@ -15,6 +15,11 @@ name: Release APK
 
 on:
   workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "URL publique de l'API compilée dans l'APK"
+        required: true
+        default: 'https://sante.riqamb.com/api/v1'
   push:
     branches: [main]
     paths:
@@ -31,6 +36,10 @@ jobs:
   build-publish-deploy:
     name: APK → release → VPS
     runs-on: ubuntu-latest
+    env:
+      # Vrai si un serveur de dépôt est configuré (absent sur un fork client
+      # sans secret) : l'étape de dépôt VPS est alors sautée proprement.
+      HAS_VPS_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,20 +57,30 @@ jobs:
 
       - name: Construire l'APK (URL du serveur public compilée)
         working-directory: frontend/apps/patient_mobile
+        env:
+          # Paramétrable au déclenchement manuel : un déploiement sur un AUTRE
+          # domaine (fork client) fournit son URL ; les pushs gardent le défaut.
+          API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://sante.riqamb.com/api/v1' }}
         run: |
           flutter pub get
           flutter build apk --debug -t lib/main_development.dart \
-            --dart-define=API_BASE_URL=https://sante.riqamb.com/api/v1
+            --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: Publier sur la release mvp-demo-apk
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Un fork n'hérite pas des releases : on la crée si absente.
+          gh release view mvp-demo-apk >/dev/null 2>&1 \
+            || gh release create mvp-demo-apk --title "APK de démonstration" \
+                 --notes "APK Android construit automatiquement par la CI."
           gh release upload mvp-demo-apk \
             frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk \
             --clobber
 
       - name: Déposer sur le VPS (servi immédiatement par le site)
+        # Sauté si le dépôt n'a pas configuré de serveur (fork sans secrets).
+        if: ${{ env.HAS_VPS_KEY == 'true' }}
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
