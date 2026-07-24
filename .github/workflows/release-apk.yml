@@ -1,0 +1,75 @@
+# ============================================================================
+# Livraison automatique de l'APK de démonstration.
+#
+# À chaque évolution de l'application sur main (ou à la demande), ce workflow :
+#   1. construit l'APK avec l'URL du serveur public compilée dedans ;
+#   2. le publie sur la release GitHub `mvp-demo-apk` (archive canonique) ;
+#   3. le dépose sur le VPS — le site https://sante.riqamb.com le sert
+#      immédiatement (bouton + QR code).
+#
+# Tout se passe entre les serveurs de GitHub et le VPS : la connexion du poste
+# de développement n'est jamais sollicitée.
+# Secret requis : VPS_SSH_KEY (clé privée dédiée, restreinte au dépôt).
+# ============================================================================
+name: Release APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+
+permissions:
+  contents: write # publication sur la release
+
+concurrency:
+  group: release-apk
+  cancel-in-progress: true
+
+jobs:
+  build-publish-deploy:
+    name: APK → release → VPS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configurer Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+
+      - name: Construire l'APK (URL du serveur public compilée)
+        working-directory: frontend/apps/patient_mobile
+        run: |
+          flutter pub get
+          flutter build apk --debug -t lib/main_development.dart \
+            --dart-define=API_BASE_URL=https://sante.riqamb.com/api/v1
+
+      - name: Publier sur la release mvp-demo-apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload mvp-demo-apk \
+            frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk \
+            --clobber
+
+      - name: Déposer sur le VPS (servi immédiatement par le site)
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 194.163.161.169 >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/deploy_key \
+            frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk \
+            issouf@194.163.161.169:~/urgence-sante/site/urgence-sante.apk
+          echo "APK en ligne sur https://sante.riqamb.com/urgence-sante.apk"
