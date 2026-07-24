@@ -9,6 +9,7 @@ import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
+import 'package:patient_mobile/features/orientation/presentation/widgets/need_selector.dart';
 import 'package:patient_mobile/features/orientation/presentation/widgets/recommendation_card.dart';
 
 class _FakeRepository implements OrientationRepository {
@@ -37,6 +38,26 @@ class _DeniedLocation implements LocationService {
   Future<void> openSettings(LocationFailure failure) async {}
 }
 
+/// Localisation d'abord DÉSACTIVÉE (réglages), puis fonctionnelle : simule
+/// l'utilisateur qui active la localisation dans les réglages et revient.
+class _ServiceDisabledThenOkLocation implements LocationService {
+  bool _firstCallDone = false;
+
+  @override
+  Future<UserPosition> currentPosition() async {
+    if (!_firstCallDone) {
+      _firstCallDone = true;
+      throw const LocationUnavailableException(
+          'La localisation est désactivée sur cet appareil.',
+          LocationFailure.serviceDisabled);
+    }
+    return const UserPosition(latitude: 5.35, longitude: -4.0);
+  }
+
+  @override
+  Future<void> openSettings(LocationFailure failure) async {}
+}
+
 class _RecordingCaller implements EmergencyCaller {
   final List<String> calls = [];
 
@@ -44,11 +65,11 @@ class _RecordingCaller implements EmergencyCaller {
   Future<void> call(String phoneNumber) async => calls.add(phoneNumber);
 }
 
-Widget _app(_RecordingCaller caller) {
+Widget _app(_RecordingCaller caller, {LocationService? location}) {
   return ProviderScope(
     overrides: [
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
-      locationServiceProvider.overrideWithValue(_DeniedLocation()),
+      locationServiceProvider.overrideWithValue(location ?? _DeniedLocation()),
       emergencyCallerProvider.overrideWithValue(caller),
       // Conditions déjà acceptées : ces tests ciblent le parcours principal.
       consentUpToDateProvider.overrideWith((ref) async => true),
@@ -90,6 +111,53 @@ void main() {
     expect(find.text('Réessayer'), findsOneWidget);
     // Les appels d'urgence restent accessibles pendant l'erreur.
     expect(find.text('SAMU 185'), findsOneWidget);
+  });
+
+  testWidgets('les puces de besoins sont centrées', (tester) async {
+    await tester.pumpWidget(_app(_RecordingCaller()));
+    await tester.pumpAndSettle();
+
+    final Wrap wrap = tester.widget<Wrap>(find.descendant(
+        of: find.byType(NeedSelector), matching: find.byType(Wrap)));
+
+    expect(wrap.alignment, WrapAlignment.center,
+        reason: 'sur téléphone, les puces doivent être centrées, pas collées à gauche');
+  });
+
+  testWidgets(
+      'localisation désactivée : « Réessayer » est proposé À CÔTÉ des réglages',
+      (tester) async {
+    // Sans ce bouton, l'utilisateur revenu des réglages restait bloqué sur
+    // l'écran d'erreur (constaté sur appareil réel).
+    await tester.pumpWidget(
+        _app(_RecordingCaller(), location: _ServiceDisabledThenOkLocation()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Maternité'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ouvrir les réglages'), findsOneWidget);
+    expect(find.text('Réessayer'), findsOneWidget);
+  });
+
+  testWidgets(
+      'au retour des réglages, la localisation est re-tentée automatiquement',
+      (tester) async {
+    final location = _ServiceDisabledThenOkLocation();
+    await tester.pumpWidget(_app(_RecordingCaller(), location: location));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Maternité'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ouvrir les réglages'), findsOneWidget);
+
+    // L'utilisateur active la localisation dans les réglages puis REVIENT
+    // dans l'application (cycle de vie : resumed).
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ouvrir les réglages'), findsNothing,
+        reason: 'au retour, l\'app doit re-tenter seule et quitter l\'erreur');
   });
 
   const sampleCenter = RecommendedCenter(

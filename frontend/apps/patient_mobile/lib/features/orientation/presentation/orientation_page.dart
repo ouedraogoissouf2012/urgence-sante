@@ -15,11 +15,46 @@ import 'widgets/orientation_results_view.dart';
 ///
 /// Aucune logique métier ici : la View observe l'état du ViewModel et lui
 /// délègue toutes les actions (flux unidirectionnel).
-class OrientationPage extends ConsumerWidget {
+///
+/// Observe aussi le CYCLE DE VIE : quand l'utilisateur part activer la
+/// localisation dans les réglages puis revient, l'app re-tente seule au lieu
+/// de rester bloquée sur l'écran d'erreur (constaté sur appareil réel).
+class OrientationPage extends ConsumerStatefulWidget {
   const OrientationPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrientationPage> createState() => _OrientationPageState();
+}
+
+class _OrientationPageState extends ConsumerState<OrientationPage>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    // Retour au premier plan pendant une erreur de LOCALISATION : l'utilisateur
+    // revient probablement des réglages — on re-tente sans qu'il ait à agir.
+    final OrientationState state = ref.read(orientationViewModelProvider);
+    if (state.phase == OrientationPhase.error && state.locationFailure != null) {
+      ref.read(orientationViewModelProvider.notifier).retry();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final OrientationState state = ref.watch(orientationViewModelProvider);
     final OrientationViewModel viewModel =
         ref.read(orientationViewModelProvider.notifier);
@@ -85,13 +120,21 @@ class OrientationPage extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             if (failure == LocationFailure.deniedForever ||
-                failure == LocationFailure.serviceDisabled)
+                failure == LocationFailure.serviceDisabled) ...[
               FilledButton.icon(
                 onPressed: viewModel.openLocationSettings,
                 icon: const Icon(Icons.settings),
                 label: const Text('Ouvrir les réglages'),
-              )
-            else
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // Le retour des réglages re-tente automatiquement (cycle de vie),
+              // mais un bouton explicite reste indispensable : l'utilisateur ne
+              // doit jamais être bloqué sur cet écran.
+              OutlinedButton(
+                onPressed: viewModel.retry,
+                child: const Text('Réessayer'),
+              ),
+            ] else
               FilledButton(
                 onPressed: viewModel.retry,
                 child: const Text('Réessayer'),
