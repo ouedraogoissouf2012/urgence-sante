@@ -19,6 +19,9 @@ class NeedSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
+      // Centré : sur téléphone, des puces collées à gauche déséquilibrent
+      // l'écran (retour d'utilisation sur appareil réel).
+      alignment: WrapAlignment.center,
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
       children: [
