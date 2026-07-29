@@ -2,6 +2,8 @@ import 'package:api_client/api.dart';
 import 'package:app_foundation/app_foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/auth/secure_session_store.dart';
+import '../core/auth/session_store.dart';
 import '../core/calls/emergency_caller.dart';
 import '../core/consent/consent_store.dart';
 import '../core/consent/shared_prefs_consent_store.dart';
@@ -9,6 +11,8 @@ import '../core/location/geolocator_location_service.dart';
 import '../core/location/location_service.dart';
 import '../core/navigation/navigation_launcher.dart';
 import '../core/storage/key_value_store.dart';
+import '../features/auth/data/api_auth_repository.dart';
+import '../features/auth/domain/auth_repository.dart';
 import '../features/orientation/data/api_orientation_repository.dart';
 import '../features/orientation/data/cached_orientation_repository.dart';
 import '../features/orientation/domain/repository/orientation_repository.dart';
@@ -63,3 +67,35 @@ final consentUpToDateProvider = FutureProvider<bool>((ref) async {
   final accepted = await ref.watch(consentStoreProvider).acceptedTermsVersion();
   return isConsentUpToDate(accepted);
 });
+
+// ── Authentification patient ────────────────────────────────────────────────
+
+/// Stockage CHIFFRÉ du jeton de session (Keystore/Keychain).
+final sessionStoreProvider = Provider<SessionStore>(
+  (ref) => SecureSessionStore(),
+);
+
+/// Accès à l'authentification patient (inscription/connexion via l'API).
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => ApiAuthRepository(ref.watch(apiClientProvider)),
+);
+
+/// Jeton de session courant (null si non connecté). Invalidé après
+/// inscription/connexion/déconnexion pour rafraîchir la porte d'entrée.
+final sessionTokenProvider = FutureProvider<String?>(
+  (ref) => ref.watch(sessionStoreProvider).readToken(),
+);
+
+/// Mode invité : l'utilisateur a choisi « Urgence — continuer sans compte ».
+/// Volatil (non persisté) : l'inscription est reproposée au prochain lancement,
+/// mais une urgence en cours n'est jamais interrompue.
+final guestModeProvider =
+    NotifierProvider<GuestModeNotifier, bool>(GuestModeNotifier.new);
+
+class GuestModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  /// Bascule en mode invité (issue d'urgence, sans compte).
+  void enter() => state = true;
+}

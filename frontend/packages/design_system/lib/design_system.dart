@@ -2,6 +2,7 @@
 library;
 
 export 'src/catalog/component_catalog.dart';
+export 'src/components/app_text_field.dart';
 export 'src/components/async_state_view.dart';
 export 'src/components/emergency_call_button.dart';
 export 'src/components/info_card.dart';

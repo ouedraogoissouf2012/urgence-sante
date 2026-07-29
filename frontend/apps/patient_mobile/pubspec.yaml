@@ -21,6 +21,8 @@ dependencies:
   url_launcher: ^6.3.0
   # Persistance locale du consentement (version des conditions acceptée).
   shared_preferences: ^2.3.0
+  # Stockage CHIFFRÉ du jeton de session patient (Keystore/Keychain).
+  flutter_secure_storage: ^9.2.2
   app_foundation:
     path: ../../packages/app_foundation
   design_system:

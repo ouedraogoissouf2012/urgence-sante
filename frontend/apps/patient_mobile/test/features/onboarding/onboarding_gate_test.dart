@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_mobile/app/patient_app.dart';
+import 'package:patient_mobile/core/auth/session_store.dart';
 import 'package:patient_mobile/core/consent/consent_store.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
@@ -47,9 +48,23 @@ class _FakeLocation implements LocationService {
   Future<void> openSettings(LocationFailure failure) async {}
 }
 
+/// Session déjà ouverte : ces tests ciblent la porte de CONSENTEMENT, en aval
+/// de l'authentification. On fournit donc un jeton présent.
+class _AuthenticatedSessionStore implements SessionStore {
+  @override
+  Future<String?> readToken() async => 'jeton-de-test';
+
+  @override
+  Future<void> saveToken(String token) async {}
+
+  @override
+  Future<void> clear() async {}
+}
+
 Widget _app(_InMemoryConsentStore store) {
   return ProviderScope(
     overrides: [
+      sessionStoreProvider.overrideWithValue(_AuthenticatedSessionStore()),
       consentStoreProvider.overrideWithValue(store),
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
       locationServiceProvider.overrideWithValue(_FakeLocation()),
