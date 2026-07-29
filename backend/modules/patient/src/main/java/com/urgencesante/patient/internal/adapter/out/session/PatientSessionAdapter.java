@@ -10,7 +10,6 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.stereotype.Component;
 
 /**
  * Émission de jetons de session patient.
@@ -19,8 +18,10 @@ import org.springframework.stereotype.Component;
  * l'EMPREINTE SHA-256 (jamais le jeton en clair) avec une expiration, et renvoie
  * le jeton en clair une seule fois. Un jeton perdu n'est donc pas récupérable
  * depuis la base.
+ *
+ * <p>Non annoté {@code @Component} : instancié par {@code PatientConfiguration}
+ * (qui lui fournit la durée de validité configurable).
  */
-@Component
 public class PatientSessionAdapter implements PatientSessionPort {
 
     private static final int TOKEN_BYTES = 32;
