@@ -41,6 +41,7 @@
         <module>modules/routing</module>
         <module>modules/orientation</module>
         <module>modules/identity</module>
+        <module>modules/patient</module>
         <module>modules/audit</module>
         <module>modules/notification</module>
         <module>bootstrap</module>
@@ -101,6 +102,11 @@
             <dependency>
                 <groupId>com.urgencesante</groupId>
                 <artifactId>identity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.urgencesante</groupId>
+                <artifactId>patient</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
