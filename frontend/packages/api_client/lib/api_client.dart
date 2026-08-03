@@ -196,16 +196,22 @@ class ApiClient {
           return FreshnessTypeTransformer().decode(value);
         case 'GeoPoint':
           return GeoPoint.fromJson(value);
+        case 'LoginRequest':
+          return LoginRequest.fromJson(value);
         case 'MedicalService':
           return MedicalService.fromJson(value);
         case 'PageMetadata':
           return PageMetadata.fromJson(value);
         case 'PagedFacilities':
           return PagedFacilities.fromJson(value);
+        case 'PatientSession':
+          return PatientSession.fromJson(value);
         case 'Problem':
           return Problem.fromJson(value);
         case 'Recommendation':
           return Recommendation.fromJson(value);
+        case 'RegisterPatientRequest':
+          return RegisterPatientRequest.fromJson(value);
         case 'Route':
           return Route.fromJson(value);
         case 'ServiceAvailability':

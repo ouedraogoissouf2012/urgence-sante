@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../components/app_text_field.dart';
 import '../components/async_state_view.dart';
 import '../components/emergency_call_button.dart';
 import '../components/status_badge.dart';
@@ -53,6 +54,30 @@ abstract final class ComponentCatalog {
     CatalogEntry(
       name: 'AsyncStateView — erreur',
       builder: (_) => const AsyncStateView.error(message: 'Connexion impossible.', onRetry: _noop),
+    ),
+    CatalogEntry(
+      name: 'AppTextField — téléphone',
+      builder: (_) => AppTextField(
+        label: 'Téléphone',
+        hint: '+225 XX XX XX XX XX',
+        controller: TextEditingController(),
+      ),
+    ),
+    CatalogEntry(
+      name: 'AppTextField — mot de passe',
+      builder: (_) => AppTextField(
+        label: 'Mot de passe',
+        obscure: true,
+        controller: TextEditingController(),
+      ),
+    ),
+    CatalogEntry(
+      name: 'AppTextField — en erreur',
+      builder: (_) => AppTextField(
+        label: 'Téléphone',
+        errorText: 'Numéro invalide',
+        controller: TextEditingController(),
+      ),
     ),
   ]);
 }

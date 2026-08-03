@@ -118,6 +118,8 @@ void main() {
         locationServiceProvider.overrideWithValue(_Location()),
         emergencyCallerProvider.overrideWithValue(caller),
         navigationLauncherProvider.overrideWithValue(nav),
+        // Session présente : ce parcours e2e cible l'orientation, pas l'auth.
+        sessionTokenProvider.overrideWith((ref) async => 'jeton-de-test'),
         // Store en mémoire NON accepté : l'acceptation via l'UI fait transiter
         // l'écran (consentUpToDateProvider recalcule vrai), comme en production.
         consentStoreProvider.overrideWithValue(_ConsentStore()),

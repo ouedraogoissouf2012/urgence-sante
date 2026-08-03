@@ -183,6 +183,8 @@ void main() {
         locationServiceProvider.overrideWithValue(_Location()),
         emergencyCallerProvider.overrideWithValue(caller),
         navigationLauncherProvider.overrideWithValue(nav),
+        // Session présente : ce test cible le parcours, pas l'authentification.
+        sessionTokenProvider.overrideWith((ref) async => 'jeton-de-test'),
         consentUpToDateProvider.overrideWith((ref) async => true),
       ],
       child: const PatientApp(),

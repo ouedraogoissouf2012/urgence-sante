@@ -28,6 +28,8 @@ tags:
     description: Itinéraires et temps de trajet.
   - name: Orientation
     description: Recommandation du centre adapté le plus proche.
+  - name: Patients
+    description: Comptes patients — inscription et connexion (téléphone + mot de passe).
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -336,6 +338,67 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /patients:
+    post:
+      tags: [Patients]
+      operationId: registerPatient
+      summary: Inscription d'un patient (téléphone + mot de passe)
+      description: >-
+        Crée un compte patient et ouvre immédiatement une session. Le mot de
+        passe n'est jamais stocké en clair (empreinte BCrypt). Aucune donnée
+        médicale n'est collectée ni transmise : elle reste sur l'appareil.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPatientRequest'
+      responses:
+        '201':
+          description: Compte créé, session ouverte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Un compte existe déjà pour ce numéro de téléphone.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /patients/session:
+    post:
+      tags: [Patients]
+      operationId: loginPatient
+      summary: Connexion d'un patient
+      description: >-
+        Vérifie les identifiants et renvoie un jeton porteur de session. Message
+        d'erreur volontairement générique (ne révèle pas l'existence d'un compte).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session ouverte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Téléphone ou mot de passe incorrect.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
 components:
   securitySchemes:
     portalBearer:
@@ -346,6 +409,13 @@ components:
         établissement) ou administrateur (portée globale). N'est requis que
         pour les opérations d'écriture du portail ; les endpoints patient
         restent publics.
+    patientBearer:
+      type: http
+      scheme: bearer
+      description: >-
+        Jeton porteur de session patient, obtenu à l'inscription ou à la
+        connexion. Destiné aux futurs endpoints authentifiés du patient
+        (aucun en Lot 1 : les données médicales restent sur l'appareil).
   parameters:
     PageParam:
       name: page
@@ -628,3 +698,41 @@ components:
         explanation:
           type: string
           description: Raison lisible de la recommandation.
+
+    RegisterPatientRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone:
+          type: string
+          maxLength: 20
+          description: Numéro de téléphone au format international (ex. +225XXXXXXXXXX).
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Mot de passe (au moins 8 caractères). Jamais renvoyé ni stocké en clair.
+
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone:
+          type: string
+          maxLength: 20
+        password:
+          type: string
+          maxLength: 128
+
+    PatientSession:
+      type: object
+      required: [patientId, token]
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        token:
+          type: string
+          description: >-
+            Jeton porteur de session, à conserver côté client et à présenter aux
+            futurs endpoints authentifiés. Renvoyé une seule fois.

@@ -3,6 +3,7 @@ lib/api/availability_api.dart
 lib/api/facilities_api.dart
 lib/api/medical_services_api.dart
 lib/api/orientation_api.dart
+lib/api/patients_api.dart
 lib/api/routing_api.dart
 lib/api_client.dart
 lib/api_exception.dart
@@ -19,11 +20,14 @@ lib/model/facility_availability.dart
 lib/model/field_error.dart
 lib/model/freshness.dart
 lib/model/geo_point.dart
+lib/model/login_request.dart
 lib/model/medical_service.dart
 lib/model/page_metadata.dart
 lib/model/paged_facilities.dart
+lib/model/patient_session.dart
 lib/model/problem.dart
 lib/model/recommendation.dart
+lib/model/register_patient_request.dart
 lib/model/route.dart
 lib/model/service_availability.dart
 lib/model/update_availability_request.dart

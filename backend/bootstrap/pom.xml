@@ -91,6 +91,10 @@
         </dependency>
         <dependency>
             <groupId>com.urgencesante</groupId>
+            <artifactId>patient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.urgencesante</groupId>
             <artifactId>audit</artifactId>
         </dependency>
         <dependency>

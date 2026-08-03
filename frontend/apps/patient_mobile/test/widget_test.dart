@@ -71,7 +71,9 @@ Widget _app(_RecordingCaller caller, {LocationService? location}) {
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
       locationServiceProvider.overrideWithValue(location ?? _DeniedLocation()),
       emergencyCallerProvider.overrideWithValue(caller),
-      // Conditions déjà acceptées : ces tests ciblent le parcours principal.
+      // Ces tests ciblent le parcours principal : on passe l'authentification
+      // (session présente) et le consentement (déjà accepté).
+      sessionTokenProvider.overrideWith((ref) async => 'jeton-de-test'),
       consentUpToDateProvider.overrideWith((ref) async => true),
     ],
     child: const PatientApp(),

@@ -42,4 +42,19 @@ public class SecurityConfiguration {
         return new PortalSecurityInterceptor(
                 identityFacade, authAttemptsPerIp, updatesPerPrincipal);
     }
+
+    /** Inscriptions/connexions patient par IP (endpoints publics, anti-abus). */
+    @Bean
+    RateLimiter patientAttemptsPerIp(
+            Clock clock,
+            @Value("${security.patient.rate.per-ip:10}") int capacity,
+            @Value("${security.patient.rate.window-ms:60000}") long windowMs) {
+        return new RateLimiter(capacity, Duration.ofMillis(windowMs), clock);
+    }
+
+    @Bean
+    PatientRateLimitInterceptor patientRateLimitInterceptor(
+            @Qualifier("patientAttemptsPerIp") RateLimiter patientAttemptsPerIp) {
+        return new PatientRateLimitInterceptor(patientAttemptsPerIp);
+    }
 }

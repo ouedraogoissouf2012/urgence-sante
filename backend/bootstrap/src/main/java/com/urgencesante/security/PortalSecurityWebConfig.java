@@ -6,17 +6,21 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Enregistre l'interceptor de sécurité du portail sur l'écriture de
- * disponibilité. Séparé de {@link SecurityConfiguration} pour injecter le
- * bean interceptor sans cycle d'auto-référence.
+ * Enregistre les interceptors de sécurité : celui du portail (écriture de
+ * disponibilité) et la limite de débit des inscriptions/connexions patient.
+ * Séparé de {@link SecurityConfiguration} pour injecter les beans sans cycle
+ * d'auto-référence.
  */
 @Configuration
 class PortalSecurityWebConfig implements WebMvcConfigurer {
 
     private final PortalSecurityInterceptor interceptor;
+    private final PatientRateLimitInterceptor patientRateLimit;
 
-    PortalSecurityWebConfig(PortalSecurityInterceptor interceptor) {
+    PortalSecurityWebConfig(
+            PortalSecurityInterceptor interceptor, PatientRateLimitInterceptor patientRateLimit) {
         this.interceptor = interceptor;
+        this.patientRateLimit = patientRateLimit;
     }
 
     @Override
@@ -25,5 +29,8 @@ class PortalSecurityWebConfig implements WebMvcConfigurer {
         // La restriction à la méthode PUT est faite dans l'interceptor.
         registry.addInterceptor(interceptor)
                 .addPathPatterns("/api/v1/facilities/*/availability/*");
+        // Inscription et connexion patient (POST publics) : anti-abus par IP.
+        registry.addInterceptor(patientRateLimit)
+                .addPathPatterns("/api/v1/patients", "/api/v1/patients/session");
     }
 }
