@@ -13,6 +13,8 @@ import '../core/navigation/navigation_launcher.dart';
 import '../core/storage/key_value_store.dart';
 import '../features/auth/data/api_auth_repository.dart';
 import '../features/auth/domain/auth_repository.dart';
+import '../features/medical_profile/data/local_medical_profile_store.dart';
+import '../features/medical_profile/domain/profile_store.dart';
 import '../features/orientation/data/api_orientation_repository.dart';
 import '../features/orientation/data/cached_orientation_repository.dart';
 import '../features/orientation/domain/repository/orientation_repository.dart';
@@ -84,6 +86,11 @@ final authRepositoryProvider = Provider<AuthRepository>(
 /// inscription/connexion/déconnexion pour rafraîchir la porte d'entrée.
 final sessionTokenProvider = FutureProvider<String?>(
   (ref) => ref.watch(sessionStoreProvider).readToken(),
+);
+
+/// Persistance LOCALE de la fiche médicale (jamais côté serveur).
+final profileStoreProvider = Provider<ProfileStore>(
+  (ref) => LocalMedicalProfileStore(ref.watch(keyValueStoreProvider)),
 );
 
 /// Mode invité : l'utilisateur a choisi « Urgence — continuer sans compte ».

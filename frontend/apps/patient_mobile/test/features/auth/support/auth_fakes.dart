@@ -1,4 +1,5 @@
 import 'package:patient_mobile/core/auth/session_store.dart';
+import 'package:patient_mobile/core/storage/key_value_store.dart';
 import 'package:patient_mobile/features/auth/domain/auth_failure.dart';
 import 'package:patient_mobile/features/auth/domain/auth_repository.dart';
 
@@ -38,4 +39,15 @@ class InMemorySessionStore implements SessionStore {
 
   @override
   Future<void> clear() async => _token = null;
+}
+
+/// Faux stockage clé/valeur en mémoire (partagé entre tests).
+class InMemoryKeyValueStore implements KeyValueStore {
+  final Map<String, String> data = {};
+
+  @override
+  Future<String?> read(String key) async => data[key];
+
+  @override
+  Future<void> write(String key, String value) async => data[key] = value;
 }
