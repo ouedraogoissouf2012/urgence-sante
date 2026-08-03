@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../../di/providers.dart';
+import '../../medical_profile/presentation/emergency_card_page.dart';
 import 'center_detail_page.dart';
 import 'orientation_state.dart';
 import 'orientation_view_model.dart';
@@ -60,7 +61,20 @@ class _OrientationPageState extends ConsumerState<OrientationPage>
         ref.read(orientationViewModelProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Urgence Santé')),
+      appBar: AppBar(
+        title: const Text('Urgence Santé'),
+        actions: [
+          IconButton(
+            tooltip: 'Ma fiche d\'urgence',
+            icon: const Icon(Icons.medical_information_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const EmergencyCardPage(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: _body(context, state, viewModel, ref),
       bottomNavigationBar: const EmergencyCallBar(),
     );
