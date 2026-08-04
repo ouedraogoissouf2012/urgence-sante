@@ -1,9 +1,13 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/consent/consent_store.dart';
 import '../../di/providers.dart';
+
+/// Adresse publique des Conditions Générales d'Utilisation.
+const String _termsUrl = 'https://urgence-sante.napcor-group.com/cgu.html';
 
 /// Accueil : présentation, limites médicales, explication de la localisation
 /// et acceptation des conditions (versionnée, persistée).
@@ -25,6 +29,19 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ref.invalidate(consentUpToDateProvider);
     } finally {
       if (mounted) setState(() => _accepting = false);
+    }
+  }
+
+  /// Ouvre les conditions d'utilisation dans le navigateur. En cas d'échec
+  /// (pas de navigateur), on informe l'utilisateur sans planter.
+  Future<void> _openTerms() async {
+    final Uri uri = Uri.parse(_termsUrl);
+    final bool opened =
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Impossible d\'ouvrir les conditions d\'utilisation.'),
+      ));
     }
   }
 
@@ -82,10 +99,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   'chercher sans localisation précise.',
             ),
             const SizedBox(height: AppSpacing.lg),
-            const Text(
-              "Conditions d'utilisation — version $currentTermsVersion",
-              style: AppTypography.caption,
-              textAlign: TextAlign.center,
+            TextButton(
+              onPressed: _openTerms,
+              child: const Text(
+                "Lire les conditions d'utilisation — version $currentTermsVersion",
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             FilledButton(
