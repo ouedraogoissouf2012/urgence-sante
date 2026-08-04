@@ -36,6 +36,10 @@ jobs:
   build-publish-deploy:
     name: APK → release → VPS
     runs-on: ubuntu-latest
+    # Garde-fou : un upload de release suspendu (déjà observé) ne doit pas
+    # bloquer le job pendant des heures. Le build + publication + dépôt tiennent
+    # largement en 30 min ; au-delà, on échoue vite pour pouvoir relancer.
+    timeout-minutes: 30
     env:
       # Vrai si un serveur de dépôt est configuré (absent sur un fork client
       # sans secret) : l'étape de dépôt VPS est alors sautée proprement.
@@ -74,9 +78,21 @@ jobs:
           gh release view mvp-demo-apk >/dev/null 2>&1 \
             || gh release create mvp-demo-apk --title "APK de démonstration" \
                  --notes "APK Android construit automatiquement par la CI."
-          gh release upload mvp-demo-apk \
-            frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk \
-            --clobber
+          # L'upload de release peut rester suspendu (déjà observé) : on le borne
+          # à 5 min et on réessaie deux fois plutôt que de laisser le job pendre.
+          apk=frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk
+          for tentative in 1 2 3; do
+            echo "Publication sur la release (tentative $tentative)…"
+            if timeout 300 gh release upload mvp-demo-apk "$apk" --clobber; then
+              echo "APK publié sur la release."
+              break
+            fi
+            if [ "$tentative" = 3 ]; then
+              echo "::error::Échec de la publication de l'APK après 3 tentatives." >&2
+              exit 1
+            fi
+            echo "Nouvelle tentative dans 15 s…"; sleep 15
+          done
 
       - name: Déposer sur le VPS (servi immédiatement par le site)
         # Sauté si le dépôt n'a pas configuré de serveur (fork sans secrets).
@@ -91,4 +107,4 @@ jobs:
           scp -i ~/.ssh/deploy_key \
             frontend/apps/patient_mobile/build/app/outputs/flutter-apk/app-debug.apk \
             issouf@194.163.161.169:~/urgence-sante/site/urgence-sante.apk
-          echo "APK en ligne sur https://sante.riqamb.com/urgence-sante.apk"
+          echo "APK en ligne sur https://urgence-sante.napcor-group.com/urgence-sante.apk"
