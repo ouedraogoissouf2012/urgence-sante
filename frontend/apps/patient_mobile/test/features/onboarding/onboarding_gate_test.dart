@@ -94,6 +94,8 @@ void main() {
     final accept = find.text("J'accepte les conditions et je continue");
     await tester.scrollUntilVisible(accept, 200,
         scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(accept);
+    await tester.pumpAndSettle();
     await tester.tap(accept);
     await tester.pumpAndSettle();
 
