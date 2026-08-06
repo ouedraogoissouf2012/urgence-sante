@@ -37,6 +37,7 @@
         <module>building-blocks</module>
         <module>modules/facility</module>
         <module>modules/medical-service</module>
+        <module>modules/emergency-taxonomy</module>
         <module>modules/availability</module>
         <module>modules/routing</module>
         <module>modules/orientation</module>
@@ -82,6 +83,11 @@
             <dependency>
                 <groupId>com.urgencesante</groupId>
                 <artifactId>medical-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.urgencesante</groupId>
+                <artifactId>emergency-taxonomy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
