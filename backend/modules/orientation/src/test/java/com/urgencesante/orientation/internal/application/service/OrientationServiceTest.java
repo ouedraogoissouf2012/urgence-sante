@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -26,17 +27,24 @@ import org.junit.jupiter.api.Test;
 class OrientationServiceTest {
 
     private static final OrientationQuery QUERY =
-            new OrientationQuery(5.35, -4.00, "maternity", 15_000, 5);
+            new OrientationQuery(5.35, -4.00, Set.of("maternity"), 15_000, 5);
 
     private final List<CandidateFacilityPort.CandidateFacility> candidates = new ArrayList<>();
-    private final Map<UUID, AvailabilityLookupPort.ServiceStatus> statuses = new HashMap<>();
+    // Clé : « facilityId » (niveau établissement) ou « facilityId|serviceCode »
+    // (par service, pour tester la combinaison multi-services).
+    private final Map<String, AvailabilityLookupPort.ServiceStatus> statuses = new HashMap<>();
     private boolean travelTimeAvailable = true;
     private int travelTimeCalls = 0;
 
     private final OrientationService service = new OrientationService(
             serviceCode -> !"unknown-service".equals(serviceCode),
             (serviceCode, lat, lon, radius, limit) -> List.copyOf(candidates),
-            (facilityId, serviceCode) -> Optional.ofNullable(statuses.get(facilityId)),
+            (facilityId, serviceCode) -> {
+                final AvailabilityLookupPort.ServiceStatus perService =
+                        statuses.get(facilityId + "|" + serviceCode);
+                return Optional.ofNullable(
+                        perService != null ? perService : statuses.get(facilityId.toString()));
+            },
             (fromLat, fromLon, destinations) -> {
                 travelTimeCalls++;
                 return destinations.stream()
@@ -51,7 +59,7 @@ class OrientationServiceTest {
         final UUID id = UUID.randomUUID();
         candidates.add(new CandidateFacilityPort.CandidateFacility(id, name, lat, lon, "+22501000000"));
         if (status != null) {
-            statuses.put(id, new AvailabilityLookupPort.ServiceStatus(status, freshness));
+            statuses.put(id.toString(), new AvailabilityLookupPort.ServiceStatus(status, freshness));
         }
         return id;
     }
@@ -135,8 +143,26 @@ class OrientationServiceTest {
     @Test
     void refuse_un_service_inconnu_du_catalogue() {
         assertThatThrownBy(() -> service.recommend(
-                new OrientationQuery(5.35, -4.00, "unknown-service", 15_000, 5)))
+                new OrientationQuery(5.35, -4.00, Set.of("unknown-service"), 15_000, 5)))
                 .isInstanceOf(OrientationValidationException.class)
                 .hasMessageContaining("inconnu");
+    }
+
+    @Test
+    void retient_le_meilleur_statut_parmi_les_services_demandes() {
+        // Un centre offre deux services demandés : l'un saturé, l'autre disponible.
+        // Le meilleur (AVAILABLE) doit l'emporter — le centre est classé disponible.
+        final UUID id = UUID.randomUUID();
+        candidates.add(new CandidateFacilityPort.CandidateFacility(
+                id, "Centre polyvalent", 5.36, -4.00, "+22501000000"));
+        statuses.put(id + "|pulmonology", new AvailabilityLookupPort.ServiceStatus("SATURATED", "FRESH"));
+        statuses.put(id + "|intensive_care", new AvailabilityLookupPort.ServiceStatus("AVAILABLE", "FRESH"));
+
+        final List<Recommendation> result = service.recommend(new OrientationQuery(
+                5.35, -4.00, Set.of("pulmonology", "intensive_care"), 15_000, 5));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).status()).isEqualTo("AVAILABLE");
+        assertThat(result.get(0).explanation()).contains("service disponible");
     }
 }

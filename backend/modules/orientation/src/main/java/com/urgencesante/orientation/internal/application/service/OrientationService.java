@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Moteur d'orientation. Compose des stratégies (injectées) pour classer les
@@ -57,11 +59,13 @@ public class OrientationService implements RecommendFacilitiesUseCase {
 
     @Override
     public List<Recommendation> recommend(OrientationQuery query) {
-        if (!serviceCatalog.exists(query.serviceCode())) {
-            throw new OrientationValidationException("Service médical inconnu : " + query.serviceCode());
+        for (final String serviceCode : query.serviceCodes()) {
+            if (!serviceCatalog.exists(serviceCode)) {
+                throw new OrientationValidationException("Service médical inconnu : " + serviceCode);
+            }
         }
         final List<CandidateFacility> candidates = candidateFacilityPort.findCandidates(
-                query.serviceCode(), query.latitude(), query.longitude(),
+                query.serviceCodes(), query.latitude(), query.longitude(),
                 query.radiusMeters(), query.limit());
         if (candidates.isEmpty()) {
             return List.of();
@@ -91,7 +95,7 @@ public class OrientationService implements RecommendFacilitiesUseCase {
     private Optional<Recommendation> evaluate(
             OrientationQuery query, CandidateFacility candidate, OptionalDouble travelTime) {
         final Optional<ServiceStatus> availability =
-                availabilityLookupPort.lookup(candidate.facilityId(), query.serviceCode());
+                mostFavorableStatus(candidate.facilityId(), query.serviceCodes());
         final String freshness = availability.map(ServiceStatus::freshness).orElse(UNKNOWN);
         final String rawStatus = availability.map(ServiceStatus::status).orElse(UNKNOWN);
         // Information périmée = non confirmée.
@@ -123,5 +127,40 @@ public class OrientationService implements RecommendFacilitiesUseCase {
                 candidate.latitude(), candidate.longitude(), candidate.phone(),
                 distance, travelSeconds, quality,
                 effectiveStatus, totalScore, String.join(" · ", reasons)));
+    }
+
+    /**
+     * Meilleur statut de disponibilité parmi les services demandés : un centre
+     * est aussi favorable que son meilleur service pertinent. L'ordre reflète le
+     * scoring d'{@code AvailabilityStrategy} (AVAILABLE > LIMITED > non confirmé
+     * > SATURATED > CLOSED) ; un statut périmé (STALE) est ramené à non confirmé.
+     */
+    private Optional<ServiceStatus> mostFavorableStatus(UUID facilityId, Set<String> serviceCodes) {
+        ServiceStatus best = null;
+        int bestRank = Integer.MIN_VALUE;
+        for (final String serviceCode : serviceCodes) {
+            final Optional<ServiceStatus> status =
+                    availabilityLookupPort.lookup(facilityId, serviceCode);
+            if (status.isEmpty()) {
+                continue;
+            }
+            final int rank = favorability(status.get());
+            if (rank > bestRank) {
+                bestRank = rank;
+                best = status.get();
+            }
+        }
+        return Optional.ofNullable(best);
+    }
+
+    private static int favorability(ServiceStatus status) {
+        final String effective = STALE.equals(status.freshness()) ? UNKNOWN : status.status();
+        return switch (effective) {
+            case "AVAILABLE" -> 5;
+            case "LIMITED" -> 4;
+            case "SATURATED" -> 2;
+            case "CLOSED" -> 1;
+            default -> 3;
+        };
     }
 }

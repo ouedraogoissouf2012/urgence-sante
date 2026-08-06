@@ -4,7 +4,9 @@ import com.urgencesante.orientation.internal.adapter.in.web.dto.response.Recomme
 import com.urgencesante.orientation.internal.adapter.in.web.mapper.OrientationWebMapper;
 import com.urgencesante.orientation.internal.application.port.in.RecommendFacilitiesUseCase;
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,11 +57,22 @@ public class OrientationController {
     public List<RecommendationResponse> recommend(
             @RequestParam double lat,
             @RequestParam double lon,
-            @RequestParam String service,
+            @RequestParam(required = false) String service,
+            @RequestParam(required = false) List<String> services,
             @RequestParam(required = false) Integer radiusMeters,
             @RequestParam(required = false) Integer limit) {
+        // Un symptôme peut couvrir plusieurs services : « services » (répété) est
+        // accepté en plus de « service » (mono, rétrocompatible). L'union des deux
+        // constitue le besoin ; l'absence totale échoue en 400 (OrientationQuery).
+        final Set<String> serviceCodes = new LinkedHashSet<>();
+        if (services != null) {
+            serviceCodes.addAll(services);
+        }
+        if (service != null) {
+            serviceCodes.add(service);
+        }
         final OrientationQuery query = new OrientationQuery(
-                lat, lon, service,
+                lat, lon, serviceCodes,
                 radiusMeters == null ? defaultRadiusMeters : radiusMeters,
                 limit == null ? DEFAULT_LIMIT : limit);
         return recommendFacilities.recommend(query).stream().map(mapper::toResponse).toList();

@@ -5,6 +5,7 @@ import com.urgencesante.orientation.RecommendationView;
 import com.urgencesante.orientation.internal.application.port.in.RecommendFacilitiesUseCase;
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /** Implémente l'API publique du module à partir du cas d'usage. */
@@ -21,7 +22,8 @@ class OrientationFacadeAdapter implements OrientationFacade {
     public List<RecommendationView> recommend(
             double latitude, double longitude, String serviceCode, int radiusMeters, int limit) {
         return recommendFacilities
-                .recommend(new OrientationQuery(latitude, longitude, serviceCode, radiusMeters, limit))
+                .recommend(new OrientationQuery(
+                        latitude, longitude, Set.of(serviceCode), radiusMeters, limit))
                 .stream()
                 .map(recommendation -> new RecommendationView(
                         recommendation.facilityId(),

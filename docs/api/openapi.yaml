@@ -310,9 +310,12 @@ paths:
       operationId: recommendFacilities
       summary: Recommander les centres adaptés pour un besoin médical
       description: >-
-        Classe les établissements offrant le service demandé selon la proximité,
-        la disponibilité (un statut périmé est traité comme non confirmé) et le
-        temps de trajet, avec une explication lisible.
+        Classe les établissements offrant AU MOINS UN des services demandés
+        (« service » mono, rétrocompatible, et/ou « services » multiples — un
+        symptôme peut couvrir plusieurs spécialités) selon la proximité, la
+        disponibilité (le meilleur statut parmi les services demandés ; un statut
+        périmé est traité comme non confirmé) et le temps de trajet, avec une
+        explication lisible.
       parameters:
         - name: lat
           in: query
@@ -324,11 +327,24 @@ paths:
           schema: { type: number, format: double, minimum: -180, maximum: 180 }
         - name: service
           in: query
-          required: true
-          description: Code du service médical recherché (catalogue).
+          required: false
+          description: >-
+            Code d'un service médical recherché (catalogue). Rétrocompatible ; au
+            moins un service est requis via « service » ou « services ».
           schema:
             type: string
             maxLength: 64
+        - name: services
+          in: query
+          required: false
+          description: >-
+            Un ou plusieurs codes de services (union avec « service » ; sémantique
+            OU). Utilisé quand un symptôme couvre plusieurs spécialités.
+          schema:
+            type: array
+            items:
+              type: string
+              maxLength: 64
         - name: radiusMeters
           in: query
           required: false
