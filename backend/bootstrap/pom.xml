@@ -75,6 +75,10 @@
         </dependency>
         <dependency>
             <groupId>com.urgencesante</groupId>
+            <artifactId>emergency-taxonomy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.urgencesante</groupId>
             <artifactId>availability</artifactId>
         </dependency>
         <dependency>

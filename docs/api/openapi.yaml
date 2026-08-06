@@ -30,6 +30,8 @@ tags:
     description: Recommandation du centre adapté le plus proche.
   - name: Patients
     description: Comptes patients — inscription et connexion (téléphone + mot de passe).
+  - name: EmergencyTaxonomy
+    description: Taxonomie des urgences — catégories, symptômes et services recherchés.
 
 # Sécurité par défaut : lecture publique en Lot 1. Les opérations authentifiées
 # (portail hospitalier, écritures) déclareront « bearerAuth » à leur arrivée.
@@ -138,6 +140,25 @@ paths:
                   $ref: '#/components/schemas/MedicalService'
         '400':
           $ref: '#/components/responses/BadRequest'
+
+  /emergency-taxonomy:
+    get:
+      tags: [EmergencyTaxonomy]
+      operationId: getEmergencyTaxonomy
+      summary: Obtenir la taxonomie des urgences (catégories et symptômes)
+      description: >
+        Référentiel de navigation à deux niveaux (grande catégorie → symptôme).
+        Chaque catégorie porte les codes des services médicaux « recherchés » et
+        indique si elle relève d'un appel direct des secours (accidents, intoxications).
+      responses:
+        '200':
+          description: Taxonomie des urgences, catégories ordonnées pour l'affichage.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmergencyCategory'
 
   /facilities/{facilityId}/availability:
     get:
@@ -594,6 +615,48 @@ components:
         category:
           type: string
           description: Catégorie de regroupement (ex. « emergency »).
+
+    EmergencyCategory:
+      type: object
+      description: Grande catégorie d'urgence (premier niveau de sélection).
+      required: [id, label, directCallOnly, symptoms, serviceCodes]
+      properties:
+        id:
+          type: string
+          description: Identifiant stable de la catégorie (ex. « respiratoires »).
+        label:
+          type: string
+          description: Libellé affiché (ex. « Urgences respiratoires »).
+        directCallOnly:
+          type: boolean
+          description: >
+            Si vrai, l'application affiche un message d'appel direct des secours
+            au lieu de lancer une recherche de centres.
+        directCallMessage:
+          type: string
+          description: Message affiché lorsque « directCallOnly » est vrai ; absent sinon.
+        symptoms:
+          type: array
+          description: Symptômes proposés au second niveau de sélection.
+          items:
+            $ref: '#/components/schemas/Symptom'
+        serviceCodes:
+          type: array
+          description: Codes des services médicaux « recherchés » (voir MedicalService).
+          items:
+            type: string
+
+    Symptom:
+      type: object
+      description: Symptôme sélectionnable au second niveau de la taxonomie.
+      required: [id, label]
+      properties:
+        id:
+          type: string
+          description: Identifiant stable du symptôme (ex. « crise-asthme »).
+        label:
+          type: string
+          description: Libellé affiché (ex. « Crise d'asthme »).
 
     AvailabilityStatus:
       type: string
