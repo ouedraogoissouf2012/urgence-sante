@@ -1,6 +1,7 @@
 package com.urgencesante.facility.internal.adapter.out.persistence.repository;
 
 import com.urgencesante.facility.internal.adapter.out.persistence.entity.FacilityJpaEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,7 +38,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             SELECT f.id FROM facility f
             WHERE (NOT :hasService OR EXISTS (
                      SELECT 1 FROM facility_service fs
-                     WHERE fs.facility_id = f.id AND fs.service_code = :service))
+                     WHERE fs.facility_id = f.id AND fs.service_code IN (:services)))
               AND (NOT :hasPoint OR ST_DWithin(
                      f.location,
                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
@@ -52,7 +53,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             """, nativeQuery = true)
     List<UUID> searchIds(
             @Param("hasService") boolean hasService,
-            @Param("service") String service,
+            @Param("services") Collection<String> services,
             @Param("hasPoint") boolean hasPoint,
             @Param("lat") double lat,
             @Param("lon") double lon,
@@ -64,7 +65,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             SELECT count(*) FROM facility f
             WHERE (NOT :hasService OR EXISTS (
                      SELECT 1 FROM facility_service fs
-                     WHERE fs.facility_id = f.id AND fs.service_code = :service))
+                     WHERE fs.facility_id = f.id AND fs.service_code IN (:services)))
               AND (NOT :hasPoint OR ST_DWithin(
                      f.location,
                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
@@ -72,7 +73,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             """, nativeQuery = true)
     long countSearch(
             @Param("hasService") boolean hasService,
-            @Param("service") String service,
+            @Param("services") Collection<String> services,
             @Param("hasPoint") boolean hasPoint,
             @Param("lat") double lat,
             @Param("lon") double lon,

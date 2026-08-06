@@ -2,6 +2,7 @@ package com.urgencesante.facility;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -15,8 +16,17 @@ public interface FacilityFacade {
 
     /**
      * Établissements offrant un service donné, proches d'un point, triés par
-     * proximité. Utilisé par l'orientation pour constituer ses candidats.
+     * proximité. Cas mono-service, équivalent à {@link #findNearbyOfferingAny}
+     * avec un ensemble singleton.
      */
     List<FacilityView> findNearbyOffering(
             String serviceCode, double latitude, double longitude, int radiusMeters, int limit);
+
+    /**
+     * Établissements offrant AU MOINS UN des services demandés (sémantique OU),
+     * proches d'un point, triés par proximité. Utilisé par l'orientation quand un
+     * symptôme couvre plusieurs spécialités.
+     */
+    List<FacilityView> findNearbyOfferingAny(
+            Set<String> serviceCodes, double latitude, double longitude, int radiusMeters, int limit);
 }

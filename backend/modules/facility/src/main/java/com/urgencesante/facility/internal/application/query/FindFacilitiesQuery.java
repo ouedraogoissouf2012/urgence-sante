@@ -5,21 +5,24 @@ import com.urgencesante.facility.internal.domain.model.GeoLocation;
 import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Critères de recherche d'établissements.
  *
- * <p>Filtre optionnel par service médical et tri optionnel par proximité (une
- * position implique un rayon). La pagination est toujours requise.
+ * <p>Filtre optionnel par service médical (ensemble vide = aucun filtre ;
+ * sémantique OU — l'établissement offre AU MOINS un des services demandés) et
+ * tri optionnel par proximité (une position implique un rayon). La pagination
+ * est toujours requise.
  */
 public record FindFacilitiesQuery(
-        Optional<MedicalServiceCode> service,
+        Set<MedicalServiceCode> services,
         Optional<GeoLocation> near,
         Optional<Integer> radiusMeters,
         PageRequest page) {
 
     public FindFacilitiesQuery {
-        service = service == null ? Optional.empty() : service;
+        services = services == null ? Set.of() : Set.copyOf(services);
         near = near == null ? Optional.empty() : near;
         radiusMeters = radiusMeters == null ? Optional.empty() : radiusMeters;
         Objects.requireNonNull(page, "La pagination est requise");

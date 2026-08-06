@@ -14,6 +14,7 @@ import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
 import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,8 +58,14 @@ public class FacilityController {
                 ? Optional.of(radiusMeters == null ? DEFAULT_RADIUS_METERS : radiusMeters)
                 : Optional.empty();
 
+        // Le filtre HTTP reste mono-service (rétrocompatible) ; il est enveloppé
+        // dans l'ensemble attendu par la recherche (vide = aucun filtre).
+        final Set<MedicalServiceCode> services = service == null
+                ? Set.of()
+                : Set.of(MedicalServiceCode.of(service));
+
         final FindFacilitiesQuery query = new FindFacilitiesQuery(
-                Optional.ofNullable(service).map(MedicalServiceCode::of),
+                services,
                 near,
                 radius,
                 PageRequest.of(page, size));

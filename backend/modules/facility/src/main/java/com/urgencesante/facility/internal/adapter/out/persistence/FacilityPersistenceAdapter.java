@@ -10,6 +10,7 @@ import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
 import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,17 +38,21 @@ public class FacilityPersistenceAdapter implements LoadFacilityPort {
 
     @Override
     public Page<Facility> search(FindFacilitiesQuery query) {
-        final boolean hasService = query.service().isPresent();
-        final String service = query.service().map(MedicalServiceCode::value).orElse("");
+        final boolean hasService = !query.services().isEmpty();
+        // Valeur muette non vide quand aucun filtre : le « NOT :hasService OR »
+        // court-circuite le IN, mais la liaison SQL exige une collection valide.
+        final Collection<String> services = hasService
+                ? query.services().stream().map(MedicalServiceCode::value).toList()
+                : List.of("");
         final boolean hasPoint = query.near().isPresent();
         final double lat = query.near().map(GeoLocation::latitude).orElse(0.0);
         final double lon = query.near().map(GeoLocation::longitude).orElse(0.0);
         final int radius = query.radiusMeters().orElse(1);
 
         final List<UUID> orderedIds = repository.searchIds(
-                hasService, service, hasPoint, lat, lon, radius,
+                hasService, services, hasPoint, lat, lon, radius,
                 query.page().size(), query.page().offset());
-        final long total = repository.countSearch(hasService, service, hasPoint, lat, lon, radius);
+        final long total = repository.countSearch(hasService, services, hasPoint, lat, lon, radius);
 
         final Map<UUID, FacilityJpaEntity> byId = repository.findAllById(orderedIds).stream()
                 .collect(Collectors.toMap(FacilityJpaEntity::getId, Function.identity()));

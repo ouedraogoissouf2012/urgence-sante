@@ -11,6 +11,7 @@ import com.urgencesante.facility.internal.domain.model.GeoLocation;
 import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -33,8 +34,17 @@ class FacilityFacadeAdapter implements FacilityFacade {
     @Override
     public List<FacilityView> findNearbyOffering(
             String serviceCode, double latitude, double longitude, int radiusMeters, int limit) {
+        return findNearbyOfferingAny(Set.of(serviceCode), latitude, longitude, radiusMeters, limit);
+    }
+
+    @Override
+    public List<FacilityView> findNearbyOfferingAny(
+            Set<String> serviceCodes, double latitude, double longitude, int radiusMeters, int limit) {
+        final Set<MedicalServiceCode> codes = serviceCodes.stream()
+                .map(MedicalServiceCode::of)
+                .collect(Collectors.toUnmodifiableSet());
         final FindFacilitiesQuery query = new FindFacilitiesQuery(
-                Optional.of(MedicalServiceCode.of(serviceCode)),
+                codes,
                 Optional.of(new GeoLocation(latitude, longitude)),
                 Optional.of(radiusMeters),
                 PageRequest.of(0, limit));

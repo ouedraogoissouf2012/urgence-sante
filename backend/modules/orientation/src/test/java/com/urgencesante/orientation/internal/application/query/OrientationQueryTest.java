@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.urgencesante.orientation.internal.domain.exception.OrientationValidationException;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /** Frontières de validation de la requête d'orientation (bornes serveur). */
@@ -11,7 +12,7 @@ class OrientationQueryTest {
 
     private static OrientationQuery query(
             double lat, double lon, String code, int radius, int limit) {
-        return new OrientationQuery(lat, lon, code, radius, limit);
+        return new OrientationQuery(lat, lon, Set.of(code), radius, limit);
     }
 
     @Test
@@ -20,6 +21,31 @@ class OrientationQueryTest {
                 OrientationQuery.MAX_RADIUS_METERS, OrientationQuery.MAX_LIMIT))
                 .doesNotThrowAnyException();
         assertThatCode(() -> query(-90, 180, "x", 1, 1)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void accepte_plusieurs_services() {
+        assertThatCode(() -> new OrientationQuery(
+                5, -4, Set.of("pulmonology", "intensive_care", "emergency"), 1000, 5))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void refuse_un_ensemble_de_services_vide() {
+        assertThatThrownBy(() -> new OrientationQuery(5, -4, Set.of(), 1000, 5))
+                .isInstanceOf(OrientationValidationException.class)
+                .hasMessageContaining("Au moins un service");
+    }
+
+    @Test
+    void refuse_trop_de_services() {
+        final Set<String> trop = new java.util.HashSet<>();
+        for (int i = 0; i <= OrientationQuery.MAX_SERVICE_CODES; i++) {
+            trop.add("service-" + i);
+        }
+        assertThatThrownBy(() -> new OrientationQuery(5, -4, trop, 1000, 5))
+                .isInstanceOf(OrientationValidationException.class)
+                .hasMessageContaining("Trop de services");
     }
 
     @Test
