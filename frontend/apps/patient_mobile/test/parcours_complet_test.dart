@@ -10,19 +10,14 @@ import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/core/navigation/navigation_launcher.dart';
 import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
-import 'package:patient_mobile/features/orientation/presentation/orientation_page.dart';
+import 'package:patient_mobile/features/orientation/presentation/orientation_results_page.dart';
 
 /// Parcours patient de bout en bout (issue #48), côté interface :
 /// besoin → localisation → recommandation → itinéraire/appel → panne réseau.
 class _Repo implements OrientationRepository {
   bool online = true;
-
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async =>
-      const Cached.live([MedicalNeed(code: 'maternity', label: 'Maternité')]);
 
   @override
   Future<List<RecommendedCenter>> recommend({
@@ -168,7 +163,23 @@ void main() {
   setUpAll(() => HttpOverrides.global = _FakeHttpOverrides());
   tearDownAll(() => HttpOverrides.global = null);
 
-  testWidgets('parcours complet : besoin → reco → itinéraire/appel → hors ligne',
+  // Écran de RÉSULTATS atteint depuis un symptôme : il déclenche seul la
+  // recherche multi-services au montage (les portes et le sélecteur à deux
+  // niveaux sont testés séparément).
+  Widget resultsPage(_Repo repo, _Caller caller, _Nav nav) => ProviderScope(
+        overrides: [
+          orientationRepositoryProvider.overrideWithValue(repo),
+          locationServiceProvider.overrideWithValue(_Location()),
+          emergencyCallerProvider.overrideWithValue(caller),
+          navigationLauncherProvider.overrideWithValue(nav),
+        ],
+        child: const MaterialApp(
+          home: OrientationResultsPage(
+              serviceCodes: ['maternity'], title: 'Maternité'),
+        ),
+      );
+
+  testWidgets('parcours : recherche → reco → itinéraire/appel → urgence',
       (tester) async {
     final repo = _Repo();
     final caller = _Caller();
@@ -177,26 +188,14 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(500, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        orientationRepositoryProvider.overrideWithValue(repo),
-        locationServiceProvider.overrideWithValue(_Location()),
-        emergencyCallerProvider.overrideWithValue(caller),
-        navigationLauncherProvider.overrideWithValue(nav),
-      ],
-      // Ce test cible le PARCOURS PLAT d'orientation : on monte OrientationPage
-      // directement (les portes d'entrée sont testées séparément).
-      child: const MaterialApp(home: OrientationPage()),
-    ));
+    await tester.pumpWidget(resultsPage(repo, caller, nav));
     await tester.pumpAndSettle();
 
-    // 1) Les appels d'urgence sont visibles d'emblée.
+    // 1) Les appels d'urgence sont visibles.
     expect(find.text('SAMU 185'), findsOneWidget);
     expect(find.text('Pompiers 180'), findsOneWidget);
 
-    // 2) Choix du besoin → localisation automatique → recommandation.
-    await tester.tap(find.text('Maternité'));
-    await tester.pumpAndSettle();
+    // 2) La recherche s'est déclenchée seule → recommandation affichée.
     expect(find.text('CHU de Cocody'), findsOneWidget);
     expect(find.text('Disponible'), findsOneWidget);
 
@@ -211,11 +210,20 @@ void main() {
     // 4) Appel d'urgence direct.
     await tester.tap(find.text('SAMU 185'));
     expect(caller.calls, contains('185'));
+  });
 
-    // 5) Panne réseau : repli hors ligne sur les derniers centres connus.
-    repo.online = false;
-    await tester.tap(find.text('Maternité'));
+  testWidgets('panne réseau : repli hors ligne sur les derniers centres connus',
+      (tester) async {
+    final repo = _Repo()..online = false;
+
+    await tester.binding.setSurfaceSize(const Size(500, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(resultsPage(repo, _Caller(), _Nav()));
     await tester.pumpAndSettle();
+
+    // La recherche échoue (réseau) → repli sur le cache : centres connus,
+    // signalés hors ligne, sans statut temps réel.
     expect(find.textContaining('Hors ligne'), findsOneWidget);
     expect(find.text('CHU de Cocody'), findsOneWidget);
   });

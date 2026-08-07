@@ -1,6 +1,5 @@
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
 
@@ -9,22 +8,9 @@ import 'package:patient_mobile/features/orientation/domain/repository/orientatio
 
 /// Faux repository configurable, substituable au vrai adaptateur API.
 class FakeOrientationRepository implements OrientationRepository {
-  List<MedicalNeed> needs = const [MedicalNeed(code: 'maternity', label: 'Maternité')];
   List<RecommendedCenter> results = const [];
-  bool failNeeds = false;
   bool failRecommend = false;
-  Cached<List<MedicalNeed>>? cachedNeeds;
   Cached<List<RecommendedCenter>>? knownCenters;
-
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async {
-    if (failNeeds) {
-      final fallback = cachedNeeds;
-      if (fallback != null) return fallback;
-      throw Exception('réseau');
-    }
-    return Cached.live(needs);
-  }
 
   @override
   Future<List<RecommendedCenter>> recommend({

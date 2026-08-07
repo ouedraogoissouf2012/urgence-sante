@@ -1,5 +1,4 @@
 import '../../../core/location/location_service.dart';
-import '../domain/model/medical_need.dart';
 import '../domain/model/recommended_center.dart';
 
 /// Phase du parcours d'orientation.
@@ -27,8 +26,6 @@ enum OrientationPhase {
 class OrientationState {
   const OrientationState({
     this.phase = OrientationPhase.loadingNeeds,
-    this.needs = const [],
-    this.selectedNeed,
     this.searchServiceCodes = const [],
     this.results = const [],
     this.userLatitude,
@@ -43,8 +40,6 @@ class OrientationState {
   });
 
   final OrientationPhase phase;
-  final List<MedicalNeed> needs;
-  final MedicalNeed? selectedNeed;
 
   /// Codes des services de la recherche courante (un symptôme peut en couvrir
   /// plusieurs). Alimente la recherche multi-services, le réessai et le mode
@@ -89,8 +84,6 @@ class OrientationState {
 
   OrientationState copyWith({
     OrientationPhase? phase,
-    List<MedicalNeed>? needs,
-    MedicalNeed? selectedNeed,
     List<String>? searchServiceCodes,
     List<RecommendedCenter>? results,
     double? userLatitude,
@@ -110,8 +103,6 @@ class OrientationState {
   }) {
     return OrientationState(
       phase: phase ?? this.phase,
-      needs: needs ?? this.needs,
-      selectedNeed: selectedNeed ?? this.selectedNeed,
       searchServiceCodes: searchServiceCodes ?? this.searchServiceCodes,
       results: results ?? this.results,
       userLatitude: clearPosition ? null : (userLatitude ?? this.userLatitude),

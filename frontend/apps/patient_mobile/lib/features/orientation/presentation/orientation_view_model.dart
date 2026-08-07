@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../../di/providers.dart';
-import '../domain/model/medical_need.dart';
 import '../domain/repository/orientation_repository.dart';
 import 'orientation_state.dart';
 
@@ -23,49 +22,15 @@ class OrientationViewModel extends Notifier<OrientationState> {
 
   @override
   OrientationState build() {
-    Future.microtask(loadNeeds);
+    // Aucun auto-chargement : la recherche est déclenchée par le choix d'un
+    // symptôme (searchForServices), depuis OrientationResultsPage.
     return const OrientationState();
-  }
-
-  /// Charge le catalogue des besoins médicaux (cache local en panne réseau,
-  /// avec sa date de synchronisation affichée).
-  Future<void> loadNeeds() async {
-    state = state.copyWith(phase: OrientationPhase.loadingNeeds, clearOffline: true);
-    try {
-      final cached = await _repository.loadNeeds();
-      state = state.copyWith(
-        phase: OrientationPhase.ready,
-        needs: cached.value,
-        offlineSyncedAt: cached.fromCache ? cached.syncedAt : null,
-        clearErrorMessage: true,
-      );
-    } on Exception {
-      state = state.copyWith(
-        phase: OrientationPhase.error,
-        errorMessage:
-            'Impossible de charger les besoins médicaux. Vérifiez votre connexion.',
-      );
-    }
   }
 
   /// Position de repli (Plateau, centre d'Abidjan) pour le parcours dégradé
   /// sans localisation automatique. Clairement signalée comme approximative.
   static const double _fallbackLatitude = 5.3364;
   static const double _fallbackLongitude = -4.0267;
-
-  /// Sélectionne un besoin (parcours plat) puis lance localisation + recherche.
-  Future<void> searchFor(MedicalNeed need) async {
-    state = state.copyWith(
-      phase: OrientationPhase.searching,
-      selectedNeed: need,
-      searchServiceCodes: [need.code],
-      clearLocationFailure: true,
-      clearSelectedCenter: true,
-      clearOffline: true,
-      approximatePosition: false,
-    );
-    await _locateAndSearch();
-  }
 
   /// Recherche multi-services (parcours par symptôme) : le symptôme choisi
   /// couvre [serviceCodes] (sémantique OU). Réutilise localisation et repli.
@@ -179,10 +144,10 @@ class OrientationViewModel extends Notifier<OrientationState> {
     );
   }
 
-  /// Réessaie l'action pertinente selon l'état courant.
+  /// Réessaie la recherche courante (rien à faire si aucune recherche lancée).
   Future<void> retry() {
     if (state.searchServiceCodes.isEmpty) {
-      return loadNeeds();
+      return Future.value();
     }
     state = state.copyWith(
       phase: OrientationPhase.searching,

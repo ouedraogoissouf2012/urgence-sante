@@ -92,8 +92,6 @@ class _OrientationResultsPageState extends ConsumerState<OrientationResultsPage>
       OrientationPhase.results =>
         OrientationResultsView(
           state: state,
-          showSelector: false,
-          onNeedSelected: (_) {},
           onSelectCenter: (center) {
             viewModel.selectCenter(center.facilityId);
             Navigator.of(context).push(

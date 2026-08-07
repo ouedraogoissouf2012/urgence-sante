@@ -5,15 +5,6 @@ import 'package:patient_mobile/features/orientation/data/orientation_api_mapper.
 /// Le mapper API→domaine est testé INDÉPENDAMMENT de l'adaptateur et du réseau
 /// (issue #47) : entrées du client généré, sorties du domaine.
 void main() {
-  test('un service du catalogue devient un besoin médical', () {
-    final need = OrientationApiMapper.toNeed(
-      MedicalService(code: 'maternity', label: 'Maternité', category: 'maternal'),
-    );
-
-    expect(need.code, 'maternity');
-    expect(need.label, 'Maternité');
-  });
-
   test('une recommandation devient un centre avec position, téléphone et qualité', () {
     final center = OrientationApiMapper.toCenter(
       Recommendation(
@@ -55,8 +46,7 @@ void main() {
     expect(center.travelTimeQuality, 'ESTIMATED');
   });
 
-  test('les listes vides sont préservées', () {
-    expect(OrientationApiMapper.toNeeds(const []), isEmpty);
+  test('une liste vide de recommandations est préservée', () {
     expect(OrientationApiMapper.toCenters(const []), isEmpty);
   });
 }

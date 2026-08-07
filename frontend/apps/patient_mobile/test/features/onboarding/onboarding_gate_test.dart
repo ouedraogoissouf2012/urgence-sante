@@ -9,7 +9,6 @@ import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/emergency_taxonomy/domain/model/emergency_category.dart';
 import 'package:patient_mobile/features/emergency_taxonomy/domain/repository/emergency_taxonomy_repository.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
 
@@ -25,10 +24,6 @@ class _InMemoryConsentStore implements ConsentStore {
 }
 
 class _FakeRepository implements OrientationRepository {
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async =>
-      const Cached.live([MedicalNeed(code: 'maternity', label: 'Maternité')]);
-
   @override
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
