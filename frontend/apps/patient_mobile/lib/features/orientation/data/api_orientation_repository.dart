@@ -27,11 +27,15 @@ class ApiOrientationRepository implements OrientationRemote {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
-    final List<Recommendation> recommendations = await _orientationApi
-            .recommendFacilities(latitude, longitude, serviceCode) ??
-        const [];
+    final List<Recommendation> recommendations =
+        await _orientationApi.recommendFacilities(
+              latitude,
+              longitude,
+              services: serviceCodes,
+            ) ??
+            const [];
     return OrientationApiMapper.toCenters(recommendations);
   }
 }

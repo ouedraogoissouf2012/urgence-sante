@@ -186,6 +186,8 @@ class ApiClient {
           return AvailabilityHistoryEntry.fromJson(value);
         case 'AvailabilityStatus':
           return AvailabilityStatusTypeTransformer().decode(value);
+        case 'EmergencyCategory':
+          return EmergencyCategory.fromJson(value);
         case 'Facility':
           return Facility.fromJson(value);
         case 'FacilityAvailability':
@@ -216,6 +218,8 @@ class ApiClient {
           return Route.fromJson(value);
         case 'ServiceAvailability':
           return ServiceAvailability.fromJson(value);
+        case 'Symptom':
+          return Symptom.fromJson(value);
         case 'UpdateAvailabilityRequest':
           return UpdateAvailabilityRequest.fromJson(value);
         default:

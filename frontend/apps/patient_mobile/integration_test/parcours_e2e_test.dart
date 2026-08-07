@@ -32,7 +32,7 @@ class _Repo implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
     if (!online) throw Exception('réseau indisponible');
     return const [

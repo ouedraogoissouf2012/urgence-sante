@@ -1,5 +1,6 @@
 lib/api.dart
 lib/api/availability_api.dart
+lib/api/emergency_taxonomy_api.dart
 lib/api/facilities_api.dart
 lib/api/medical_services_api.dart
 lib/api/orientation_api.dart
@@ -15,6 +16,7 @@ lib/auth/http_bearer_auth.dart
 lib/auth/oauth.dart
 lib/model/availability_history_entry.dart
 lib/model/availability_status.dart
+lib/model/emergency_category.dart
 lib/model/facility.dart
 lib/model/facility_availability.dart
 lib/model/field_error.dart
@@ -30,4 +32,5 @@ lib/model/recommendation.dart
 lib/model/register_patient_request.dart
 lib/model/route.dart
 lib/model/service_availability.dart
+lib/model/symptom.dart
 lib/model/update_availability_request.dart

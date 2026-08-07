@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../di/providers.dart';
 import '../features/auth/presentation/auth_page.dart';
+import '../features/emergency_taxonomy/presentation/emergency_taxonomy_page.dart';
 import '../features/onboarding/onboarding_page.dart';
-import '../features/orientation/presentation/orientation_page.dart';
 
 /// Racine de l'application patient.
 ///
@@ -58,7 +58,7 @@ class _ConsentGate extends ConsumerWidget {
       loading: () => const Scaffold(body: AsyncStateView.loading()),
       error: (_, _) => const OnboardingPage(),
       data: (upToDate) =>
-          upToDate ? const OrientationPage() : const OnboardingPage(),
+          upToDate ? const EmergencyTaxonomyPage() : const OnboardingPage(),
     );
   }
 }

@@ -10,6 +10,6 @@ abstract interface class OrientationRemote {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   });
 }

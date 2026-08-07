@@ -45,12 +45,12 @@ class CachedOrientationRepository implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
     final results = await _api.recommend(
       latitude: latitude,
       longitude: longitude,
-      serviceCode: serviceCode,
+      serviceCodes: serviceCodes,
     );
     if (results.isNotEmpty) {
       await _store.write(

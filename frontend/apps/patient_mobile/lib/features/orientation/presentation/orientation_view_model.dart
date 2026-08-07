@@ -53,19 +53,39 @@ class OrientationViewModel extends Notifier<OrientationState> {
   static const double _fallbackLatitude = 5.3364;
   static const double _fallbackLongitude = -4.0267;
 
-  /// Sélectionne un besoin puis lance localisation + recherche.
+  /// Sélectionne un besoin (parcours plat) puis lance localisation + recherche.
   Future<void> searchFor(MedicalNeed need) async {
     state = state.copyWith(
       phase: OrientationPhase.searching,
       selectedNeed: need,
+      searchServiceCodes: [need.code],
       clearLocationFailure: true,
       clearSelectedCenter: true,
       clearOffline: true,
       approximatePosition: false,
     );
+    await _locateAndSearch();
+  }
+
+  /// Recherche multi-services (parcours par symptôme) : le symptôme choisi
+  /// couvre [serviceCodes] (sémantique OU). Réutilise localisation et repli.
+  Future<void> searchForServices(List<String> serviceCodes) async {
+    state = state.copyWith(
+      phase: OrientationPhase.searching,
+      searchServiceCodes: serviceCodes,
+      clearLocationFailure: true,
+      clearSelectedCenter: true,
+      clearOffline: true,
+      approximatePosition: false,
+    );
+    await _locateAndSearch();
+  }
+
+  /// Localise l'utilisateur puis recherche ; bascule en dégradé sur échec.
+  Future<void> _locateAndSearch() async {
     try {
       final UserPosition position = await _locationService.currentPosition();
-      await _search(need, position.latitude, position.longitude, approximate: false);
+      await _search(position.latitude, position.longitude, approximate: false);
     } on LocationUnavailableException catch (exception) {
       state = state.copyWith(
         phase: OrientationPhase.error,
@@ -106,8 +126,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
   /// Parcours dégradé : recherche depuis le centre d'Abidjan, sans position
   /// précise (proposé quand la localisation est refusée ou indisponible).
   Future<void> searchWithApproximatePosition() async {
-    final MedicalNeed? need = state.selectedNeed;
-    if (need == null) {
+    if (state.searchServiceCodes.isEmpty) {
       return;
     }
     state = state.copyWith(
@@ -116,7 +135,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
       clearOffline: true,
     );
     try {
-      await _search(need, _fallbackLatitude, _fallbackLongitude, approximate: true);
+      await _search(_fallbackLatitude, _fallbackLongitude, approximate: true);
     } on Exception {
       await _fallbackToLastKnownCenters();
     }
@@ -130,8 +149,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
         : _locationService.openSettings(failure);
   }
 
-  Future<void> _search(
-      MedicalNeed need, double latitude, double longitude,
+  Future<void> _search(double latitude, double longitude,
       {required bool approximate}) async {
     state = state.copyWith(
       userLatitude: latitude,
@@ -141,7 +159,7 @@ class OrientationViewModel extends Notifier<OrientationState> {
     final results = await _repository.recommend(
       latitude: latitude,
       longitude: longitude,
-      serviceCode: need.code,
+      serviceCodes: state.searchServiceCodes,
     );
     state = state.copyWith(
       phase: results.isEmpty ? OrientationPhase.empty : OrientationPhase.results,
@@ -163,7 +181,14 @@ class OrientationViewModel extends Notifier<OrientationState> {
 
   /// Réessaie l'action pertinente selon l'état courant.
   Future<void> retry() {
-    final MedicalNeed? need = state.selectedNeed;
-    return need == null ? loadNeeds() : searchFor(need);
+    if (state.searchServiceCodes.isEmpty) {
+      return loadNeeds();
+    }
+    state = state.copyWith(
+      phase: OrientationPhase.searching,
+      clearLocationFailure: true,
+      clearOffline: true,
+    );
+    return _locateAndSearch();
   }
 }

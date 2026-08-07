@@ -30,7 +30,7 @@ class FakeOrientationRepository implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
     if (failRecommend) throw Exception('réseau');
     return results;

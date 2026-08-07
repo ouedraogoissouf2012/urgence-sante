@@ -17,7 +17,7 @@ class OrientationApi {
 
   /// Recommander les centres adaptés pour un besoin médical
   ///
-  /// Classe les établissements offrant le service demandé selon la proximité, la disponibilité (un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
+  /// Classe les établissements offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -27,13 +27,16 @@ class OrientationApi {
   ///
   /// * [double] lon (required):
   ///
-  /// * [String] service (required):
-  ///   Code du service médical recherché (catalogue).
+  /// * [String] service:
+  ///   Code d'un service médical recherché (catalogue). Rétrocompatible ; au moins un service est requis via « service » ou « services ».
+  ///
+  /// * [List<String>] services:
+  ///   Un ou plusieurs codes de services (union avec « service » ; sémantique OU). Utilisé quand un symptôme couvre plusieurs spécialités.
   ///
   /// * [int] radiusMeters:
   ///
   /// * [int] limit:
-  Future<Response> recommendFacilitiesWithHttpInfo(double lat, double lon, String service, { int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {
+  Future<Response> recommendFacilitiesWithHttpInfo(double lat, double lon, { String? service, List<String>? services, int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {
     // ignore: prefer_const_declarations
     final path = r'/orientation';
 
@@ -46,7 +49,12 @@ class OrientationApi {
 
       queryParams.addAll(_queryParams('', 'lat', lat));
       queryParams.addAll(_queryParams('', 'lon', lon));
+    if (service != null) {
       queryParams.addAll(_queryParams('', 'service', service));
+    }
+    if (services != null) {
+      queryParams.addAll(_queryParams('multi', 'services', services));
+    }
     if (radiusMeters != null) {
       queryParams.addAll(_queryParams('', 'radiusMeters', radiusMeters));
     }
@@ -71,7 +79,7 @@ class OrientationApi {
 
   /// Recommander les centres adaptés pour un besoin médical
   ///
-  /// Classe les établissements offrant le service demandé selon la proximité, la disponibilité (un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
+  /// Classe les établissements offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
   ///
   /// Parameters:
   ///
@@ -79,14 +87,17 @@ class OrientationApi {
   ///
   /// * [double] lon (required):
   ///
-  /// * [String] service (required):
-  ///   Code du service médical recherché (catalogue).
+  /// * [String] service:
+  ///   Code d'un service médical recherché (catalogue). Rétrocompatible ; au moins un service est requis via « service » ou « services ».
+  ///
+  /// * [List<String>] services:
+  ///   Un ou plusieurs codes de services (union avec « service » ; sémantique OU). Utilisé quand un symptôme couvre plusieurs spécialités.
   ///
   /// * [int] radiusMeters:
   ///
   /// * [int] limit:
-  Future<List<Recommendation>?> recommendFacilities(double lat, double lon, String service, { int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {
-    final response = await recommendFacilitiesWithHttpInfo(lat, lon, service, radiusMeters: radiusMeters, limit: limit, abortTrigger: abortTrigger,);
+  Future<List<Recommendation>?> recommendFacilities(double lat, double lon, { String? service, List<String>? services, int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {
+    final response = await recommendFacilitiesWithHttpInfo(lat, lon, service: service, services: services, radiusMeters: radiusMeters, limit: limit, abortTrigger: abortTrigger,);
     if (response.statusCode >= HttpStatus.badRequest) {
       throw ApiException(response.statusCode, await _decodeBodyBytes(response));
     }

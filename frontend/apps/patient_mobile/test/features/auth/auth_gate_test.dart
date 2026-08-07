@@ -6,6 +6,8 @@ import 'package:patient_mobile/core/consent/consent_store.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/auth/domain/auth_repository.dart';
+import 'package:patient_mobile/features/emergency_taxonomy/domain/model/emergency_category.dart';
+import 'package:patient_mobile/features/emergency_taxonomy/domain/repository/emergency_taxonomy_repository.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
@@ -22,12 +24,25 @@ class _FakeRepository implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async =>
       const [];
 
   @override
   Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => null;
+}
+
+class _FakeTaxonomy implements EmergencyTaxonomyRepository {
+  @override
+  Future<List<EmergencyCategory>> fetchTaxonomy() async => const [
+        EmergencyCategory(
+          id: 'respiratoires',
+          label: 'Urgences respiratoires',
+          directCallOnly: false,
+          symptoms: [Symptom(id: 'crise-asthme', label: "Crise d'asthme")],
+          serviceCodes: ['pulmonology'],
+        ),
+      ];
 }
 
 class _FakeLocation implements LocationService {
@@ -57,6 +72,7 @@ Widget _app({
       authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
       consentStoreProvider.overrideWithValue(_ConsentAccepted()),
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
+      emergencyTaxonomyRepositoryProvider.overrideWithValue(_FakeTaxonomy()),
       locationServiceProvider.overrideWithValue(_FakeLocation()),
     ],
     child: const PatientApp(),
@@ -84,7 +100,7 @@ void main() {
     expect(find.text('Urgence — continuer sans compte'), findsOneWidget);
     expect(find.textContaining('185'), findsWidgets);
     // On ne doit PAS voir le parcours d'orientation.
-    expect(find.text('De quel soin avez-vous besoin ?'), findsNothing);
+    expect(find.text('Quelle est votre urgence ?'), findsNothing);
   });
 
   testWidgets("« continuer sans compte » ouvre le parcours (issue d'urgence)",
@@ -99,7 +115,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Conditions déjà acceptées → on arrive directement au parcours.
-    expect(find.text('De quel soin avez-vous besoin ?'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
 
   testWidgets('avec une session valide, le parcours est accessible directement',
@@ -109,7 +125,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Créer votre compte'), findsNothing);
-    expect(find.text('De quel soin avez-vous besoin ?'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
 
   testWidgets("s'inscrire avec succès ouvre le parcours", (tester) async {
@@ -124,6 +140,6 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.text('De quel soin avez-vous besoin ?'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
 }
