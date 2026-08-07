@@ -14,6 +14,7 @@ import '../core/storage/key_value_store.dart';
 import '../features/auth/data/api_auth_repository.dart';
 import '../features/auth/domain/auth_repository.dart';
 import '../features/emergency_taxonomy/data/api_emergency_taxonomy_repository.dart';
+import '../features/emergency_taxonomy/data/cached_emergency_taxonomy_repository.dart';
 import '../features/emergency_taxonomy/domain/repository/emergency_taxonomy_repository.dart';
 import '../features/medical_profile/data/local_medical_profile_store.dart';
 import '../features/medical_profile/domain/profile_store.dart';
@@ -45,9 +46,13 @@ final orientationRepositoryProvider = Provider<OrientationRepository>(
   ),
 );
 
-/// Accès à la taxonomie des urgences (référentiel de navigation à 2 niveaux).
+/// Accès à la taxonomie des urgences (référentiel de navigation à 2 niveaux) :
+/// adaptateur API décoré d'un cache hors ligne (réseau d'abord, repli local).
 final emergencyTaxonomyRepositoryProvider = Provider<EmergencyTaxonomyRepository>(
-  (ref) => ApiEmergencyTaxonomyRepository(ref.watch(apiClientProvider)),
+  (ref) => CachedEmergencyTaxonomyRepository(
+    ApiEmergencyTaxonomyRepository(ref.watch(apiClientProvider)),
+    ref.watch(keyValueStoreProvider),
+  ),
 );
 
 /// Accès à la position de l'utilisateur.
