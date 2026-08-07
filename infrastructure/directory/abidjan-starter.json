@@ -6,7 +6,7 @@
     "phone": "+2252722481000",
     "latitude": 5.3486,
     "longitude": -3.9869,
-    "services": ["emergency", "maternity", "surgery", "cardiology"],
+    "services": ["emergency", "maternity", "surgery", "cardiology", "intensive_care", "icu", "pulmonology", "neurology", "neurosurgery", "general_surgery", "operating_room", "ortho_trauma", "burn_center", "toxicology", "infectiology", "ophthalmology", "ent", "gynecology", "obstetrics", "pediatrics", "pediatric_icu", "psychiatry", "psychiatric_emergency"],
     "dataStatus": "PROVISIONAL",
     "verifiedAt": null,
     "steward": "cellule-annuaire"
@@ -18,7 +18,7 @@
     "phone": "+2252721249000",
     "latitude": 5.2933,
     "longitude": -3.9926,
-    "services": ["emergency", "surgery", "trauma", "pediatrics"],
+    "services": ["emergency", "surgery", "trauma", "pediatrics", "general_surgery", "operating_room", "ortho_trauma", "intensive_care", "icu", "neurology", "pulmonology", "infectiology", "toxicology", "ent", "ophthalmology"],
     "dataStatus": "PROVISIONAL",
     "verifiedAt": null,
     "steward": "cellule-annuaire"
@@ -30,7 +30,7 @@
     "phone": "+2252723226400",
     "latitude": 5.3369,
     "longitude": -4.0881,
-    "services": ["emergency", "maternity", "surgery"],
+    "services": ["emergency", "maternity", "surgery", "pediatrics", "gynecology", "obstetrics", "pediatric_icu", "general_surgery", "operating_room", "intensive_care", "neurology", "neurosurgery", "psychiatry"],
     "dataStatus": "PROVISIONAL",
     "verifiedAt": null,
     "steward": "cellule-annuaire"
@@ -42,7 +42,7 @@
     "phone": "+2252724392000",
     "latitude": 5.4275,
     "longitude": -4.0197,
-    "services": ["emergency", "maternity"],
+    "services": ["emergency", "maternity", "pediatrics", "gynecology", "general_surgery"],
     "dataStatus": "PROVISIONAL",
     "verifiedAt": null,
     "steward": "cellule-annuaire"
@@ -54,7 +54,7 @@
     "phone": "+2252721271500",
     "latitude": 5.2603,
     "longitude": -3.9264,
-    "services": ["emergency", "pediatrics"],
+    "services": ["emergency", "pediatrics", "general_surgery", "ophthalmology"],
     "dataStatus": "PROVISIONAL",
     "verifiedAt": null,
     "steward": "cellule-annuaire"

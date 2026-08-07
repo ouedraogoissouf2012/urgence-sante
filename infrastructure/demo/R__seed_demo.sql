@@ -27,38 +27,136 @@ INSERT INTO facility (id, name, phone, location, source, external_ref, data_stat
   ('11111111-0000-0000-0000-000000000014', 'Hôpital d''Anyama [DÉMO]',        '+2250100000014', ST_SetSRID(ST_MakePoint(-4.0510, 5.4940), 4326)::geography, 'demo', 'demo-014', 'DEMO'),
   ('11111111-0000-0000-0000-000000000015', 'Centre Mère-Enfant de Songon [DÉMO]', '+2250100000015', ST_SetSRID(ST_MakePoint(-4.2530, 5.3080), 4326)::geography, 'demo', 'demo-015', 'DEMO');
 
+-- Offre de services par établissement. Les gros CHU sont polyvalents (large
+-- éventail de spécialités), les cliniques et centres de proximité plus ciblés,
+-- à l'image du paysage hospitalier réel du Grand Abidjan. Chaque catégorie
+-- « recherchable » de la taxonomie d'urgence (#91) doit apparier au moins un
+-- établissement, sinon un symptôme ne renvoie JAMAIS de centre (issue #106) :
+-- l'invariant est verrouillé par EmergencyTaxonomyFacilityCoverageIntegrationTest.
 INSERT INTO facility_service (facility_id, service_code) VALUES
+  -- CHU de Cocody — établissement de référence, polyvalent (plateau complet).
   ('11111111-0000-0000-0000-000000000001', 'emergency'),
   ('11111111-0000-0000-0000-000000000001', 'maternity'),
   ('11111111-0000-0000-0000-000000000001', 'surgery'),
   ('11111111-0000-0000-0000-000000000001', 'cardiology'),
+  ('11111111-0000-0000-0000-000000000001', 'intensive_care'),
+  ('11111111-0000-0000-0000-000000000001', 'icu'),
+  ('11111111-0000-0000-0000-000000000001', 'pulmonology'),
+  ('11111111-0000-0000-0000-000000000001', 'neurology'),
+  ('11111111-0000-0000-0000-000000000001', 'neurosurgery'),
+  ('11111111-0000-0000-0000-000000000001', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000001', 'operating_room'),
+  ('11111111-0000-0000-0000-000000000001', 'ortho_trauma'),
+  ('11111111-0000-0000-0000-000000000001', 'burn_center'),
+  ('11111111-0000-0000-0000-000000000001', 'toxicology'),
+  ('11111111-0000-0000-0000-000000000001', 'infectiology'),
+  ('11111111-0000-0000-0000-000000000001', 'ophthalmology'),
+  ('11111111-0000-0000-0000-000000000001', 'ent'),
+  ('11111111-0000-0000-0000-000000000001', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000001', 'obstetrics'),
+  ('11111111-0000-0000-0000-000000000001', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000001', 'pediatric_icu'),
+  ('11111111-0000-0000-0000-000000000001', 'psychiatry'),
+  ('11111111-0000-0000-0000-000000000001', 'psychiatric_emergency'),
+  -- CHU de Treichville — polyvalent ; référence des maladies infectieuses (SMIT).
   ('11111111-0000-0000-0000-000000000002', 'emergency'),
   ('11111111-0000-0000-0000-000000000002', 'trauma'),
   ('11111111-0000-0000-0000-000000000002', 'surgery'),
+  ('11111111-0000-0000-0000-000000000002', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000002', 'operating_room'),
+  ('11111111-0000-0000-0000-000000000002', 'ortho_trauma'),
+  ('11111111-0000-0000-0000-000000000002', 'intensive_care'),
+  ('11111111-0000-0000-0000-000000000002', 'icu'),
+  ('11111111-0000-0000-0000-000000000002', 'neurology'),
+  ('11111111-0000-0000-0000-000000000002', 'pulmonology'),
+  ('11111111-0000-0000-0000-000000000002', 'infectiology'),
+  ('11111111-0000-0000-0000-000000000002', 'toxicology'),
+  ('11111111-0000-0000-0000-000000000002', 'ent'),
+  ('11111111-0000-0000-0000-000000000002', 'ophthalmology'),
+  -- CHU de Yopougon — polyvalent ; pôle mère-enfant et psychiatrie.
   ('11111111-0000-0000-0000-000000000003', 'emergency'),
   ('11111111-0000-0000-0000-000000000003', 'pediatrics'),
   ('11111111-0000-0000-0000-000000000003', 'maternity'),
+  ('11111111-0000-0000-0000-000000000003', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000003', 'obstetrics'),
+  ('11111111-0000-0000-0000-000000000003', 'pediatric_icu'),
+  ('11111111-0000-0000-0000-000000000003', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000003', 'operating_room'),
+  ('11111111-0000-0000-0000-000000000003', 'intensive_care'),
+  ('11111111-0000-0000-0000-000000000003', 'neurology'),
+  ('11111111-0000-0000-0000-000000000003', 'neurosurgery'),
+  ('11111111-0000-0000-0000-000000000003', 'psychiatry'),
+  -- Hôpital Général d'Abobo — hôpital de zone, offre intermédiaire.
   ('11111111-0000-0000-0000-000000000004', 'emergency'),
   ('11111111-0000-0000-0000-000000000004', 'maternity'),
+  ('11111111-0000-0000-0000-000000000004', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000004', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000004', 'general_surgery'),
+  -- Hôpital de Marcory — proximité, quelques spécialités.
   ('11111111-0000-0000-0000-000000000005', 'pediatrics'),
   ('11111111-0000-0000-0000-000000000005', 'emergency'),
+  ('11111111-0000-0000-0000-000000000005', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000005', 'ophthalmology'),
+  -- PISAM (Plateau) — clinique privée haut de gamme, plateau technique large.
   ('11111111-0000-0000-0000-000000000006', 'cardiology'),
   ('11111111-0000-0000-0000-000000000006', 'surgery'),
   ('11111111-0000-0000-0000-000000000006', 'emergency'),
+  ('11111111-0000-0000-0000-000000000006', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000006', 'operating_room'),
+  ('11111111-0000-0000-0000-000000000006', 'intensive_care'),
+  ('11111111-0000-0000-0000-000000000006', 'icu'),
+  ('11111111-0000-0000-0000-000000000006', 'pulmonology'),
+  ('11111111-0000-0000-0000-000000000006', 'neurology'),
+  ('11111111-0000-0000-0000-000000000006', 'ophthalmology'),
+  ('11111111-0000-0000-0000-000000000006', 'ent'),
+  -- Clinique d'Adjamé — orientée mère-enfant.
   ('11111111-0000-0000-0000-000000000007', 'maternity'),
+  ('11111111-0000-0000-0000-000000000007', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000007', 'obstetrics'),
+  ('11111111-0000-0000-0000-000000000007', 'pediatrics'),
+  -- Hôpital de Koumassi — traumatologie et chirurgie.
   ('11111111-0000-0000-0000-000000000008', 'emergency'),
   ('11111111-0000-0000-0000-000000000008', 'trauma'),
+  ('11111111-0000-0000-0000-000000000008', 'ortho_trauma'),
+  ('11111111-0000-0000-0000-000000000008', 'general_surgery'),
+  -- Centre de Port-Bouët — proximité.
   ('11111111-0000-0000-0000-000000000009', 'emergency'),
+  ('11111111-0000-0000-0000-000000000009', 'pediatrics'),
+  -- Clinique de Bingerville — mère-enfant + ophtalmologie.
   ('11111111-0000-0000-0000-000000000010', 'maternity'),
   ('11111111-0000-0000-0000-000000000010', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000010', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000010', 'ophthalmology'),
+  -- Polyclinique Riviera — privée, large éventail (dont santé mentale).
   ('11111111-0000-0000-0000-000000000011', 'surgery'),
   ('11111111-0000-0000-0000-000000000011', 'cardiology'),
+  ('11111111-0000-0000-0000-000000000011', 'general_surgery'),
+  ('11111111-0000-0000-0000-000000000011', 'operating_room'),
+  ('11111111-0000-0000-0000-000000000011', 'intensive_care'),
+  ('11111111-0000-0000-0000-000000000011', 'icu'),
+  ('11111111-0000-0000-0000-000000000011', 'neurology'),
+  ('11111111-0000-0000-0000-000000000011', 'infectiology'),
+  ('11111111-0000-0000-0000-000000000011', 'ophthalmology'),
+  ('11111111-0000-0000-0000-000000000011', 'ent'),
+  ('11111111-0000-0000-0000-000000000011', 'psychiatry'),
+  ('11111111-0000-0000-0000-000000000011', 'psychiatric_emergency'),
+  -- Centre de Santé d'Attécoubé — proximité.
   ('11111111-0000-0000-0000-000000000012', 'emergency'),
+  ('11111111-0000-0000-0000-000000000012', 'pediatrics'),
+  -- Clinique du Banco — chirurgie de proximité.
   ('11111111-0000-0000-0000-000000000013', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000013', 'general_surgery'),
+  -- Hôpital d'Anyama — hôpital de zone.
   ('11111111-0000-0000-0000-000000000014', 'emergency'),
   ('11111111-0000-0000-0000-000000000014', 'maternity'),
+  ('11111111-0000-0000-0000-000000000014', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000014', 'general_surgery'),
+  -- Centre Mère-Enfant de Songon — pôle mère-enfant.
   ('11111111-0000-0000-0000-000000000015', 'maternity'),
-  ('11111111-0000-0000-0000-000000000015', 'pediatrics');
+  ('11111111-0000-0000-0000-000000000015', 'pediatrics'),
+  ('11111111-0000-0000-0000-000000000015', 'gynecology'),
+  ('11111111-0000-0000-0000-000000000015', 'obstetrics'),
+  ('11111111-0000-0000-0000-000000000015', 'pediatric_icu');
 
 -- Identifiant de démonstration : jeton ADMIN (régulation type SAMU) autorisé à
 -- mettre à jour tout établissement. Le jeton en clair est « demo-samu-admin-2026 »
