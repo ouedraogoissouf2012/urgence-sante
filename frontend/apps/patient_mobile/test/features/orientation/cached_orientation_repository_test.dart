@@ -59,7 +59,7 @@ void main() {
     remote.offline = true;
 
     expect(search, throwsException);
-    expect(await repository.lastKnownCenters(), isNull);
+    expect(await repository.lastKnownCenters(serviceCodes: const ['maternity']), isNull);
   });
 
   test('un succès réseau remplit le cache des centres ; la panne le sert daté',
@@ -67,7 +67,7 @@ void main() {
     await search(); // succès réseau → cache mis à jour
     remote.offline = true;
 
-    final cached = await repository.lastKnownCenters();
+    final cached = await repository.lastKnownCenters(serviceCodes: const ['maternity']);
 
     expect(cached, isNotNull);
     expect(cached!.fromCache, isTrue);
@@ -78,7 +78,7 @@ void main() {
     await search();
     remote.offline = true;
 
-    final cached = await repository.lastKnownCenters();
+    final cached = await repository.lastKnownCenters(serviceCodes: const ['maternity']);
 
     expect(cached, isNotNull);
     expect(cached!.fromCache, isTrue);
@@ -90,15 +90,43 @@ void main() {
   });
 
   test('des données corrompues sont traitées comme cache absent', () async {
-    store.data[CachedOrientationRepository.centersKey] = '{pas du json';
+    store.data[CachedOrientationRepository.centersKeyFor(const ['maternity'])] =
+        '{pas du json';
 
-    expect(await repository.lastKnownCenters(), isNull);
+    expect(await repository.lastKnownCenters(serviceCodes: const ['maternity']), isNull);
+  });
+
+  test(
+      'le repli hors ligne est CLOISONNÉ par besoin : un autre besoin ne sert '
+      'jamais les centres mis en cache', () async {
+    await search(); // succès réseau → cache rempli pour le besoin ['maternity']
+    remote.offline = true;
+
+    // Même besoin → repli disponible.
+    expect(await repository.lastKnownCenters(serviceCodes: const ['maternity']),
+        isNotNull);
+    // Besoin DIFFÉRENT → aucun repli : on ne présente jamais les centres d'une
+    // autre urgence comme réponse au besoin courant (issue #107).
+    expect(await repository.lastKnownCenters(serviceCodes: const ['ophthalmology']),
+        isNull);
+  });
+
+  test('l\'ordre des services ne change pas la clé de cache', () async {
+    await repository.recommend(
+        latitude: 5.35, longitude: -4.0, serviceCodes: ['neurology', 'intensive_care']);
+    remote.offline = true;
+
+    // Le même besoin exprimé dans un ordre différent retrouve le repli.
+    expect(
+        await repository
+            .lastKnownCenters(serviceCodes: const ['intensive_care', 'neurology']),
+        isNotNull);
   });
 
   test('la péremption est calculable depuis la date de synchronisation', () async {
     await search();
     remote.offline = true;
-    final cached = await repository.lastKnownCenters();
+    final cached = await repository.lastKnownCenters(serviceCodes: const ['maternity']);
 
     expect(cached, isNotNull);
     expect(

@@ -16,7 +16,12 @@ abstract interface class OrientationRepository {
     required List<String> serviceCodes,
   });
 
-  /// Derniers centres connus (annuaire minimal hors ligne), ou `null` si
-  /// aucune recherche n'a encore été synchronisée.
-  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters();
+  /// Derniers centres connus POUR CE BESOIN (annuaire minimal hors ligne), ou
+  /// `null` si aucune recherche du même besoin n'a encore été synchronisée. Le
+  /// repli est cloisonné par besoin : hors ligne, on ne sert jamais les centres
+  /// d'une autre urgence — ils ne répondent pas au besoin courant et seraient
+  /// trompeurs.
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters({
+    required List<String> serviceCodes,
+  });
 }

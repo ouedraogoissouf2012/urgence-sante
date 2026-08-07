@@ -20,7 +20,10 @@ class _FakeRepository implements OrientationRepository {
       const [];
 
   @override
-  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => null;
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters({
+    required List<String> serviceCodes,
+  }) async =>
+      null;
 }
 
 class _DeniedLocation implements LocationService {
