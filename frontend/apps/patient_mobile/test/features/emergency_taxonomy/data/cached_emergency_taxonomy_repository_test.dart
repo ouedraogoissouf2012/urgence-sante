@@ -55,15 +55,20 @@ void main() {
     expect(repository.fetchTaxonomy, throwsException);
   });
 
-  test('un résultat vide n\'écrase pas un cache déjà valide', () async {
+  test('un résultat vide revient au cache valide plutôt que de renvoyer vide',
+      () async {
     await repository.fetchTaxonomy(); // remplit le cache
-    remote.categories = const []; // le réseau renvoie une liste vide
-    final result = await repository.fetchTaxonomy();
-    expect(result, isEmpty); // le réseau prime quand il répond…
+    remote.categories = const []; // le réseau renvoie une liste vide (jamais valide)
 
-    // …mais le cache valide n'a pas été écrasé : hors ligne, on le retrouve.
-    remote.offline = true;
-    final cached = await repository.fetchTaxonomy();
-    expect(cached.single.id, 'respiratoires');
+    // Le cache valide prime sur une réponse vide : jamais d'écran d'urgence
+    // blanc, et le cache n'est pas écrasé.
+    final result = await repository.fetchTaxonomy();
+    expect(result.single.id, 'respiratoires');
+  });
+
+  test('un résultat vide SANS cache lève une erreur (jamais de liste vide)',
+      () async {
+    remote.categories = const [];
+    expect(repository.fetchTaxonomy, throwsA(isA<EmptyTaxonomyException>()));
   });
 }

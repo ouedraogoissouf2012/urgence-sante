@@ -25,6 +25,18 @@ class EmergencyTaxonomyViewModel extends Notifier<EmergencyTaxonomyState> {
     try {
       final categories =
           await ref.read(emergencyTaxonomyRepositoryProvider).fetchTaxonomy();
+      if (categories.isEmpty) {
+        // Défense en profondeur : une taxonomie vide ne doit JAMAIS aboutir à un
+        // écran d'urgence blanc. La couche données lève déjà sur une réponse
+        // distante vide ; cette garde assure qu'aucun chemin ne laisse un
+        // « ready » sans catégorie (l'écran affiche une erreur avec réessai).
+        state = state.copyWith(
+          phase: EmergencyTaxonomyPhase.error,
+          errorMessage:
+              'Impossible de charger les urgences. Vérifiez votre connexion.',
+        );
+        return;
+      }
       state = state.copyWith(
         phase: EmergencyTaxonomyPhase.ready,
         categories: categories,

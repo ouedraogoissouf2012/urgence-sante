@@ -81,4 +81,16 @@ void main() {
     expect(container.read(emergencyTaxonomyViewModelProvider).phase,
         EmergencyTaxonomyPhase.error);
   });
+
+  test('une taxonomie vide est traitée comme une erreur (jamais d\'écran blanc)',
+      () async {
+    // Défense en profondeur : même si le dépôt renvoie une liste vide sans
+    // lever, la View ne doit jamais afficher un écran d'urgence sans catégorie.
+    final container = containerWith(_FakeTaxonomyRepository(const []));
+    container.read(emergencyTaxonomyViewModelProvider.notifier);
+    await flush();
+
+    expect(container.read(emergencyTaxonomyViewModelProvider).phase,
+        EmergencyTaxonomyPhase.error);
+  });
 }
