@@ -32,12 +32,21 @@ import java.util.UUID;
  * <p>Les temps de trajet sont obtenus en UN SEUL appel groupé : la latence ne
  * dépend pas du nombre de candidats, et une panne du fournisseur bascule en
  * mode dégradé déterministe (temps estimé depuis la distance, qualifié comme
- * tel). Un statut de disponibilité périmé (STALE) est ramené à « UNKNOWN ».
+ * tel). La disponibilité est consultée une seule fois par candidat (et non par
+ * service). Un statut de disponibilité périmé (STALE) est ramené à « UNKNOWN ».
  */
 public class OrientationService implements RecommendFacilitiesUseCase {
 
     private static final String UNKNOWN = "UNKNOWN";
     private static final String STALE = "STALE";
+
+    // Vivier de candidats évalués = min(limit × facteur, plafond). Le classement
+    // final pondère la disponibilité (jusqu'à 100) au-delà de la proximité (max
+    // 60) : un centre disponible juste au-delà des `limit` plus proches doit
+    // pouvoir remonter en tête. On évalue donc un vivier plus large que le nombre
+    // demandé, borné pour ne pas alourdir routage et disponibilité (issue #112).
+    private static final int CANDIDATE_POOL_FACTOR = 3;
+    private static final int MAX_CANDIDATE_POOL = 30;
 
     private final ServiceCatalogPort serviceCatalog;
     private final CandidateFacilityPort candidateFacilityPort;
@@ -65,9 +74,10 @@ public class OrientationService implements RecommendFacilitiesUseCase {
                 throw new OrientationValidationException("Service médical inconnu : " + serviceCode);
             }
         }
+        final int poolSize = Math.min(query.limit() * CANDIDATE_POOL_FACTOR, MAX_CANDIDATE_POOL);
         final List<CandidateFacility> candidates = candidateFacilityPort.findCandidates(
                 query.serviceCodes(), query.latitude(), query.longitude(),
-                query.radiusMeters(), query.limit());
+                query.radiusMeters(), poolSize);
         if (candidates.isEmpty()) {
             return List.of();
         }
@@ -139,19 +149,15 @@ public class OrientationService implements RecommendFacilitiesUseCase {
     private Optional<ServiceStatus> mostFavorableStatus(UUID facilityId, Set<String> serviceCodes) {
         ServiceStatus best = null;
         int bestRank = -1;
-        for (final String serviceCode : serviceCodes) {
-            final Optional<ServiceStatus> status =
-                    availabilityLookupPort.lookup(facilityId, serviceCode);
-            if (status.isEmpty()) {
-                continue;
-            }
+        // UN seul accès à la disponibilité du centre (statuts des services demandés).
+        for (final ServiceStatus status : availabilityLookupPort.statusesFor(facilityId, serviceCodes)) {
             // Rang = ordinal du rating (source unique de l'ordre de préférence).
             final int rank = AvailabilityRating
-                    .fromRaw(status.get().status(), status.get().freshness())
+                    .fromRaw(status.status(), status.freshness())
                     .ordinal();
             if (rank > bestRank) {
                 bestRank = rank;
-                best = status.get();
+                best = status;
             }
         }
         return Optional.ofNullable(best);
