@@ -48,7 +48,8 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
                      f.location,
                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)
                     ELSE NULL END) NULLS LAST,
-              f.name
+              f.name,
+              f.id
             LIMIT :size OFFSET :offset
             """, nativeQuery = true)
     List<UUID> searchIds(
