@@ -9,6 +9,7 @@ import com.urgencesante.orientation.internal.application.port.out.ServiceCatalog
 import com.urgencesante.orientation.internal.application.port.out.TravelTimePort;
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
 import com.urgencesante.orientation.internal.domain.exception.OrientationValidationException;
+import com.urgencesante.orientation.internal.domain.model.AvailabilityRating;
 import com.urgencesante.orientation.internal.domain.model.CandidateEvaluation;
 import com.urgencesante.orientation.internal.domain.model.GeoDistance;
 import com.urgencesante.orientation.internal.domain.model.Recommendation;
@@ -137,30 +138,22 @@ public class OrientationService implements RecommendFacilitiesUseCase {
      */
     private Optional<ServiceStatus> mostFavorableStatus(UUID facilityId, Set<String> serviceCodes) {
         ServiceStatus best = null;
-        int bestRank = Integer.MIN_VALUE;
+        int bestRank = -1;
         for (final String serviceCode : serviceCodes) {
             final Optional<ServiceStatus> status =
                     availabilityLookupPort.lookup(facilityId, serviceCode);
             if (status.isEmpty()) {
                 continue;
             }
-            final int rank = favorability(status.get());
+            // Rang = ordinal du rating (source unique de l'ordre de préférence).
+            final int rank = AvailabilityRating
+                    .fromRaw(status.get().status(), status.get().freshness())
+                    .ordinal();
             if (rank > bestRank) {
                 bestRank = rank;
                 best = status.get();
             }
         }
         return Optional.ofNullable(best);
-    }
-
-    private static int favorability(ServiceStatus status) {
-        final String effective = STALE.equals(status.freshness()) ? UNKNOWN : status.status();
-        return switch (effective) {
-            case "AVAILABLE" -> 5;
-            case "LIMITED" -> 4;
-            case "SATURATED" -> 2;
-            case "CLOSED" -> 1;
-            default -> 3;
-        };
     }
 }
