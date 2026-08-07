@@ -64,6 +64,38 @@ class _Repo implements OrientationRepository {
         );
 }
 
+/// Repository qui nomme le centre d'après le besoin demandé : permet de vérifier
+/// que deux pages de catégories différentes n'échangent PAS leurs résultats
+/// (chaque page doit posséder son propre état d'orientation).
+class _NeedAwareRepo implements OrientationRepository {
+  @override
+  Future<List<RecommendedCenter>> recommend({
+    required double latitude,
+    required double longitude,
+    required List<String> serviceCodes,
+  }) async =>
+      [
+        RecommendedCenter(
+          facilityId: 'id-${serviceCodes.first}',
+          name: 'Centre ${serviceCodes.first}',
+          latitude: 5.3496,
+          longitude: -3.9851,
+          phone: '+2250100000001',
+          distanceMeters: 2800,
+          travelTimeSeconds: 320,
+          travelTimeQuality: 'REAL',
+          status: 'AVAILABLE',
+          explanation: 'service disponible',
+        ),
+      ];
+
+  @override
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters({
+    required List<String> serviceCodes,
+  }) async =>
+      null;
+}
+
 /// Renvoie une image PNG 1×1 transparente pour toute requête HTTP (tuiles OSM).
 class _FakeHttpOverrides extends HttpOverrides {
   @override
@@ -229,5 +261,43 @@ void main() {
     // signalés hors ligne, sans statut temps réel.
     expect(find.textContaining('Hors ligne'), findsOneWidget);
     expect(find.text('CHU de Cocody'), findsOneWidget);
+  });
+
+  testWidgets(
+      'isolation par catégorie : deux pages n\'échangent pas leurs centres (#108)',
+      (tester) async {
+    // Deux catégories affichées simultanément (comme deux pages empilées) : avec
+    // un ViewModel global partagé, la seconde recherche écraserait la première
+    // et les deux montreraient le même centre. Chaque page ayant son propre état,
+    // chacune affiche SON centre.
+    await tester.binding.setSurfaceSize(const Size(500, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        orientationRepositoryProvider.overrideWithValue(_NeedAwareRepo()),
+        locationServiceProvider.overrideWithValue(_Location()),
+        emergencyCallerProvider.overrideWithValue(_Caller()),
+        navigationLauncherProvider.overrideWithValue(_Nav()),
+      ],
+      child: const MaterialApp(
+        home: Column(
+          children: [
+            Expanded(
+              child: OrientationResultsPage(
+                  serviceCodes: ['maternity'], title: 'Maternité'),
+            ),
+            Expanded(
+              child: OrientationResultsPage(
+                  serviceCodes: ['cardiology'], title: 'Cardiologie'),
+            ),
+          ],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Centre maternity'), findsOneWidget);
+    expect(find.text('Centre cardiology'), findsOneWidget);
   });
 }

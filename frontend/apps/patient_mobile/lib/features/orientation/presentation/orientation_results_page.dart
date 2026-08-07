@@ -14,7 +14,14 @@ import 'widgets/orientation_results_view.dart';
 /// Écran de résultats atteint depuis la taxonomie : déclenche une recherche
 /// multi-services pour [serviceCodes] et n'affiche QUE les résultats (le
 /// sélecteur plat est masqué). Réutilise le moteur d'orientation existant.
-class OrientationResultsPage extends ConsumerStatefulWidget {
+///
+/// Le ViewModel d'orientation est ISOLÉ PAR PAGE via un [ProviderScope] dédié :
+/// chaque catégorie ouverte possède son propre état. Sans cela, le ViewModel
+/// global partagé faisait « fuiter » résultats et carte d'une catégorie sur la
+/// suivante (flash de résultats croisés au montage), empilait des recherches
+/// concurrentes (la plus lente écrasant l'autre) et relançait le réessai au
+/// retour d'arrière-plan sur toutes les pages encore empilées (issue #108).
+class OrientationResultsPage extends StatelessWidget {
   const OrientationResultsPage({
     required this.serviceCodes,
     required this.title,
@@ -25,11 +32,37 @@ class OrientationResultsPage extends ConsumerStatefulWidget {
   final String title;
 
   @override
-  ConsumerState<OrientationResultsPage> createState() =>
-      _OrientationResultsPageState();
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      // Instance neuve, propre à cette page : l'état ne peut plus être partagé
+      // avec une autre catégorie encore empilée dans le navigateur.
+      overrides: [
+        orientationViewModelProvider.overrideWith(OrientationViewModel.new),
+      ],
+      child: _OrientationResultsScaffold(
+        serviceCodes: serviceCodes,
+        title: title,
+      ),
+    );
+  }
 }
 
-class _OrientationResultsPageState extends ConsumerState<OrientationResultsPage>
+class _OrientationResultsScaffold extends ConsumerStatefulWidget {
+  const _OrientationResultsScaffold({
+    required this.serviceCodes,
+    required this.title,
+  });
+
+  final List<String> serviceCodes;
+  final String title;
+
+  @override
+  ConsumerState<_OrientationResultsScaffold> createState() =>
+      _OrientationResultsScaffoldState();
+}
+
+class _OrientationResultsScaffoldState
+    extends ConsumerState<_OrientationResultsScaffold>
     with WidgetsBindingObserver {
   @override
   void initState() {
@@ -49,6 +82,11 @@ class _OrientationResultsPageState extends ConsumerState<OrientationResultsPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
     if (lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    // Seule la page actuellement visible re-tente : les pages encore empilées
+    // sous d'autres écrans ne relancent pas de recherche en arrière-plan (#108).
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
       return;
     }
     // Retour des réglages pendant une erreur de localisation : on re-tente.
