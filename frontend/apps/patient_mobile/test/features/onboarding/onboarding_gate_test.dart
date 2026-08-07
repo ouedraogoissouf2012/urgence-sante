@@ -6,6 +6,8 @@ import 'package:patient_mobile/core/auth/session_store.dart';
 import 'package:patient_mobile/core/consent/consent_store.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
+import 'package:patient_mobile/features/emergency_taxonomy/domain/model/emergency_category.dart';
+import 'package:patient_mobile/features/emergency_taxonomy/domain/repository/emergency_taxonomy_repository.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
@@ -31,12 +33,25 @@ class _FakeRepository implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async =>
       const [];
 
   @override
   Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => null;
+}
+
+class _FakeTaxonomy implements EmergencyTaxonomyRepository {
+  @override
+  Future<List<EmergencyCategory>> fetchTaxonomy() async => const [
+        EmergencyCategory(
+          id: 'respiratoires',
+          label: 'Urgences respiratoires',
+          directCallOnly: false,
+          symptoms: [Symptom(id: 'crise-asthme', label: "Crise d'asthme")],
+          serviceCodes: ['pulmonology'],
+        ),
+      ];
 }
 
 class _FakeLocation implements LocationService {
@@ -67,6 +82,7 @@ Widget _app(_InMemoryConsentStore store) {
       sessionStoreProvider.overrideWithValue(_AuthenticatedSessionStore()),
       consentStoreProvider.overrideWithValue(store),
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
+      emergencyTaxonomyRepositoryProvider.overrideWithValue(_FakeTaxonomy()),
       locationServiceProvider.overrideWithValue(_FakeLocation()),
     ],
     child: const PatientApp(),
@@ -82,7 +98,7 @@ void main() {
     expect(find.text('Limites médicales'), findsOneWidget);
     expect(find.textContaining('185'), findsWidgets);
     expect(find.textContaining('position'), findsWidgets);
-    expect(find.text('De quel soin avez-vous besoin ?'), findsNothing);
+    expect(find.text('Quelle est votre urgence ?'), findsNothing);
   });
 
   testWidgets("accepter persiste la version et ouvre le parcours",
@@ -100,7 +116,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.accepted, currentTermsVersion);
-    expect(find.text('De quel soin avez-vous besoin ?'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
 
   testWidgets('la version acceptée à jour ne redemande pas les conditions',
@@ -110,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Limites médicales'), findsNothing);
-    expect(find.text('De quel soin avez-vous besoin ?'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
 
   testWidgets('une ANCIENNE version acceptée redemande les conditions',

@@ -29,6 +29,7 @@ class OrientationState {
     this.phase = OrientationPhase.loadingNeeds,
     this.needs = const [],
     this.selectedNeed,
+    this.searchServiceCodes = const [],
     this.results = const [],
     this.userLatitude,
     this.userLongitude,
@@ -44,6 +45,12 @@ class OrientationState {
   final OrientationPhase phase;
   final List<MedicalNeed> needs;
   final MedicalNeed? selectedNeed;
+
+  /// Codes des services de la recherche courante (un symptôme peut en couvrir
+  /// plusieurs). Alimente la recherche multi-services, le réessai et le mode
+  /// dégradé sans position.
+  final List<String> searchServiceCodes;
+
   final List<RecommendedCenter> results;
   final double? userLatitude;
   final double? userLongitude;
@@ -84,6 +91,7 @@ class OrientationState {
     OrientationPhase? phase,
     List<MedicalNeed>? needs,
     MedicalNeed? selectedNeed,
+    List<String>? searchServiceCodes,
     List<RecommendedCenter>? results,
     double? userLatitude,
     double? userLongitude,
@@ -104,6 +112,7 @@ class OrientationState {
       phase: phase ?? this.phase,
       needs: needs ?? this.needs,
       selectedNeed: selectedNeed ?? this.selectedNeed,
+      searchServiceCodes: searchServiceCodes ?? this.searchServiceCodes,
       results: results ?? this.results,
       userLatitude: clearPosition ? null : (userLatitude ?? this.userLatitude),
       userLongitude: clearPosition ? null : (userLongitude ?? this.userLongitude),

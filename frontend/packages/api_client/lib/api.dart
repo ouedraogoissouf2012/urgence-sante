@@ -28,6 +28,7 @@ part 'auth/http_basic_auth.dart';
 part 'auth/http_bearer_auth.dart';
 
 part 'api/availability_api.dart';
+part 'api/emergency_taxonomy_api.dart';
 part 'api/facilities_api.dart';
 part 'api/medical_services_api.dart';
 part 'api/orientation_api.dart';
@@ -36,6 +37,7 @@ part 'api/routing_api.dart';
 
 part 'model/availability_history_entry.dart';
 part 'model/availability_status.dart';
+part 'model/emergency_category.dart';
 part 'model/facility.dart';
 part 'model/facility_availability.dart';
 part 'model/field_error.dart';
@@ -51,6 +53,7 @@ part 'model/recommendation.dart';
 part 'model/register_patient_request.dart';
 part 'model/route.dart';
 part 'model/service_availability.dart';
+part 'model/symptom.dart';
 part 'model/update_availability_request.dart';
 
 

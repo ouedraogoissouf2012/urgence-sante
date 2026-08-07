@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:patient_mobile/app/patient_app.dart';
 import 'package:patient_mobile/core/calls/emergency_caller.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
@@ -9,6 +8,7 @@ import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
+import 'package:patient_mobile/features/orientation/presentation/orientation_page.dart';
 import 'package:patient_mobile/features/orientation/presentation/widgets/need_selector.dart';
 import 'package:patient_mobile/features/orientation/presentation/widgets/recommendation_card.dart';
 
@@ -21,7 +21,7 @@ class _FakeRepository implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async =>
       const [];
 
@@ -66,17 +66,16 @@ class _RecordingCaller implements EmergencyCaller {
 }
 
 Widget _app(_RecordingCaller caller, {LocationService? location}) {
+  // Ces tests ciblent le PARCOURS PLAT d'orientation (catalogue de besoins,
+  // localisation, appels d'urgence) : on monte OrientationPage directement, sans
+  // passer par les portes d'entrée (testées séparément).
   return ProviderScope(
     overrides: [
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
       locationServiceProvider.overrideWithValue(location ?? _DeniedLocation()),
       emergencyCallerProvider.overrideWithValue(caller),
-      // Ces tests ciblent le parcours principal : on passe l'authentification
-      // (session présente) et le consentement (déjà accepté).
-      sessionTokenProvider.overrideWith((ref) async => 'jeton-de-test'),
-      consentUpToDateProvider.overrideWith((ref) async => true),
     ],
-    child: const PatientApp(),
+    child: const MaterialApp(home: OrientationPage()),
   );
 }
 

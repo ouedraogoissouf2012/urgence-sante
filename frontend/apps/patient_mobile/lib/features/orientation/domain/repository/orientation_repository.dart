@@ -12,11 +12,13 @@ abstract interface class OrientationRepository {
   Future<Cached<List<MedicalNeed>>> loadNeeds();
 
   /// Centres recommandés pour un besoin depuis une position (réseau requis :
-  /// le classement temps réel n'est jamais simulé hors ligne).
+  /// le classement temps réel n'est jamais simulé hors ligne). Accepte
+  /// plusieurs services (sémantique OU) : un symptôme peut couvrir plusieurs
+  /// spécialités.
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   });
 
   /// Derniers centres connus (annuaire minimal hors ligne), ou `null` si

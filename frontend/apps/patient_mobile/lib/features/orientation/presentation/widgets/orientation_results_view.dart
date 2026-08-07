@@ -21,6 +21,7 @@ class OrientationResultsView extends StatelessWidget {
     required this.onSelectCenter,
     required this.onCall,
     required this.onNavigate,
+    this.showSelector = true,
     super.key,
   });
 
@@ -29,6 +30,11 @@ class OrientationResultsView extends StatelessWidget {
   final ValueChanged<RecommendedCenter> onSelectCenter;
   final ValueChanged<RecommendedCenter> onCall;
   final ValueChanged<RecommendedCenter> onNavigate;
+
+  /// Affiche le sélecteur de besoin (parcours plat). Masqué quand la recherche a
+  /// été déclenchée depuis la taxonomie (l'écran ne montre alors que les
+  /// résultats).
+  final bool showSelector;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +63,7 @@ class OrientationResultsView extends StatelessWidget {
           builder: (context, controller) => _Sheet(
             controller: controller,
             state: state,
+            showSelector: showSelector,
             onNeedSelected: onNeedSelected,
             onSelectCenter: onSelectCenter,
             onCall: onCall,
@@ -72,6 +79,7 @@ class _Sheet extends StatelessWidget {
   const _Sheet({
     required this.controller,
     required this.state,
+    required this.showSelector,
     required this.onNeedSelected,
     required this.onSelectCenter,
     required this.onCall,
@@ -80,6 +88,7 @@ class _Sheet extends StatelessWidget {
 
   final ScrollController controller;
   final OrientationState state;
+  final bool showSelector;
   final ValueChanged<MedicalNeed> onNeedSelected;
   final ValueChanged<RecommendedCenter> onSelectCenter;
   final ValueChanged<RecommendedCenter> onCall;
@@ -100,15 +109,17 @@ class _Sheet extends StatelessWidget {
             AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.lg),
         children: [
           const _Grip(),
-          const Text('De quel soin avez-vous besoin ?',
-              style: AppTypography.title),
-          const SizedBox(height: AppSpacing.sm),
-          NeedSelector(
-            needs: state.needs,
-            selected: state.selectedNeed,
-            onSelected: onNeedSelected,
-          ),
-          const SizedBox(height: AppSpacing.md),
+          if (showSelector) ...[
+            const Text('De quel soin avez-vous besoin ?',
+                style: AppTypography.title),
+            const SizedBox(height: AppSpacing.sm),
+            NeedSelector(
+              needs: state.needs,
+              selected: state.selectedNeed,
+              onSelected: onNeedSelected,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
           if (state.offlineSyncedAt != null) ...[
             ContextBanner(
               tone: ContextBannerTone.offline,

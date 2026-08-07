@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' show Size;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:patient_mobile/app/patient_app.dart';
 import 'package:patient_mobile/core/calls/emergency_caller.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/core/navigation/navigation_launcher.dart';
@@ -14,6 +13,7 @@ import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
 import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
+import 'package:patient_mobile/features/orientation/presentation/orientation_page.dart';
 
 /// Parcours patient de bout en bout (issue #48), côté interface :
 /// besoin → localisation → recommandation → itinéraire/appel → panne réseau.
@@ -28,7 +28,7 @@ class _Repo implements OrientationRepository {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
     if (!online) throw Exception('réseau indisponible');
     return const [
@@ -183,11 +183,10 @@ void main() {
         locationServiceProvider.overrideWithValue(_Location()),
         emergencyCallerProvider.overrideWithValue(caller),
         navigationLauncherProvider.overrideWithValue(nav),
-        // Session présente : ce test cible le parcours, pas l'authentification.
-        sessionTokenProvider.overrideWith((ref) async => 'jeton-de-test'),
-        consentUpToDateProvider.overrideWith((ref) async => true),
       ],
-      child: const PatientApp(),
+      // Ce test cible le PARCOURS PLAT d'orientation : on monte OrientationPage
+      // directement (les portes d'entrée sont testées séparément).
+      child: const MaterialApp(home: OrientationPage()),
     ));
     await tester.pumpAndSettle();
 

@@ -28,7 +28,7 @@ class _FakeRemote implements OrientationRemote {
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
     required double longitude,
-    required String serviceCode,
+    required List<String> serviceCodes,
   }) async {
     if (offline) throw Exception('réseau');
     return const [
@@ -78,7 +78,8 @@ void main() {
   });
 
   test('les derniers centres connus sont restitués SANS statut temps réel', () async {
-    await repository.recommend(latitude: 5.35, longitude: -4.0, serviceCode: 'maternity');
+    await repository.recommend(
+        latitude: 5.35, longitude: -4.0, serviceCodes: ['maternity']);
     remote.offline = true;
 
     final cached = await repository.lastKnownCenters();
