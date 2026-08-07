@@ -65,7 +65,8 @@ class OrientationViewModel extends Notifier<OrientationState> {
   /// En panne réseau, sert les DERNIERS CENTRES CONNUS (annuaire minimal
   /// hors ligne) : statuts non confirmés, date de synchronisation affichée.
   Future<void> _fallbackToLastKnownCenters() async {
-    final cached = await _repository.lastKnownCenters();
+    final cached = await _repository.lastKnownCenters(
+        serviceCodes: state.searchServiceCodes);
     if (cached == null) {
       state = state.copyWith(
         phase: OrientationPhase.error,

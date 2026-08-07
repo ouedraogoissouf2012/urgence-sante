@@ -12,6 +12,10 @@ class FakeOrientationRepository implements OrientationRepository {
   bool failRecommend = false;
   Cached<List<RecommendedCenter>>? knownCenters;
 
+  /// Dernier besoin pour lequel le repli hors ligne a été interrogé : permet de
+  /// vérifier que le view-model cloisonne bien le repli sur le besoin courant.
+  List<String>? lastKnownCentersServiceCodes;
+
   @override
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
@@ -23,7 +27,12 @@ class FakeOrientationRepository implements OrientationRepository {
   }
 
   @override
-  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => knownCenters;
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters({
+    required List<String> serviceCodes,
+  }) async {
+    lastKnownCentersServiceCodes = serviceCodes;
+    return knownCenters;
+  }
 }
 
 /// Fausse localisation, substituable à Geolocator.

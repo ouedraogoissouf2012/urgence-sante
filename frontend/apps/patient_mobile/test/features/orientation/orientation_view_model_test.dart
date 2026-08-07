@@ -150,6 +150,30 @@ void main() {
     expect(state().results.single.status, 'UNKNOWN');
   });
 
+  test('le repli hors ligne interroge le cache pour le BESOIN courant', () async {
+    // Cloisonnement (#107) : le view-model doit demander le repli pour les
+    // services de la recherche en cours, jamais un cache global indifférencié.
+    repository.failRecommend = true;
+    repository.knownCenters = Cached.fromStore(
+      const [
+        RecommendedCenter(
+          facilityId: 'id-1',
+          name: 'CHU',
+          latitude: 5.3496,
+          longitude: -3.9851,
+          distanceMeters: 2800,
+          status: 'UNKNOWN',
+          explanation: 'données locales',
+        ),
+      ],
+      syncedAt: DateTime.utc(2026, 7, 17, 9),
+    );
+
+    await viewModel().searchForServices(services);
+
+    expect(repository.lastKnownCentersServiceCodes, services);
+  });
+
   test('panne réseau en recherche SANS cache → erreur', () async {
     repository.failRecommend = true;
 

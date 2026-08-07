@@ -43,7 +43,10 @@ class _Repo implements OrientationRepository {
   }
 
   @override
-  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters() async => online
+  Future<Cached<List<RecommendedCenter>>?> lastKnownCenters({
+    required List<String> serviceCodes,
+  }) async =>
+      online
       ? null
       : Cached.fromStore(
           const [
