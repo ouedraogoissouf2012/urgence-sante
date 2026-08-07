@@ -1,41 +1,13 @@
 import 'dart:convert';
 
-import '../domain/model/medical_need.dart';
 import '../domain/model/recommended_center.dart';
 
-/// Sérialisation JSON du cache hors ligne (besoins et derniers centres).
+/// Sérialisation JSON du cache hors ligne des derniers centres connus.
 ///
 /// Format : {"syncedAt": ISO-8601 UTC, "items": [...]}. Toute erreur de
 /// décodage est traitée comme cache absent (jamais de crash sur données
 /// corrompues).
 abstract final class OrientationCacheCodec {
-  static String encodeNeeds(List<MedicalNeed> needs, DateTime syncedAt) =>
-      jsonEncode({
-        'syncedAt': syncedAt.toUtc().toIso8601String(),
-        'items': [
-          for (final need in needs) {'code': need.code, 'label': need.label},
-        ],
-      });
-
-  static ({List<MedicalNeed> items, DateTime syncedAt})? decodeNeeds(String? raw) {
-    final decoded = _envelope(raw);
-    if (decoded == null) {
-      return null;
-    }
-    try {
-      final items = [
-        for (final item in decoded.items)
-          MedicalNeed(
-            code: item['code'] as String,
-            label: item['label'] as String,
-          ),
-      ];
-      return (items: items, syncedAt: decoded.syncedAt);
-    } on Object {
-      return null;
-    }
-  }
-
   static String encodeCenters(List<RecommendedCenter> centers, DateTime syncedAt) =>
       jsonEncode({
         'syncedAt': syncedAt.toUtc().toIso8601String(),

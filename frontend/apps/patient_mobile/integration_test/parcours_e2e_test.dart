@@ -9,7 +9,6 @@ import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/core/navigation/navigation_launcher.dart';
 import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
 
@@ -21,12 +20,6 @@ import 'package:patient_mobile/features/orientation/domain/repository/orientatio
 ///   flutter test integration_test/parcours_e2e_test.dart -d chrome
 class _Repo implements OrientationRepository {
   bool online = true;
-
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async => const Cached.live([
-        MedicalNeed(code: 'maternity', label: 'Maternité'),
-        MedicalNeed(code: 'emergency', label: 'Urgences'),
-      ]);
 
   @override
   Future<List<RecommendedCenter>> recommend({

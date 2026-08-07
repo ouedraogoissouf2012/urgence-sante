@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_mobile/core/storage/key_value_store.dart';
 import 'package:patient_mobile/features/orientation/data/cached_orientation_repository.dart';
 import 'package:patient_mobile/features/orientation/data/orientation_remote.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 
 class _MemoryStore implements KeyValueStore {
@@ -17,12 +16,6 @@ class _MemoryStore implements KeyValueStore {
 
 class _FakeRemote implements OrientationRemote {
   bool offline = false;
-
-  @override
-  Future<List<MedicalNeed>> loadNeeds() async {
-    if (offline) throw Exception('réseau');
-    return const [MedicalNeed(code: 'maternity', label: 'Maternité')];
-  }
 
   @override
   Future<List<RecommendedCenter>> recommend({
@@ -59,27 +52,30 @@ void main() {
     repository = CachedOrientationRepository(remote, store, now: () => syncTime);
   });
 
-  test('cache vide + panne réseau → l\'erreur remonte', () async {
+  Future<List<RecommendedCenter>> search() => repository.recommend(
+      latitude: 5.35, longitude: -4.0, serviceCodes: ['maternity']);
+
+  test('cache vide + panne réseau : la recherche échoue, aucun centre connu', () async {
     remote.offline = true;
 
-    expect(repository.loadNeeds, throwsException);
+    expect(search, throwsException);
     expect(await repository.lastKnownCenters(), isNull);
   });
 
-  test('un succès réseau remplit le cache ; la panne sert le cache daté', () async {
-    await repository.loadNeeds();
+  test('un succès réseau remplit le cache des centres ; la panne le sert daté',
+      () async {
+    await search(); // succès réseau → cache mis à jour
     remote.offline = true;
 
-    final cached = await repository.loadNeeds();
+    final cached = await repository.lastKnownCenters();
 
-    expect(cached.fromCache, isTrue);
+    expect(cached, isNotNull);
+    expect(cached!.fromCache, isTrue);
     expect(cached.syncedAt, syncTime);
-    expect(cached.value.single.label, 'Maternité');
   });
 
   test('les derniers centres connus sont restitués SANS statut temps réel', () async {
-    await repository.recommend(
-        latitude: 5.35, longitude: -4.0, serviceCodes: ['maternity']);
+    await search();
     remote.offline = true;
 
     final cached = await repository.lastKnownCenters();
@@ -94,21 +90,19 @@ void main() {
   });
 
   test('des données corrompues sont traitées comme cache absent', () async {
-    store.data[CachedOrientationRepository.needsKey] = '{pas du json';
-    store.data[CachedOrientationRepository.centersKey] = '42';
-    remote.offline = true;
+    store.data[CachedOrientationRepository.centersKey] = '{pas du json';
 
-    expect(repository.loadNeeds, throwsException);
     expect(await repository.lastKnownCenters(), isNull);
   });
 
   test('la péremption est calculable depuis la date de synchronisation', () async {
-    await repository.loadNeeds();
+    await search();
     remote.offline = true;
-    final cached = await repository.loadNeeds();
+    final cached = await repository.lastKnownCenters();
 
+    expect(cached, isNotNull);
     expect(
-      cached.isStale(const Duration(hours: 24), syncTime.add(const Duration(hours: 2))),
+      cached!.isStale(const Duration(hours: 24), syncTime.add(const Duration(hours: 2))),
       isFalse,
     );
     expect(

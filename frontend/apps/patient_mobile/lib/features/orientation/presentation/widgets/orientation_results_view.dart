@@ -1,11 +1,9 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 
-import '../../domain/model/medical_need.dart';
 import '../../domain/model/recommended_center.dart';
 import '../orientation_state.dart';
 import 'context_banner.dart';
-import 'need_selector.dart';
 import 'position_map.dart';
 import 'recommendation_card.dart';
 import 'recommendation_card_compact.dart';
@@ -17,24 +15,16 @@ import 'recommendation_card_compact.dart';
 class OrientationResultsView extends StatelessWidget {
   const OrientationResultsView({
     required this.state,
-    required this.onNeedSelected,
     required this.onSelectCenter,
     required this.onCall,
     required this.onNavigate,
-    this.showSelector = true,
     super.key,
   });
 
   final OrientationState state;
-  final ValueChanged<MedicalNeed> onNeedSelected;
   final ValueChanged<RecommendedCenter> onSelectCenter;
   final ValueChanged<RecommendedCenter> onCall;
   final ValueChanged<RecommendedCenter> onNavigate;
-
-  /// Affiche le sélecteur de besoin (parcours plat). Masqué quand la recherche a
-  /// été déclenchée depuis la taxonomie (l'écran ne montre alors que les
-  /// résultats).
-  final bool showSelector;
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +53,6 @@ class OrientationResultsView extends StatelessWidget {
           builder: (context, controller) => _Sheet(
             controller: controller,
             state: state,
-            showSelector: showSelector,
-            onNeedSelected: onNeedSelected,
             onSelectCenter: onSelectCenter,
             onCall: onCall,
             onNavigate: onNavigate,
@@ -79,8 +67,6 @@ class _Sheet extends StatelessWidget {
   const _Sheet({
     required this.controller,
     required this.state,
-    required this.showSelector,
-    required this.onNeedSelected,
     required this.onSelectCenter,
     required this.onCall,
     required this.onNavigate,
@@ -88,8 +74,6 @@ class _Sheet extends StatelessWidget {
 
   final ScrollController controller;
   final OrientationState state;
-  final bool showSelector;
-  final ValueChanged<MedicalNeed> onNeedSelected;
   final ValueChanged<RecommendedCenter> onSelectCenter;
   final ValueChanged<RecommendedCenter> onCall;
   final ValueChanged<RecommendedCenter> onNavigate;
@@ -109,17 +93,6 @@ class _Sheet extends StatelessWidget {
             AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.lg),
         children: [
           const _Grip(),
-          if (showSelector) ...[
-            const Text('De quel soin avez-vous besoin ?',
-                style: AppTypography.title),
-            const SizedBox(height: AppSpacing.sm),
-            NeedSelector(
-              needs: state.needs,
-              selected: state.selectedNeed,
-              onSelected: onNeedSelected,
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
           if (state.offlineSyncedAt != null) ...[
             ContextBanner(
               tone: ContextBannerTone.offline,

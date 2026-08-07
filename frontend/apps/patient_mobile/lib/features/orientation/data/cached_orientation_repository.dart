@@ -1,6 +1,5 @@
 import '../../../core/storage/key_value_store.dart';
 import '../domain/model/cached.dart';
-import '../domain/model/medical_need.dart';
 import '../domain/model/recommended_center.dart';
 import '../domain/repository/orientation_repository.dart';
 import 'orientation_cache_codec.dart';
@@ -19,27 +18,11 @@ class CachedOrientationRepository implements OrientationRepository {
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
-  static const String needsKey = 'offline_needs_v1';
   static const String centersKey = 'offline_centers_v1';
 
   final OrientationRemote _api;
   final KeyValueStore _store;
   final DateTime Function() _now;
-
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async {
-    try {
-      final needs = await _api.loadNeeds();
-      await _store.write(needsKey, OrientationCacheCodec.encodeNeeds(needs, _now()));
-      return Cached.live(needs);
-    } on Exception {
-      final cached = OrientationCacheCodec.decodeNeeds(await _store.read(needsKey));
-      if (cached == null) {
-        rethrow;
-      }
-      return Cached.fromStore(cached.items, syncedAt: cached.syncedAt);
-    }
-  }
 
   @override
   Future<List<RecommendedCenter>> recommend({

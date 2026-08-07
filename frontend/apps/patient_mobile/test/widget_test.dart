@@ -5,18 +5,12 @@ import 'package:patient_mobile/core/calls/emergency_caller.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/orientation/domain/model/cached.dart';
-import 'package:patient_mobile/features/orientation/domain/model/medical_need.dart';
 import 'package:patient_mobile/features/orientation/domain/model/recommended_center.dart';
 import 'package:patient_mobile/features/orientation/domain/repository/orientation_repository.dart';
-import 'package:patient_mobile/features/orientation/presentation/orientation_page.dart';
-import 'package:patient_mobile/features/orientation/presentation/widgets/need_selector.dart';
+import 'package:patient_mobile/features/orientation/presentation/orientation_results_page.dart';
 import 'package:patient_mobile/features/orientation/presentation/widgets/recommendation_card.dart';
 
 class _FakeRepository implements OrientationRepository {
-  @override
-  Future<Cached<List<MedicalNeed>>> loadNeeds() async =>
-      const Cached.live([MedicalNeed(code: 'maternity', label: 'Maternité')]);
-
   @override
   Future<List<RecommendedCenter>> recommend({
     required double latitude,
@@ -65,34 +59,35 @@ class _RecordingCaller implements EmergencyCaller {
   Future<void> call(String phoneNumber) async => calls.add(phoneNumber);
 }
 
-Widget _app(_RecordingCaller caller, {LocationService? location}) {
-  // Ces tests ciblent le PARCOURS PLAT d'orientation (catalogue de besoins,
-  // localisation, appels d'urgence) : on monte OrientationPage directement, sans
-  // passer par les portes d'entrée (testées séparément).
+/// Monte l'écran de RÉSULTATS (atteint depuis un symptôme) : il déclenche seul
+/// la recherche multi-services au montage. La barre d'appel d'urgence y est
+/// toujours présente.
+Widget _resultsPage(_RecordingCaller caller, {LocationService? location}) {
   return ProviderScope(
     overrides: [
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
       locationServiceProvider.overrideWithValue(location ?? _DeniedLocation()),
       emergencyCallerProvider.overrideWithValue(caller),
     ],
-    child: const MaterialApp(home: OrientationPage()),
+    child: const MaterialApp(
+      home: OrientationResultsPage(serviceCodes: ['maternity'], title: 'Maternité'),
+    ),
   );
 }
 
 void main() {
-  testWidgets('le catalogue des besoins et les appels 185/180 sont visibles',
+  testWidgets('les appels 185/180 sont visibles sur l\'écran de résultats',
       (tester) async {
-    await tester.pumpWidget(_app(_RecordingCaller()));
+    await tester.pumpWidget(_resultsPage(_RecordingCaller()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Maternité'), findsOneWidget);
     expect(find.text('SAMU 185'), findsOneWidget);
     expect(find.text('Pompiers 180'), findsOneWidget);
   });
 
   testWidgets("le bouton SAMU déclenche l'appel du 185", (tester) async {
     final caller = _RecordingCaller();
-    await tester.pumpWidget(_app(caller));
+    await tester.pumpWidget(_resultsPage(caller));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('SAMU 185'));
@@ -102,10 +97,8 @@ void main() {
 
   testWidgets("une localisation refusée affiche l'erreur et le réessai",
       (tester) async {
-    await tester.pumpWidget(_app(_RecordingCaller()));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Maternité'));
+    // La recherche se déclenche au montage → localisation refusée → erreur.
+    await tester.pumpWidget(_resultsPage(_RecordingCaller()));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Autorisation refusée'), findsOneWidget);
@@ -114,27 +107,13 @@ void main() {
     expect(find.text('SAMU 185'), findsOneWidget);
   });
 
-  testWidgets('les puces de besoins sont centrées', (tester) async {
-    await tester.pumpWidget(_app(_RecordingCaller()));
-    await tester.pumpAndSettle();
-
-    final Wrap wrap = tester.widget<Wrap>(find.descendant(
-        of: find.byType(NeedSelector), matching: find.byType(Wrap)));
-
-    expect(wrap.alignment, WrapAlignment.center,
-        reason: 'sur téléphone, les puces doivent être centrées, pas collées à gauche');
-  });
-
   testWidgets(
       'localisation désactivée : « Réessayer » est proposé À CÔTÉ des réglages',
       (tester) async {
     // Sans ce bouton, l'utilisateur revenu des réglages restait bloqué sur
     // l'écran d'erreur (constaté sur appareil réel).
     await tester.pumpWidget(
-        _app(_RecordingCaller(), location: _ServiceDisabledThenOkLocation()));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Maternité'));
+        _resultsPage(_RecordingCaller(), location: _ServiceDisabledThenOkLocation()));
     await tester.pumpAndSettle();
 
     expect(find.text('Ouvrir les réglages'), findsOneWidget);
@@ -144,11 +123,8 @@ void main() {
   testWidgets(
       'au retour des réglages, la localisation est re-tentée automatiquement',
       (tester) async {
-    final location = _ServiceDisabledThenOkLocation();
-    await tester.pumpWidget(_app(_RecordingCaller(), location: location));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Maternité'));
+    await tester.pumpWidget(
+        _resultsPage(_RecordingCaller(), location: _ServiceDisabledThenOkLocation()));
     await tester.pumpAndSettle();
     expect(find.text('Ouvrir les réglages'), findsOneWidget);
 
