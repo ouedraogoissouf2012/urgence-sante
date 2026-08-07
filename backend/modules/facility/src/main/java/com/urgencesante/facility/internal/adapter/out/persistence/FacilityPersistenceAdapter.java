@@ -54,8 +54,14 @@ public class FacilityPersistenceAdapter implements LoadFacilityPort {
                 query.page().size(), query.page().offset());
         final long total = repository.countSearch(hasService, services, hasPoint, lat, lon, radius);
 
+        // findAllById hydrate la collection `services` via @EntityGraph (JOIN
+        // FETCH) : une même racine peut apparaître sur plusieurs lignes. Hibernate
+        // dédoublonne aujourd'hui, mais la fonction de fusion (garder la première
+        // occurrence, identiques) rend ce regroupement robuste sans dépendre de ce
+        // comportement implicite — jamais d'IllegalStateException « clé dupliquée ».
         final Map<UUID, FacilityJpaEntity> byId = repository.findAllById(orderedIds).stream()
-                .collect(Collectors.toMap(FacilityJpaEntity::getId, Function.identity()));
+                .collect(Collectors.toMap(FacilityJpaEntity::getId, Function.identity(),
+                        (existing, ignored) -> existing));
         final List<Facility> facilities = orderedIds.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
