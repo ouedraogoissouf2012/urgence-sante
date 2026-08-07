@@ -64,4 +64,23 @@ class MultiServiceSearchIntegrationTest extends AbstractPostgisIntegrationTest {
                 .extracting(FacilityView::name)
                 .containsExactly("Pneumo", "Reanim");
     }
+
+    @Test
+    void un_etablissement_offrant_plusieurs_services_est_retourne_une_seule_fois() {
+        // Reproduction #105 : findAllById porte @EntityGraph("services") sur une
+        // @ElementCollection → JOIN FETCH. Un établissement à plusieurs services
+        // produit plusieurs lignes ; sans fonction de fusion, Collectors.toMap
+        // lèverait « Duplicate key » (HTTP 500). Le centre doit apparaître UNE fois.
+        importFacilities.importDirectory(List.of(new FacilityImportRecord(
+                "ms-src", "ms-multi", "Polyvalent", "+2252722481000", 5.35, -4.00,
+                Set.of("cardiology", "pulmonology", "intensive_care"),
+                DataStatus.VERIFIED, LocalDate.of(2026, 1, 1), "cellule")));
+
+        final List<FacilityView> result = facilityFacade.findNearbyOfferingAny(
+                Set.of("cardiology", "pulmonology"), 5.35, -4.00, 50_000, 10);
+
+        assertThat(result)
+                .extracting(FacilityView::name)
+                .containsExactly("Polyvalent");
+    }
 }
