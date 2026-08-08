@@ -1,0 +1,96 @@
+# ============================================================================
+# Déploiement automatique du backend sur le VPS.
+#
+# À chaque évolution du backend sur main (ou à la demande), ce workflow se
+# connecte au VPS et met l'API à jour de façon déterministe :
+#   1. aligne le dépôt du VPS sur l'état exact de `origin/main` ;
+#   2. reconstruit et relance les conteneurs (docker compose --build) ;
+#   3. vérifie que l'API repasse « UP » (/actuator/health) — sinon échec.
+#
+# Tout se passe entre GitHub et le VPS : le poste de développement n'est jamais
+# sollicité. Miroir de « Release APK » (même secret VPS_SSH_KEY, même hôte).
+# Secret requis : VPS_SSH_KEY (clé privée dédiée, restreinte au dépôt).
+# ============================================================================
+name: Deploy Backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    # Le seed de démo (infrastructure/demo) est copié dans le build backend, et
+    # deploy/ porte la compose/Dockerfile : un changement de l'un ou l'autre doit
+    # redéployer.
+    paths:
+      - 'backend/**'
+      - 'infrastructure/**'
+      - 'deploy/**'
+
+permissions:
+  contents: read
+
+# Ne jamais interrompre un déploiement en cours : les runs s'enchaînent.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: main → VPS (API)
+    runs-on: ubuntu-latest
+    # git reset + rebuild Maven + démarrage tiennent largement en 20 min ;
+    # au-delà, on échoue vite pour pouvoir relancer plutôt que laisser pendre.
+    timeout-minutes: 20
+    env:
+      # Vrai si un serveur de déploiement est configuré (absent sur un fork
+      # client sans secret) : le job est alors sauté proprement.
+      HAS_VPS_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
+      VPS_HOST: 194.163.161.169
+      VPS_USER: issouf
+    steps:
+      - name: Préparer la clé SSH
+        if: ${{ env.HAS_VPS_KEY == 'true' }}
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Déployer (aligner sur main puis reconstruire)
+        if: ${{ env.HAS_VPS_KEY == 'true' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          cd ~/urgence-sante
+          # Déploiement déterministe : on sert EXACTEMENT origin/main. Le
+          # reset --hard ne touche pas aux fichiers non suivis (deploy/.env,
+          # site/…), qui sont gitignorés et donc préservés.
+          git fetch --prune origin main
+          git reset --hard origin/main
+          docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+          REMOTE
+
+      - name: Vérifier la santé de l'API (/actuator/health == UP)
+        if: ${{ env.HAS_VPS_KEY == 'true' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          # L'API redémarre + Flyway rejoue les migrations : on laisse jusqu'à
+          # ~5 min avant de conclure à l'échec.
+          for tentative in $(seq 1 30); do
+            if curl -fsS http://localhost:8086/actuator/health | grep -q '"status":"UP"'; then
+              echo "API UP (tentative $tentative)."
+              exit 0
+            fi
+            echo "En attente du démarrage de l'API (tentative $tentative)…"
+            sleep 10
+          done
+          echo "::error::L'API n'est pas repassée UP après le déploiement." >&2
+          exit 1
+          REMOTE
+
+      - name: Serveur non configuré (fork sans secret)
+        if: ${{ env.HAS_VPS_KEY != 'true' }}
+        run: |
+          echo "VPS_SSH_KEY absent : déploiement sauté (attendu sur un fork sans secret)."
