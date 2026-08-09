@@ -84,8 +84,10 @@ raison → boutons **SAMU 185 / Pompiers 180** permanents.
 par `local-up.sh` via `CORS_ALLOWED_ORIGINS` ; en production, seuls des domaines
 explicites sont acceptés, les motifs génériques font échouer le démarrage).*
 
-La mise à jour exige désormais une **authentification** (issue #42). Le jeu de
-démo fournit un jeton **ADMIN** de régulation : `demo-samu-admin-2026`.
+La mise à jour exige désormais une **authentification** (issue #42). En local,
+les scripts (`local-up.sh`) provisionnent un jeton **ADMIN** de régulation :
+`demo-samu-admin-2026` (surchargeable via `PORTAL_TOKEN`). Ce jeton n'est plus
+versionné dans le seed et n'existe **jamais en production** (issue #124).
 
 1. tableau des services : la **maternité** est `Disponible` avec son horodatage ;
 2. passer la maternité à **Saturé** → mise à jour horodatée immédiate ;
@@ -158,7 +160,7 @@ flutter build apk --debug -t lib/main_development.dart
 |---|---|---|
 | 15 établissements « [DÉMO] » | fictifs (`data_status = DEMO`) | refus à l'import en prod + garde de démarrage |
 | Téléphones `+22501000000xx` | fictifs | idem |
-| Jeton `demo-samu-admin-2026` | identifiant de démonstration | seed démo uniquement |
+| Jeton `demo-samu-admin-2026` | provisionné par `local-up.sh` (var `PORTAL_TOKEN`) | local uniquement — **jamais en production** |
 | Statuts initiaux | posés par `local-up.sh` | rechargés à chaque exécution |
 
 Le **jeu de démarrage réel** (`infrastructure/directory/abidjan-starter.json`)

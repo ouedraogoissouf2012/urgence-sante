@@ -158,10 +158,11 @@ INSERT INTO facility_service (facility_id, service_code) VALUES
   ('11111111-0000-0000-0000-000000000015', 'obstetrics'),
   ('11111111-0000-0000-0000-000000000015', 'pediatric_icu');
 
--- Identifiant de démonstration : jeton ADMIN (régulation type SAMU) autorisé à
--- mettre à jour tout établissement. Le jeton en clair est « demo-samu-admin-2026 »
--- (empreinte SHA-256 ci-dessous) — usage DÉMO uniquement, jamais en production.
-INSERT INTO portal_credential (id, label, token_hash, role, facility_id, active) VALUES
-  ('22222222-0000-0000-0000-000000000001', '[DÉMO] Régulation SAMU',
-   '7c0cc15a3c14dd8d28ef14e73235e2ff07c4ed2ebcb4a6bd00c52941751cbc33', 'ADMIN', NULL, TRUE)
-ON CONFLICT (id) DO NOTHING;
+-- SÉCURITÉ (issue #124) : le jeton opérateur de démonstration n'est PLUS
+-- versionné ici. Un secret en clair dans le seed était embarqué dans l'artefact
+-- (JAR) et actif partout où ce jeu est chargé (profil local, y compris la démo
+-- déployée), autorisant l'écriture de disponibilité sur TOUT établissement.
+-- Le jeton de démo est désormais provisionné HORS du dépôt par les scripts
+-- locaux (scripts/local-up.sh & e2e-smoke.sh, variable PORTAL_TOKEN) — jamais
+-- présent en production. Ce DELETE purge l'ancien jeton résiduel au rechargement.
+DELETE FROM portal_credential WHERE id = '22222222-0000-0000-0000-000000000001';

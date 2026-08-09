@@ -32,7 +32,7 @@ Ordre : **db → api → mobile**. Chaque commande garde son terminal ouvert
 | Exemple d'API | http://localhost:8090/api/v1/orientation?lat=5.349&lon=-4.008&service=maternity |
 | App patient / portail | Chrome s'ouvre tout seul |
 
-Jeton agent (portail, démo) : `demo-samu-admin-2026`
+Jeton agent (portail, démo) : `demo-samu-admin-2026` — provisionné en local par `local-up.sh` (var `PORTAL_TOKEN`), absent de la production (issue #124).
 
 ## Arrêter
 
