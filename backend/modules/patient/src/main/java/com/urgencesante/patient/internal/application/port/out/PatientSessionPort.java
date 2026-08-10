@@ -19,4 +19,10 @@ public interface PatientSessionPort {
 
     /** Identifiant du patient si le jeton correspond à une session non expirée. */
     Optional<UUID> resolvePatient(String rawToken);
+
+    /**
+     * Supprime les sessions déjà expirées (issue #132 : sans purge, la table
+     * grossit sans fin). Renvoie le nombre de sessions supprimées.
+     */
+    int purgeExpired();
 }

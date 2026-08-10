@@ -40,12 +40,15 @@ public class AvailabilityPersistenceAdapter implements SaveAvailabilityPort, Loa
     @Transactional
     public boolean save(Availability availability) {
         final String status = availability.status().name();
-        final AvailabilityJpaEntity current = currentRepository
-                .findByFacilityIdAndServiceCode(availability.facilityId(), availability.serviceCode())
-                .orElseGet(() -> new AvailabilityJpaEntity(
-                        availability.facilityId(), availability.serviceCode(), status, availability.updatedAt()));
-
-        final boolean statusChanged = !current.getStatus().equals(status);
+        final var existing = currentRepository
+                .findByFacilityIdAndServiceCode(availability.facilityId(), availability.serviceCode());
+        // Absence de ligne = première écriture pour ce couple (établissement,
+        // service) : le statut a nécessairement "changé" (il n'existait pas).
+        // Comparer AVANT de construire l'entité par défaut, qui serait sinon déjà
+        // initialisée au nouveau statut et masquerait ce premier changement.
+        final boolean statusChanged = existing.isEmpty() || !existing.get().getStatus().equals(status);
+        final AvailabilityJpaEntity current = existing.orElseGet(() -> new AvailabilityJpaEntity(
+                availability.facilityId(), availability.serviceCode(), status, availability.updatedAt()));
         current.applyUpdate(status, availability.updatedAt());
         currentRepository.save(current);
 

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Relais de l'outbox : publie les événements en attente puis les marque
@@ -20,10 +21,11 @@ import org.springframework.stereotype.Component;
  * idempotente (table de déduplication côté consommateur) reste À FOURNIR :
  * aucun consommateur idempotent n'est livré ici. Dette tracée.
  *
- * <p>Ordonnancement mono-instance : ce relais suppose une seule instance
- * active. En multi-instances, il faudrait un verrou (ex.
- * {@code FOR UPDATE SKIP LOCKED}) pour éviter les doubles publications
- * concurrentes — hors périmètre du MVP mono-instance.
+ * <p>Multi-instances (issue #134) : {@code unpublished()} pose un verrou
+ * pessimiste sur les lignes lues (repository), et {@link #relayOnce()} est
+ * transactionnel de bout en bout — le verrou reste posé pendant TOUTE la
+ * publication et le marquage, jamais relâché entre-temps. Deux instances
+ * concurrentes ne peuvent donc plus lire (et republier) les mêmes lignes.
  */
 @Component
 public class OutboxRelay {
@@ -44,7 +46,16 @@ public class OutboxRelay {
         relayOnce();
     }
 
-    /** Un passage de relais (extrait pour les tests). Retourne le nombre publié. */
+    /**
+     * Un passage de relais (extrait pour les tests). Retourne le nombre publié.
+     *
+     * <p>Transactionnel : le verrou pessimiste posé par {@code unpublished()}
+     * reste tenu jusqu'au commit, après publication et marquage de tout le lot
+     * (issue #134). Une exception d'un événement individuel est interceptée
+     * localement (voir {@code catch} ci-dessous) et ne fait donc pas échouer
+     * (ni rollback) le traitement des autres événements du même lot.
+     */
+    @Transactional
     public int relayOnce() {
         final List<AvailabilityUpdated> pending = outboxPort.unpublished(BATCH_SIZE);
         int published = 0;

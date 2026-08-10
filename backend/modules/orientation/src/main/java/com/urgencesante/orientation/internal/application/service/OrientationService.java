@@ -19,11 +19,13 @@ import com.urgencesante.orientation.internal.domain.strategy.OrientationStrategy
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Moteur d'orientation. Compose des stratégies (injectées) pour classer les
@@ -32,8 +34,10 @@ import java.util.UUID;
  * <p>Les temps de trajet sont obtenus en UN SEUL appel groupé : la latence ne
  * dépend pas du nombre de candidats, et une panne du fournisseur bascule en
  * mode dégradé déterministe (temps estimé depuis la distance, qualifié comme
- * tel). La disponibilité est consultée une seule fois par candidat (et non par
- * service). Un statut de disponibilité périmé (STALE) est ramené à « UNKNOWN ».
+ * tel). La disponibilité de TOUS les candidats est de même consultée en UN
+ * SEUL appel groupé (issue #127), et non un par candidat (et non plus, avant
+ * #110, un par (candidat × service)). Un statut périmé (STALE) est ramené à
+ * « UNKNOWN ».
  */
 public class OrientationService implements RecommendFacilitiesUseCase {
 
@@ -89,12 +93,21 @@ public class OrientationService implements RecommendFacilitiesUseCase {
         final List<OptionalDouble> travelTimes = travelTimePort.travelTimesSeconds(
                 query.latitude(), query.longitude(), destinations);
 
+        // UN appel groupé pour la disponibilité de TOUS les candidats (issue #127 :
+        // jusqu'à 30 accès distincts auparavant, un par candidat évalué).
+        final Set<UUID> facilityIds = candidates.stream()
+                .map(CandidateFacility::facilityId)
+                .collect(Collectors.toSet());
+        final Map<UUID, List<ServiceStatus>> availabilityByFacility =
+                availabilityLookupPort.statusesForFacilities(facilityIds, query.serviceCodes());
+
         final List<Recommendation> recommendations = new ArrayList<>();
         for (int i = 0; i < candidates.size(); i++) {
             final OptionalDouble travelTime = i < travelTimes.size()
                     ? travelTimes.get(i)
                     : OptionalDouble.empty();
-            evaluate(query, candidates.get(i), travelTime).ifPresent(recommendations::add);
+            evaluate(query, candidates.get(i), travelTime, availabilityByFacility)
+                    .ifPresent(recommendations::add);
         }
         recommendations.sort(Comparator.comparingDouble(Recommendation::score).reversed()
                 .thenComparingDouble(Recommendation::distanceMeters));
@@ -104,9 +117,10 @@ public class OrientationService implements RecommendFacilitiesUseCase {
     }
 
     private Optional<Recommendation> evaluate(
-            OrientationQuery query, CandidateFacility candidate, OptionalDouble travelTime) {
-        final Optional<ServiceStatus> availability =
-                mostFavorableStatus(candidate.facilityId(), query.serviceCodes());
+            OrientationQuery query, CandidateFacility candidate, OptionalDouble travelTime,
+            Map<UUID, List<ServiceStatus>> availabilityByFacility) {
+        final Optional<ServiceStatus> availability = mostFavorableStatus(
+                availabilityByFacility.getOrDefault(candidate.facilityId(), List.of()));
         final String freshness = availability.map(ServiceStatus::freshness).orElse(UNKNOWN);
         final String rawStatus = availability.map(ServiceStatus::status).orElse(UNKNOWN);
         // Information périmée = non confirmée.
@@ -146,11 +160,10 @@ public class OrientationService implements RecommendFacilitiesUseCase {
      * scoring d'{@code AvailabilityStrategy} (AVAILABLE > LIMITED > non confirmé
      * > SATURATED > CLOSED) ; un statut périmé (STALE) est ramené à non confirmé.
      */
-    private Optional<ServiceStatus> mostFavorableStatus(UUID facilityId, Set<String> serviceCodes) {
+    private Optional<ServiceStatus> mostFavorableStatus(List<ServiceStatus> statuses) {
         ServiceStatus best = null;
         int bestRank = -1;
-        // UN seul accès à la disponibilité du centre (statuts des services demandés).
-        for (final ServiceStatus status : availabilityLookupPort.statusesFor(facilityId, serviceCodes)) {
+        for (final ServiceStatus status : statuses) {
             // Rang = ordinal du rating (source unique de l'ordre de préférence).
             final int rank = AvailabilityRating
                     .fromRaw(status.status(), status.freshness())

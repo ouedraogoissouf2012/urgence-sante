@@ -10,11 +10,34 @@ spring:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:urgence_sante}
     username: ${DB_USER:urgence_sante}
     password: ${DB_PASSWORD:}
+    # Explicites plutôt que les défauts implicites de Hikari (issue #138) :
+    # base dédiée à cette seule API (deploy/docker-compose.yml, conteneur
+    # non partagé), sur un VPS modeste hébergeant d'autres projets — un
+    # pool volontairement restreint (le défaut Hikari, mais assumé plutôt
+    # qu'implicite), cohérent avec server.tomcat.threads.max ci-dessous et
+    # avec la disponibilité désormais chargée en UN accès groupé par
+    # orientation (issue #127), plus jusqu'à 30.
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      # Sous saturation, échouer vite (503) plutôt que de faire attendre un
+      # client 30 s (défaut Hikari) avant de découvrir qu'aucune connexion
+      # n'est disponible.
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:2500}
 
   # Migrations versionnées : Flyway initialise et fait évoluer le schéma.
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+  # open-in-view=true (défaut Spring Boot) garde la session Hibernate ouverte
+  # jusqu'au rendu de la réponse : un accès paresseux oublié dans un mappeur
+  # web recharge alors silencieusement depuis la base HORS transaction, hors
+  # du pool dimensionné ci-dessus. Désactivé : tout accès aux données doit
+  # être explicite et borné par la couche application — déjà le cas ici
+  # (architecture hexagonale : repositories/adapters mappent vers des DTOs
+  # DANS la transaction, jamais d'entité JPA exposée à la couche web).
+  jpa:
+    open-in-view: false
 
 # CORS : aucune origine autorisée par défaut. Liste séparée par des virgules,
 # fournie par l'environnement (ex. démo web). Les motifs génériques (« * »)
@@ -22,6 +45,36 @@ spring:
 app:
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:}
+
+# En production, nginx (deploy/setup-domaine.sh) est un reverse-proxy DEVANT
+# l'API : sans ceci, HttpServletRequest#getRemoteAddr() renvoie l'IP du proxy
+# pour TOUT le monde -> un seul seau de débit global au lieu d'un seau par
+# client (issue #135). NATIVE active le RemoteIpValve intégré à Tomcat, qui ne
+# fait confiance à l'en-tête X-Forwarded-For QUE si le pair TCP immédiat
+# correspond à `internal-proxies` — jamais à un client public direct (celui-ci
+# ne peut donc pas usurper l'IP d'un tiers pour vider son seau de débit).
+# Commun à tous les profils : sans proxy devant l'API (dev local, tests), sans
+# en-tête X-Forwarded-For entrant, le comportement est inchangé.
+server:
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Liste blanche EXPLICITE (reprend le motif standard des plages privées
+      # de Tomcat, documenté ici plutôt que laissé implicite) : loopback (le
+      # nginx du VPS et le client HTTP des tests s'y connectent en boucle
+      # locale), pont Docker 172.16-31.x/12 (deploy/docker-compose.yml publie
+      # l'API via `ports: 8086:8090`, nginx tournant sur l'hôte), 10.x/192.168.x
+      # en cas d'évolution du déploiement. Jamais une IP publique.
+      internal-proxies: "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3}|169\\.254\\.\\d{1,3}\\.\\d{1,3}|127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+    threads:
+      # Le défaut Spring Boot (200) est dimensionné pour un serveur dédié :
+      # hors de propos sur ce VPS partagé (mem_limit 1,5 Go sur le conteneur
+      # API, cf. deploy/docker-compose.yml, "héberge d'autres projets"),
+      # démesuré pour le trafic réel (démo, 15 établissements). Réduit à une
+      # valeur assumée, confortable au-delà de la concurrence attendue —
+      # issue #138 : un défaut implicite masquait ce choix de dimensionnement.
+      max: ${TOMCAT_THREADS_MAX:50}
+      min-spare: ${TOMCAT_THREADS_MIN_SPARE:10}
 
 # Santé et métriques.
 # - liveness : le processus est démarré ;

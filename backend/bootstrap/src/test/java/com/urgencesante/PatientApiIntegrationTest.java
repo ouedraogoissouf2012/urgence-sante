@@ -2,7 +2,11 @@ package com.urgencesante;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.urgencesante.patient.internal.adapter.out.session.PatientSessionPurgeJob;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Parcours de bout en bout des comptes patients sur PostGIS réel : inscription,
- * connexion, refus (mauvais mot de passe, doublon), le tout via HTTP.
+ * connexion, refus (mauvais mot de passe, doublon), purge des sessions
+ * expirées, le tout via HTTP / persistance réelle.
  *
  * <p>Ignoré si Docker n'est pas joignable (voir {@link AbstractPostgisIntegrationTest}).
  */
@@ -30,10 +35,17 @@ class PatientApiIntegrationTest extends AbstractPostgisIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private PatientSessionPurgeJob purgeJob;
+
     @BeforeEach
     void clean() {
         jdbc.update("DELETE FROM patient_session");
         jdbc.update("DELETE FROM patient_account");
+    }
+
+    private Integer count(String table) {
+        return jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class);
     }
 
     @Test
@@ -46,6 +58,10 @@ class PatientApiIntegrationTest extends AbstractPostgisIntegrationTest {
         assertThat(register.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(register.getBody()).containsKeys("patientId", "token");
         assertThat((String) register.getBody().get("token")).isNotBlank();
+        // Issue #130 : le compte ET sa première session existent après le SEUL
+        // appel d'inscription — plus de fenêtre "compte sans session initiale".
+        assertThat(count("patient_account")).isEqualTo(1);
+        assertThat(count("patient_session")).isEqualTo(1);
 
         final ResponseEntity<Map> login = rest.postForEntity(
                 "/api/v1/patients/session",
@@ -54,6 +70,35 @@ class PatientApiIntegrationTest extends AbstractPostgisIntegrationTest {
 
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat((String) login.getBody().get("token")).isNotBlank();
+    }
+
+    @Test
+    void la_purge_supprime_les_sessions_expirees_et_conserve_les_valides() {
+        final UUID patientId = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO patient_account (id, phone, password_hash, active, created_at) "
+                        + "VALUES (?, '+2250102030499', 'bcrypt$x', true, now())",
+                patientId);
+        final UUID expiredSession = UUID.randomUUID();
+        final UUID validSession = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO patient_session (id, patient_id, token_hash, created_at, expires_at) "
+                        + "VALUES (?, ?, 'hash-expiree', ?, ?)",
+                expiredSession, patientId,
+                Timestamp.from(Instant.now().minusSeconds(3600)), Timestamp.from(Instant.now().minusSeconds(1)));
+        jdbc.update(
+                "INSERT INTO patient_session (id, patient_id, token_hash, created_at, expires_at) "
+                        + "VALUES (?, ?, 'hash-valide', ?, ?)",
+                validSession, patientId,
+                Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)));
+
+        final int purged = purgeJob.purgeOnce();
+
+        assertThat(purged).isEqualTo(1);
+        assertThat(count("patient_session")).isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM patient_session WHERE id = ?", Integer.class, validSession))
+                .isEqualTo(1);
     }
 
     @Test

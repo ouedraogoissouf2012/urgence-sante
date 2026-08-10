@@ -46,22 +46,26 @@ class OrientationServiceTest {
                             Math.pow(c.latitude() - lat, 2) + Math.pow(c.longitude() - lon, 2)))
                     .limit(limit)
                     .toList(),
-            // Faux port disponibilité : UN appel par établissement (compté), qui
-            // renvoie les statuts des services demandés (par service, sinon niveau
-            // établissement).
-            (facilityId, serviceCodes) -> {
+            // Faux port disponibilité : UN SEUL appel groupé (compté), quel que soit
+            // le nombre d'établissements, qui renvoie les statuts des services
+            // demandés pour chacun (par service, sinon niveau établissement).
+            (facilityIds, serviceCodes) -> {
                 availabilityCalls++;
-                final List<AvailabilityLookupPort.ServiceStatus> found = new ArrayList<>();
-                for (final String serviceCode : serviceCodes) {
-                    final AvailabilityLookupPort.ServiceStatus perService =
-                            statuses.get(facilityId + "|" + serviceCode);
-                    final AvailabilityLookupPort.ServiceStatus status =
-                            perService != null ? perService : statuses.get(facilityId.toString());
-                    if (status != null) {
-                        found.add(status);
+                final Map<UUID, List<AvailabilityLookupPort.ServiceStatus>> result = new HashMap<>();
+                for (final UUID facilityId : facilityIds) {
+                    final List<AvailabilityLookupPort.ServiceStatus> found = new ArrayList<>();
+                    for (final String serviceCode : serviceCodes) {
+                        final AvailabilityLookupPort.ServiceStatus perService =
+                                statuses.get(facilityId + "|" + serviceCode);
+                        final AvailabilityLookupPort.ServiceStatus status =
+                                perService != null ? perService : statuses.get(facilityId.toString());
+                        if (status != null) {
+                            found.add(status);
+                        }
                     }
+                    result.put(facilityId, found);
                 }
-                return found;
+                return result;
             },
             (fromLat, fromLon, destinations) -> {
                 travelTimeCalls++;
@@ -185,7 +189,7 @@ class OrientationServiceTest {
     }
 
     @Test
-    void un_seul_appel_de_disponibilite_par_candidat_quel_que_soit_le_nombre_de_services() {
+    void un_seul_appel_de_disponibilite_quel_que_soit_le_nombre_de_services() {
         // Un centre offre trois services demandés : la disponibilité doit être
         // consultée UNE fois pour ce centre, pas une fois par service (issue #110).
         final UUID id = UUID.randomUUID();
@@ -199,7 +203,25 @@ class OrientationServiceTest {
                 5.35, -4.00, Set.of("pulmonology", "neurology", "intensive_care"), 15_000, 5));
 
         assertThat(availabilityCalls)
-                .as("un seul accès à la disponibilité par candidat, pas un par service")
+                .as("un seul accès à la disponibilité, pas un par service")
+                .isEqualTo(1);
+    }
+
+    @Test
+    void un_seul_appel_de_disponibilite_groupe_quel_que_soit_le_nombre_de_candidats() {
+        // Jusqu'à 30 candidats évalués par orientation : la disponibilité de TOUS
+        // doit être consultée en UN SEUL appel groupé, pas un par candidat
+        // (issue #127 : jusqu'à 30 accès DB distincts auparavant).
+        for (int i = 0; i < 10; i++) {
+            givenCandidate("Centre " + i, 5.30 + i * 0.001, -4.00, "AVAILABLE", "FRESH");
+        }
+
+        final List<Recommendation> result = service.recommend(
+                new OrientationQuery(5.35, -4.00, Set.of("maternity"), 15_000, 10));
+
+        assertThat(result).hasSize(10);
+        assertThat(availabilityCalls)
+                .as("la charge sur la base ne doit pas dépendre du nombre de candidats")
                 .isEqualTo(1);
     }
 
