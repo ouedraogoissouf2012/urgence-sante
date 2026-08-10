@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/calls/emergency_dial.dart';
 import '../../../core/location/location_service.dart';
 import '../../../di/providers.dart';
 import '../../medical_profile/presentation/emergency_card_page.dart';
@@ -138,8 +139,8 @@ class _OrientationResultsScaffoldState
               ),
             );
           },
-          onCall: (center) =>
-              ref.read(emergencyCallerProvider).call(center.phone!),
+          onCall: (center) => dialEmergency(
+              context, ref.read(emergencyCallerProvider), center.phone!),
           onNavigate: (center) =>
               ref.read(navigationLauncherProvider).navigateTo(
                     latitude: center.latitude,

@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/calls/emergency_dial.dart';
 import '../../../../di/providers.dart';
 
 /// Barre d'appels d'urgence, accessible en permanence (SAMU 185, Pompiers 180).
@@ -21,7 +22,7 @@ class EmergencyCallBar extends ConsumerWidget {
               child: EmergencyCallButton(
                 label: 'SAMU',
                 phoneNumber: '185',
-                onPressed: () => caller.call('185'),
+                onPressed: () => dialEmergency(context, caller, '185'),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -29,7 +30,7 @@ class EmergencyCallBar extends ConsumerWidget {
               child: EmergencyCallButton(
                 label: 'Pompiers',
                 phoneNumber: '180',
-                onPressed: () => caller.call('180'),
+                onPressed: () => dialEmergency(context, caller, '180'),
               ),
             ),
           ],

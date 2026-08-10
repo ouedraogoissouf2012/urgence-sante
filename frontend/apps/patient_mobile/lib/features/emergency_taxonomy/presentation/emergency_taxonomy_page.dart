@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/calls/emergency_dial.dart';
 import '../../../di/providers.dart';
 import '../../medical_profile/presentation/emergency_card_page.dart';
 import '../../orientation/presentation/orientation_results_page.dart';
@@ -112,7 +113,7 @@ class EmergencyTaxonomyPage extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
@@ -134,7 +135,7 @@ class EmergencyTaxonomyPage extends ConsumerWidget {
                     child: EmergencyCallButton(
                       label: 'SAMU',
                       phoneNumber: '185',
-                      onPressed: () => caller.call('185'),
+                      onPressed: () => dialEmergency(sheetContext, caller, '185'),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -142,7 +143,7 @@ class EmergencyTaxonomyPage extends ConsumerWidget {
                     child: EmergencyCallButton(
                       label: 'Pompiers',
                       phoneNumber: '180',
-                      onPressed: () => caller.call('180'),
+                      onPressed: () => dialEmergency(sheetContext, caller, '180'),
                     ),
                   ),
                 ],

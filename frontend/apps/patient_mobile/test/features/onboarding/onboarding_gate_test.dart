@@ -94,9 +94,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Limites médicales'), findsOneWidget);
-    expect(find.textContaining('185'), findsWidgets);
     expect(find.textContaining('position'), findsWidgets);
     expect(find.text('Quelle est votre urgence ?'), findsNothing);
+
+    // L'appel d'urgence doit rester JOIGNABLE sur cet écran de consentement
+    // obligatoire : les BOUTONS d'appel (pas seulement le texte informatif) sont
+    // présents, sinon un utilisateur en détresse est bloqué (#122).
+    expect(find.text('SAMU 185'), findsOneWidget);
+    expect(find.text('Pompiers 180'), findsOneWidget);
   });
 
   testWidgets("accepter persiste la version et ouvre le parcours",

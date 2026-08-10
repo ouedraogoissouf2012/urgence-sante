@@ -62,10 +62,18 @@ class _RecordingCaller implements EmergencyCaller {
   Future<void> call(String phoneNumber) async => calls.add(phoneNumber);
 }
 
+/// Composeur qui échoue toujours (appareil sans application de téléphonie) : le
+/// contrat exige alors une LEVÉE, jamais un retour silencieux (#129).
+class _FailingCaller implements EmergencyCaller {
+  @override
+  Future<void> call(String phoneNumber) async =>
+      throw CallLaunchException(phoneNumber);
+}
+
 /// Monte l'écran de RÉSULTATS (atteint depuis un symptôme) : il déclenche seul
 /// la recherche multi-services au montage. La barre d'appel d'urgence y est
 /// toujours présente.
-Widget _resultsPage(_RecordingCaller caller, {LocationService? location}) {
+Widget _resultsPage(EmergencyCaller caller, {LocationService? location}) {
   return ProviderScope(
     overrides: [
       orientationRepositoryProvider.overrideWithValue(_FakeRepository()),
@@ -96,6 +104,19 @@ void main() {
     await tester.tap(find.text('SAMU 185'));
 
     expect(caller.calls, ['185']);
+  });
+
+  testWidgets("un appel qui échoue affiche un message, jamais en silence (#129)",
+      (tester) async {
+    // Composeur indisponible : l'utilisateur doit être informé (SnackBar), pas
+    // laissé sans retour sur une action vitale.
+    await tester.pumpWidget(_resultsPage(_FailingCaller()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('SAMU 185'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Impossible de lancer l\'appel'), findsOneWidget);
   });
 
   testWidgets("une localisation refusée affiche l'erreur et le réessai",
