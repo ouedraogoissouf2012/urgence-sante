@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/calls/emergency_dial.dart';
 import '../../../di/providers.dart';
 import '../domain/model/recommended_center.dart';
 import 'widgets/center_detail_stats.dart';
@@ -56,9 +57,8 @@ class CenterDetailPage extends ConsumerWidget {
                 : 'Numéro du centre indisponible',
             child: OutlinedButton.icon(
               onPressed: canCall
-                  ? () => ref
-                      .read(emergencyCallerProvider)
-                      .call(center.phone!)
+                  ? () => dialEmergency(
+                      context, ref.read(emergencyCallerProvider), center.phone!)
                   : null,
               icon: const Icon(Icons.call),
               label: Text(canCall ? 'Appeler le centre' : 'Numéro indisponible'),

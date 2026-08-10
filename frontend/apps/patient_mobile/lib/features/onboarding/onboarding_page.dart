@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/consent/consent_store.dart';
 import '../../di/providers.dart';
+import '../orientation/presentation/widgets/emergency_call_bar.dart';
 
 /// Adresse publique des Conditions Générales d'Utilisation.
 const String _termsUrl = 'https://urgence-sante.napcor-group.com/cgu.html';
@@ -120,6 +121,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           ],
         ),
       ),
+      // L'urgence reste joignable même sur cet écran de consentement obligatoire :
+      // personne ne doit être bloqué avant de pouvoir appeler les secours (#122).
+      bottomNavigationBar: const EmergencyCallBar(),
     );
   }
 }

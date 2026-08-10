@@ -6,6 +6,7 @@ import '../di/providers.dart';
 import '../features/auth/presentation/auth_page.dart';
 import '../features/emergency_taxonomy/presentation/emergency_taxonomy_page.dart';
 import '../features/onboarding/onboarding_page.dart';
+import '../features/orientation/presentation/widgets/emergency_call_bar.dart';
 
 /// Racine de l'application patient.
 ///
@@ -36,7 +37,10 @@ class PatientApp extends ConsumerWidget {
     final session = ref.watch(sessionTokenProvider);
 
     return session.when(
-      loading: () => const Scaffold(body: AsyncStateView.loading()),
+      loading: () => const Scaffold(
+        body: AsyncStateView.loading(),
+        bottomNavigationBar: EmergencyCallBar(),
+      ),
       // En cas d'erreur de lecture du stockage sécurisé, on ne bloque pas
       // l'accès : on propose l'authentification (l'utilisateur peut passer).
       error: (_, _) => guest ? const _ConsentGate() : const AuthPage(),
@@ -55,7 +59,10 @@ class _ConsentGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final consent = ref.watch(consentUpToDateProvider);
     return consent.when(
-      loading: () => const Scaffold(body: AsyncStateView.loading()),
+      loading: () => const Scaffold(
+        body: AsyncStateView.loading(),
+        bottomNavigationBar: EmergencyCallBar(),
+      ),
       error: (_, _) => const OnboardingPage(),
       data: (upToDate) =>
           upToDate ? const EmergencyTaxonomyPage() : const OnboardingPage(),
