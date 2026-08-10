@@ -14,6 +14,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongSupplier;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,21 +32,26 @@ class OsrmRouteProviderTest {
 
     private MockRestServiceServer server;
     private OsrmRouteProvider provider;
+    private RestClient.Builder builder;
+    private Clock clock;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        final RestClient.Builder builder = RestClient.builder().baseUrl("http://osrm.local");
+        builder = RestClient.builder().baseUrl("http://osrm.local");
         server = MockRestServiceServer.bindTo(builder).build();
         now = Instant.parse("2026-01-01T12:00:00Z");
-        final Clock clock = new Clock() {
+        clock = new Clock() {
             @Override public Instant instant() { return now; }
             @Override public ZoneOffset getZone() { return ZoneOffset.UTC; }
             @Override public Clock withZone(java.time.ZoneId zone) { return this; }
         };
+        // Source de temps constante (0) : les appels du serveur mock sont
+        // instantanés, jamais « lents » → les tests existants gardent leur
+        // comportement (le seuil de lenteur n'entre en jeu que dans son test dédié).
         provider = new OsrmRouteProvider(
                 builder.build(), new CircuitBreaker(3, Duration.ofSeconds(30), clock),
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry(), 2500L, () -> 0L);
     }
 
     @Test
@@ -151,5 +158,39 @@ class OsrmRouteProviderTest {
 
         assertThat(recovered.get(0)).contains(new Route(900.0, 120.0));
         server.verify();
+    }
+
+    @Test
+    void un_appel_lent_est_compte_comme_echec_et_ouvre_le_circuit() {
+        // 3 appels RÉUSSIS mais LENTS (au-delà du seuil) → 3 échecs → circuit
+        // OUVERT ; le 4e est court-circuité (réponse vide, aucune requête). La
+        // lenteur soutenue bascule bien en mode dégradé au lieu de payer la
+        // latence — et de retenir des threads — à chaque orientation (#125).
+        server.expect(ExpectedCount.times(3), requestTo(Matchers.containsString("/table/")))
+                .andRespond(withSuccess(
+                        "{\"code\":\"Ok\",\"durations\":[[150.0]],\"distances\":[[800.0]]}",
+                        MediaType.APPLICATION_JSON));
+
+        final long thresholdMs = 1000;
+        // nanoTime est lu 2× par appel (début, fin) : on renvoie une latence de
+        // 2 s (> seuil) à chaque appel, sans dormir (test déterministe).
+        final AtomicInteger reads = new AtomicInteger();
+        final LongSupplier slowNanos =
+                () -> (reads.getAndIncrement() % 2 == 0) ? 0L : 2_000_000_000L;
+
+        final OsrmRouteProvider slow = new OsrmRouteProvider(
+                builder.build(), new CircuitBreaker(3, Duration.ofSeconds(30), clock),
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry(),
+                thresholdMs, slowNanos);
+
+        for (int i = 0; i < 3; i++) {
+            // L'appel réussit (route valide) MAIS est compté comme un échec (lent).
+            assertThat(slow.findRoutes(ORIGIN, List.of(DEST_A)).get(0))
+                    .contains(new Route(800.0, 150.0));
+        }
+        // Circuit OUVERT : 4e appel court-circuité, aucune requête réseau.
+        assertThat(slow.findRoutes(ORIGIN, List.of(DEST_A))).allMatch(Optional::isEmpty);
+
+        server.verify(); // exactement 3 requêtes
     }
 }
