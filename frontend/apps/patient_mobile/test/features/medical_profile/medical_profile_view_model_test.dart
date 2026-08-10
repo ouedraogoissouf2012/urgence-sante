@@ -15,7 +15,8 @@ void main() {
   setUp(() {
     kv = InMemoryKeyValueStore();
     container = ProviderContainer(overrides: [
-      profileStoreProvider.overrideWithValue(LocalMedicalProfileStore(kv)),
+      profileStoreProvider.overrideWithValue(
+          LocalMedicalProfileStore(kv, InMemoryKeyValueStore())),
     ]);
     addTearDown(container.dispose);
   });
@@ -45,7 +46,8 @@ void main() {
     expect(state().profile.allergies, 'Pénicilline');
     // Persisté : un nouveau view-model relit la même fiche.
     final other = ProviderContainer(overrides: [
-      profileStoreProvider.overrideWithValue(LocalMedicalProfileStore(kv)),
+      profileStoreProvider.overrideWithValue(
+          LocalMedicalProfileStore(kv, InMemoryKeyValueStore())),
     ]);
     addTearDown(other.dispose);
     other.read(medicalProfileViewModelProvider.notifier);

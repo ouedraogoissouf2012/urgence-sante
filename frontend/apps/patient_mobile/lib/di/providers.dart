@@ -32,9 +32,16 @@ final apiClientProvider = Provider<ApiClient>(
   (ref) => ApiClient(basePath: ref.watch(appConfigProvider).apiBaseUrl),
 );
 
-/// Stockage local (cache hors ligne, Lot 1).
+/// Stockage local EN CLAIR (cache hors ligne, Lot 1 — jamais pour une donnée
+/// sensible : voir [secureKeyValueStoreProvider]).
 final keyValueStoreProvider = Provider<KeyValueStore>(
   (ref) => const SharedPrefsKeyValueStore(),
+);
+
+/// Stockage local CHIFFRÉ (Keystore/Keychain), pour toute donnée sensible
+/// (santé, session).
+final secureKeyValueStoreProvider = Provider<KeyValueStore>(
+  (ref) => SecureFlutterKeyValueStore(),
 );
 
 /// Accès aux données du parcours d'orientation : adaptateur API décoré du
@@ -100,9 +107,14 @@ final sessionTokenProvider = FutureProvider<String?>(
   (ref) => ref.watch(sessionStoreProvider).readToken(),
 );
 
-/// Persistance LOCALE de la fiche médicale (jamais côté serveur).
+/// Persistance LOCALE et CHIFFRÉE de la fiche médicale (jamais côté serveur).
+/// Reprend automatiquement (migration silencieuse) une fiche enregistrée en
+/// clair par une version antérieure au correctif #128.
 final profileStoreProvider = Provider<ProfileStore>(
-  (ref) => LocalMedicalProfileStore(ref.watch(keyValueStoreProvider)),
+  (ref) => LocalMedicalProfileStore(
+    ref.watch(secureKeyValueStoreProvider),
+    ref.watch(keyValueStoreProvider),
+  ),
 );
 
 /// Mode invité : l'utilisateur a choisi « Urgence — continuer sans compte ».
