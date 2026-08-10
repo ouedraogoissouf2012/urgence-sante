@@ -8,7 +8,6 @@ import com.urgencesante.patient.internal.application.command.RegisterPatientComm
 import com.urgencesante.patient.internal.application.port.in.AuthenticatePatientUseCase;
 import com.urgencesante.patient.internal.application.port.in.RegisterPatientUseCase;
 import com.urgencesante.patient.internal.application.result.PatientSession;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,16 +35,17 @@ public class PatientController {
         this.authenticatePatient = authenticatePatient;
     }
 
-    /** Inscription : crée le compte et ouvre immédiatement une session. */
+    /**
+     * Inscription : crée le compte et ouvre immédiatement une session, dans la
+     * même transaction applicative (issue #130) — jamais de compte sans
+     * session initiale.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientSessionResponse register(@RequestBody RegisterPatientRequest request) {
-        final UUID id = registerPatient.register(
+        final PatientSession session = registerPatient.register(
                 new RegisterPatientCommand(request.phone(), request.password()));
-        // On connecte dans la foulée pour éviter un double aller-retour côté app.
-        final PatientSession session = authenticatePatient.login(
-                new LoginCommand(request.phone(), request.password()));
-        return new PatientSessionResponse(id, session.token());
+        return new PatientSessionResponse(session.patientId(), session.token());
     }
 
     /** Connexion : vérifie les identifiants et renvoie un jeton de session. */

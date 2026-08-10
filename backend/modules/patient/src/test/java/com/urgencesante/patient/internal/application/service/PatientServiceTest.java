@@ -9,6 +9,7 @@ import com.urgencesante.patient.internal.application.port.out.LoadPatientPort;
 import com.urgencesante.patient.internal.application.port.out.PasswordHasherPort;
 import com.urgencesante.patient.internal.application.port.out.PatientSessionPort;
 import com.urgencesante.patient.internal.application.port.out.SavePatientPort;
+import com.urgencesante.patient.internal.application.port.out.TransactionPort;
 import com.urgencesante.patient.internal.application.result.PatientSession;
 import com.urgencesante.patient.internal.domain.exception.InvalidCredentialsException;
 import com.urgencesante.patient.internal.domain.exception.PatientValidationException;
@@ -18,10 +19,13 @@ import com.urgencesante.patient.internal.domain.model.PhoneNumber;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,15 +37,19 @@ class PatientServiceTest {
     private InMemoryPatients patients;
     private FakePasswordHasher hasher;
     private FakeSessions sessions;
+    private List<String> operations;
+    private TransactionPort transactionPort;
     private PatientService service;
 
     @BeforeEach
     void setUp() {
-        patients = new InMemoryPatients();
+        operations = new ArrayList<>();
+        patients = new InMemoryPatients(operations);
         hasher = new FakePasswordHasher();
-        sessions = new FakeSessions();
+        sessions = new FakeSessions(operations);
+        transactionPort = new TracingTransactionPort(operations);
         service = new PatientService(
-                patients, patients, hasher, sessions,
+                patients, patients, hasher, sessions, transactionPort,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> FIXED_ID);
     }
@@ -50,15 +58,28 @@ class PatientServiceTest {
 
     @Test
     void inscription_cree_un_compte_avec_mot_de_passe_hache() {
-        final UUID id = service.register(new RegisterPatientCommand("+225 0102030405", "Secret123"));
+        final PatientSession session =
+                service.register(new RegisterPatientCommand("+225 0102030405", "Secret123"));
 
-        assertThat(id).isEqualTo(FIXED_ID);
+        assertThat(session.patientId()).isEqualTo(FIXED_ID);
         final PatientAccount saved = patients.findByPhone(PhoneNumber.of("+2250102030405")).orElseThrow();
         // Le hash mémorise le mot de passe (vérifiable par matches) sans le stocker en clair.
         assertThat(hasher.matches("Secret123", saved.passwordHash())).isTrue();
         assertThat(saved.passwordHash()).doesNotContain("Secret123");
         assertThat(saved.active()).isTrue();
         assertThat(saved.createdAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void inscription_ouvre_la_session_dans_la_meme_transaction_que_la_creation_du_compte() {
+        // Issue #130 : compte + session ne doivent plus être commis en deux
+        // transactions séparées — la frontière transactionnelle du cas d'usage
+        // doit englober save() ET issueToken(), tout ou rien.
+        final PatientSession session =
+                service.register(new RegisterPatientCommand("+2250102030405", "Secret123"));
+
+        assertThat(operations).containsExactly("tx-begin", "save", "issue-token", "tx-commit");
+        assertThat(session.token()).isEqualTo("TOKEN(" + FIXED_ID + ")");
     }
 
     @Test
@@ -133,6 +154,11 @@ class PatientServiceTest {
 
     private static final class InMemoryPatients implements LoadPatientPort, SavePatientPort {
         private final Map<String, PatientAccount> byPhone = new HashMap<>();
+        private final List<String> operations;
+
+        InMemoryPatients(List<String> operations) {
+            this.operations = operations;
+        }
 
         @Override
         public Optional<PatientAccount> findByPhone(PhoneNumber phone) {
@@ -146,6 +172,7 @@ class PatientServiceTest {
 
         @Override
         public void save(PatientAccount account) {
+            operations.add("save");
             byPhone.put(account.phone().value(), account);
         }
 
@@ -174,14 +201,43 @@ class PatientServiceTest {
     }
 
     private static final class FakeSessions implements PatientSessionPort {
+        private final List<String> operations;
+
+        FakeSessions(List<String> operations) {
+            this.operations = operations;
+        }
+
         @Override
         public String issueToken(UUID patientId) {
+            operations.add("issue-token");
             return "TOKEN(" + patientId + ")";
         }
 
         @Override
         public Optional<UUID> resolvePatient(String rawToken) {
             return Optional.empty(); // non sollicité par les tests du service
+        }
+
+        @Override
+        public int purgeExpired() {
+            return 0; // non sollicité par les tests du service
+        }
+    }
+
+    /** Fausse frontière transactionnelle : trace l'ouverture/fermeture (LSP). */
+    private static final class TracingTransactionPort implements TransactionPort {
+        private final List<String> operations;
+
+        TracingTransactionPort(List<String> operations) {
+            this.operations = operations;
+        }
+
+        @Override
+        public <T> T inTransaction(Supplier<T> work) {
+            operations.add("tx-begin");
+            final T result = work.get();
+            operations.add("tx-commit");
+            return result;
         }
     }
 }

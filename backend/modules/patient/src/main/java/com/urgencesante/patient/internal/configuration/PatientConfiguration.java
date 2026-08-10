@@ -7,6 +7,7 @@ import com.urgencesante.patient.internal.application.port.out.LoadPatientPort;
 import com.urgencesante.patient.internal.application.port.out.PasswordHasherPort;
 import com.urgencesante.patient.internal.application.port.out.PatientSessionPort;
 import com.urgencesante.patient.internal.application.port.out.SavePatientPort;
+import com.urgencesante.patient.internal.application.port.out.TransactionPort;
 import com.urgencesante.patient.internal.application.service.PatientService;
 import java.time.Clock;
 import java.time.Duration;
@@ -49,9 +50,11 @@ public class PatientConfiguration {
             SavePatientPort savePatient,
             PasswordHasherPort passwordHasher,
             PatientSessionPort sessions,
+            TransactionPort transactionPort,
             Clock clock,
             Supplier<UUID> patientIdGenerator) {
         return new PatientService(
-                loadPatient, savePatient, passwordHasher, sessions, clock, patientIdGenerator);
+                loadPatient, savePatient, passwordHasher, sessions, transactionPort,
+                clock, patientIdGenerator);
     }
 }

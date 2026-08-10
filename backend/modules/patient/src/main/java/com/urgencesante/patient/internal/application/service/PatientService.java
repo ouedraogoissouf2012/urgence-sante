@@ -8,6 +8,7 @@ import com.urgencesante.patient.internal.application.port.out.LoadPatientPort;
 import com.urgencesante.patient.internal.application.port.out.PasswordHasherPort;
 import com.urgencesante.patient.internal.application.port.out.PatientSessionPort;
 import com.urgencesante.patient.internal.application.port.out.SavePatientPort;
+import com.urgencesante.patient.internal.application.port.out.TransactionPort;
 import com.urgencesante.patient.internal.application.result.PatientSession;
 import com.urgencesante.patient.internal.domain.exception.InvalidCredentialsException;
 import com.urgencesante.patient.internal.domain.exception.PatientValidationException;
@@ -36,6 +37,7 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
     private final SavePatientPort savePatient;
     private final PasswordHasherPort passwordHasher;
     private final PatientSessionPort sessions;
+    private final TransactionPort transactionPort;
     private final Clock clock;
     private final Supplier<UUID> idGenerator;
 
@@ -44,18 +46,20 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
             SavePatientPort savePatient,
             PasswordHasherPort passwordHasher,
             PatientSessionPort sessions,
+            TransactionPort transactionPort,
             Clock clock,
             Supplier<UUID> idGenerator) {
         this.loadPatient = Objects.requireNonNull(loadPatient);
         this.savePatient = Objects.requireNonNull(savePatient);
         this.passwordHasher = Objects.requireNonNull(passwordHasher);
         this.sessions = Objects.requireNonNull(sessions);
+        this.transactionPort = Objects.requireNonNull(transactionPort);
         this.clock = Objects.requireNonNull(clock);
         this.idGenerator = Objects.requireNonNull(idGenerator);
     }
 
     @Override
-    public UUID register(RegisterPatientCommand command) {
+    public PatientSession register(RegisterPatientCommand command) {
         final PhoneNumber phone = PhoneNumber.of(command.phone());
         validatePassword(command.password());
 
@@ -67,8 +71,14 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
 
         final PatientAccount account = PatientAccount.register(
                 idGenerator.get(), phone, passwordHasher.hash(command.password()), clock.instant());
-        savePatient.save(account);
-        return account.id();
+
+        // Frontière transactionnelle du cas d'usage (issue #130) : le compte et
+        // sa première session sont committés ensemble, tout ou rien.
+        return transactionPort.inTransaction(() -> {
+            savePatient.save(account);
+            final String token = sessions.issueToken(account.id());
+            return new PatientSession(account.id(), token);
+        });
     }
 
     @Override

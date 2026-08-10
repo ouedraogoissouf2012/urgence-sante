@@ -60,4 +60,9 @@ public class PatientSessionAdapter implements PatientSessionPort {
                 .filter(session -> session.expiresAt().isAfter(clock.instant()))
                 .map(PatientSessionJpaEntity::patientId);
     }
+
+    @Override
+    public int purgeExpired() {
+        return repository.deleteByExpiresAtBefore(clock.instant());
+    }
 }
