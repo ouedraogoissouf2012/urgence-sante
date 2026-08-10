@@ -7,20 +7,24 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Enregistre les interceptors de sécurité : celui du portail (écriture de
- * disponibilité) et la limite de débit des inscriptions/connexions patient.
- * Séparé de {@link SecurityConfiguration} pour injecter les beans sans cycle
- * d'auto-référence.
+ * disponibilité), la limite de débit des inscriptions/connexions patient, et
+ * celle de l'orientation. Séparé de {@link SecurityConfiguration} pour
+ * injecter les beans sans cycle d'auto-référence.
  */
 @Configuration
 class PortalSecurityWebConfig implements WebMvcConfigurer {
 
     private final PortalSecurityInterceptor interceptor;
     private final PatientRateLimitInterceptor patientRateLimit;
+    private final OrientationRateLimitInterceptor orientationRateLimit;
 
     PortalSecurityWebConfig(
-            PortalSecurityInterceptor interceptor, PatientRateLimitInterceptor patientRateLimit) {
+            PortalSecurityInterceptor interceptor,
+            PatientRateLimitInterceptor patientRateLimit,
+            OrientationRateLimitInterceptor orientationRateLimit) {
         this.interceptor = interceptor;
         this.patientRateLimit = patientRateLimit;
+        this.orientationRateLimit = orientationRateLimit;
     }
 
     @Override
@@ -32,5 +36,9 @@ class PortalSecurityWebConfig implements WebMvcConfigurer {
         // Inscription et connexion patient (POST publics) : anti-abus par IP.
         registry.addInterceptor(patientRateLimit)
                 .addPathPatterns("/api/v1/patients", "/api/v1/patients/session");
+        // Orientation (GET public, anonyme) : anti-abus / anti-épuisement de
+        // threads — l'appel OSRM en aval retient un thread servlet (issue #121).
+        registry.addInterceptor(orientationRateLimit)
+                .addPathPatterns("/api/v1/orientation");
     }
 }
