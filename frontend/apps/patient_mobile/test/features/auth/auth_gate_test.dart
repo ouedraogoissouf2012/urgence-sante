@@ -140,4 +140,70 @@ void main() {
 
     expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
   });
+
+  testWidgets(
+      'mot de passe trop court (#139) : erreur affichée localement, aucun appel réseau',
+      (tester) async {
+    final auth = FakeAuthRepository();
+    await tester.pumpWidget(
+        _app(session: SessionStoreProvider.empty(), auth: auth));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '+2250102030405');
+    await tester.enterText(find.byType(TextField).last, 'court');
+    final submit = find.widgetWithText(FilledButton, 'S\'inscrire');
+    await tester.scrollUntilVisible(submit, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Le mot de passe doit contenir au moins 8 caractères.'),
+        findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsNothing);
+    // Le dépôt n'a jamais été sollicité : validation strictement locale.
+    expect(auth.lastPhone, isNull);
+  });
+
+  testWidgets(
+      'téléphone vide (#139) : erreur affichée localement, aucun appel réseau',
+      (tester) async {
+    final auth = FakeAuthRepository();
+    await tester.pumpWidget(
+        _app(session: SessionStoreProvider.empty(), auth: auth));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, 'MotDePasse2026');
+    final submit = find.widgetWithText(FilledButton, 'S\'inscrire');
+    await tester.scrollUntilVisible(submit, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Le numéro de téléphone est requis.'), findsOneWidget);
+    expect(find.text('Quelle est votre urgence ?'), findsNothing);
+    expect(auth.lastPhone, isNull);
+  });
+
+  testWidgets(
+      'corriger le mot de passe après une erreur locale efface le message (#139)',
+      (tester) async {
+    await tester.pumpWidget(_app(session: SessionStoreProvider.empty()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '+2250102030405');
+    await tester.enterText(find.byType(TextField).last, 'court');
+    final submit = find.widgetWithText(FilledButton, 'S\'inscrire');
+    await tester.scrollUntilVisible(submit, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text('Le mot de passe doit contenir au moins 8 caractères.'),
+        findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).last, 'MotDePasse2026');
+    await tester.pump();
+
+    expect(find.text('Le mot de passe doit contenir au moins 8 caractères.'),
+        findsNothing);
+  });
 }

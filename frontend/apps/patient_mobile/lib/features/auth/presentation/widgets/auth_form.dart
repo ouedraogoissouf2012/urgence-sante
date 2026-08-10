@@ -7,8 +7,10 @@ import '../auth_state.dart';
 import '../auth_view_model.dart';
 
 /// Formulaire d'authentification partagé (inscription et connexion) : téléphone,
-/// mot de passe, bouton d'action, message d'erreur. La logique est déléguée au
-/// [AuthViewModel] ; ce widget ne fait que collecter la saisie.
+/// mot de passe, bouton d'action, message d'erreur. Une validation locale
+/// (champs requis, mot de passe ≥ 8 caractères — même borne que le serveur)
+/// évite un aller-retour réseau inutile pour un formulaire manifestement
+/// invalide ; le reste de la logique est délégué au [AuthViewModel].
 class AuthForm extends ConsumerStatefulWidget {
   const AuthForm({
     required this.submitLabel,
@@ -26,8 +28,23 @@ class AuthForm extends ConsumerStatefulWidget {
 }
 
 class _AuthFormState extends ConsumerState<AuthForm> {
+  /// Même borne que le serveur (`PatientService.MIN_PASSWORD_LENGTH`) : un mot
+  /// de passe trop court ne peut de toute façon jamais correspondre à un compte
+  /// existant, autant l'annoncer localement plutôt que via un aller-retour réseau.
+  static const int _minPasswordLength = 8;
+
   final _phone = TextEditingController();
   final _password = TextEditingController();
+
+  String? _phoneError;
+  String? _passwordError;
+
+  @override
+  void initState() {
+    super.initState();
+    _phone.addListener(_clearPhoneError);
+    _password.addListener(_clearPasswordError);
+  }
 
   @override
   void dispose() {
@@ -36,8 +53,33 @@ class _AuthFormState extends ConsumerState<AuthForm> {
     super.dispose();
   }
 
+  void _clearPhoneError() {
+    if (_phoneError != null) setState(() => _phoneError = null);
+  }
+
+  void _clearPasswordError() {
+    if (_passwordError != null) setState(() => _passwordError = null);
+  }
+
   void _submit(AuthViewModel vm) {
-    widget.onSubmit(vm, _phone.text.trim(), _password.text);
+    final String phone = _phone.text.trim();
+    final String password = _password.text;
+
+    final String? phoneError =
+        phone.isEmpty ? 'Le numéro de téléphone est requis.' : null;
+    final String? passwordError = password.length < _minPasswordLength
+        ? 'Le mot de passe doit contenir au moins $_minPasswordLength caractères.'
+        : null;
+
+    if (phoneError != null || passwordError != null) {
+      setState(() {
+        _phoneError = phoneError;
+        _passwordError = passwordError;
+      });
+      return;
+    }
+
+    widget.onSubmit(vm, phone, password);
   }
 
   @override
@@ -55,6 +97,7 @@ class _AuthFormState extends ConsumerState<AuthForm> {
             hint: '+225 XX XX XX XX XX',
             controller: _phone,
             enabled: !busy,
+            errorText: _phoneError,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.telephoneNumber],
@@ -68,6 +111,7 @@ class _AuthFormState extends ConsumerState<AuthForm> {
             hint: 'Au moins 8 caractères',
             controller: _password,
             enabled: !busy,
+            errorText: _passwordError,
             obscure: true,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
