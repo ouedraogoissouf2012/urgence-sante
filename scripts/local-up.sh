@@ -77,9 +77,14 @@ docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
   < infrastructure/demo/R__seed_demo.sql
 
 echo "▶ 5/5 Statuts initiaux (via l'API, comme un agent authentifié)"
-# Jeton ADMIN de régulation (voir R__seed_demo.sql). L'endpoint de mise à jour
-# exige désormais une authentification (issue #42).
+# Jeton ADMIN de régulation. Provisionné LOCALEMENT ici (il n'est plus versionné
+# dans le seed — issue #124) ; l'empreinte SHA-256 correspond à TokenHasher côté
+# serveur. Surchargeable via la variable d'environnement PORTAL_TOKEN.
 PORTAL_TOKEN="${PORTAL_TOKEN:-demo-samu-admin-2026}"
+PORTAL_TOKEN_HASH="$(printf '%s' "$PORTAL_TOKEN" | sha256sum | cut -d' ' -f1)"
+docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" urgence-sante-postgis \
+  psql -q -U "${POSTGRES_USER:-urgence_sante}" -d "${POSTGRES_DB:-urgence_sante}" -c \
+  "INSERT INTO portal_credential (id, label, token_hash, role, facility_id, active) VALUES ('22222222-0000-0000-0000-000000000001', '[DÉMO] Régulation SAMU', '$PORTAL_TOKEN_HASH', 'ADMIN', NULL, TRUE) ON CONFLICT (id) DO UPDATE SET token_hash = EXCLUDED.token_hash, active = TRUE;"
 put() {
   curl -sf -X PUT "http://localhost:$LOCAL_PORT/api/v1/facilities/$1/availability/$2" \
     -H "Authorization: Bearer $PORTAL_TOKEN" \

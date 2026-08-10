@@ -88,6 +88,14 @@ done
 docker exec -i -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" \
   psql -q -U e2e -d e2e < infrastructure/demo/R__seed_demo.sql
 
+# Jeton opérateur de démonstration provisionné LOCALEMENT (il n'est plus versionné
+# dans le seed — issue #124) ; l'empreinte SHA-256 correspond à TokenHasher côté
+# serveur, donc l'auth du portail l'accepte.
+PORTAL_TOKEN_HASH="$(printf '%s' "$PORTAL_TOKEN" | sha256sum | cut -d' ' -f1)"
+docker exec -i -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" \
+  psql -q -U e2e -d e2e -c \
+  "INSERT INTO portal_credential (id, label, token_hash, role, facility_id, active) VALUES ('22222222-0000-0000-0000-000000000001', '[DÉMO] Régulation SAMU', '$PORTAL_TOKEN_HASH', 'ADMIN', NULL, TRUE) ON CONFLICT (id) DO UPDATE SET token_hash = EXCLUDED.token_hash, active = TRUE;"
+
 # 5. Parcours API mesuré ────────────────────────────────────────────────────
 b=$(mktemp)
 
