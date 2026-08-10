@@ -68,22 +68,24 @@ public class AvailabilityService
         final Instant now = clock.instant();
         final Availability availability =
                 Availability.of(command.facilityId(), command.serviceCode(), command.status(), now);
-        final UUID eventId = UUID.randomUUID();
-        final AvailabilityUpdated event = new AvailabilityUpdated(
-                eventId,
-                // Corrélation de la requête d'origine ; repli sur l'eventId.
-                command.correlationId() != null ? command.correlationId() : eventId.toString(),
-                availability.facilityId(),
-                availability.serviceCode(),
-                availability.status().name(),
-                availability.updatedAt(),
-                now);
 
         // Frontière transactionnelle du cas d'usage : courant + historique +
-        // outbox sont atomiques (tout ou rien).
+        // outbox sont atomiques (tout ou rien). L'événement n'est écrit que si
+        // le statut a réellement changé (idempotence) — issue #137.
         transactionPort.inTransaction(() -> {
-            saveAvailabilityPort.save(availability);
-            outboxPort.append(event);
+            final boolean statusChanged = saveAvailabilityPort.save(availability);
+            if (statusChanged) {
+                final UUID eventId = UUID.randomUUID();
+                final AvailabilityUpdated event = new AvailabilityUpdated(
+                        eventId,
+                        command.correlationId() != null ? command.correlationId() : eventId.toString(),
+                        availability.facilityId(),
+                        availability.serviceCode(),
+                        availability.status().name(),
+                        availability.updatedAt(),
+                        now);
+                outboxPort.append(event);
+            }
             return null;
         });
 

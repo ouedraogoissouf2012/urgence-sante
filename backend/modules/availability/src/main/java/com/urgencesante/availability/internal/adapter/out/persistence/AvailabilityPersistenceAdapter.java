@@ -38,17 +38,22 @@ public class AvailabilityPersistenceAdapter implements SaveAvailabilityPort, Loa
 
     @Override
     @Transactional
-    public void save(Availability availability) {
+    public boolean save(Availability availability) {
         final String status = availability.status().name();
         final AvailabilityJpaEntity current = currentRepository
                 .findByFacilityIdAndServiceCode(availability.facilityId(), availability.serviceCode())
                 .orElseGet(() -> new AvailabilityJpaEntity(
                         availability.facilityId(), availability.serviceCode(), status, availability.updatedAt()));
+
+        final boolean statusChanged = !current.getStatus().equals(status);
         current.applyUpdate(status, availability.updatedAt());
         currentRepository.save(current);
 
-        historyRepository.save(new AvailabilityHistoryJpaEntity(
-                availability.facilityId(), availability.serviceCode(), status, availability.updatedAt()));
+        if (statusChanged) {
+            historyRepository.save(new AvailabilityHistoryJpaEntity(
+                    availability.facilityId(), availability.serviceCode(), status, availability.updatedAt()));
+        }
+        return statusChanged;
     }
 
     @Override

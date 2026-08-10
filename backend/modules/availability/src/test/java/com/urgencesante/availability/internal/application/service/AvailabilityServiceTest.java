@@ -40,6 +40,7 @@ class AvailabilityServiceTest {
     private final SaveAvailabilityPort savePort = availability -> {
         operations.add("save");
         saved.add(availability);
+        return true;
     };
     private final LoadAvailabilityPort loadPort = new LoadAvailabilityPort() {
         @Override
@@ -150,5 +151,22 @@ class AvailabilityServiceTest {
 
         assertThat(result.services()).hasSize(1);
         assertThat(result.services().get(0).freshness()).isEqualTo(Freshness.STALE);
+    }
+
+    @Test
+    void n_ecrit_pas_d_evenement_si_le_statut_n_a_pas_change() {
+        final SaveAvailabilityPort noChangePort = availability -> {
+            operations.add("save");
+            return false;
+        };
+
+        final AvailabilityService serviceNoChange = new AvailabilityService(
+                noChangePort, loadPort, offeredPort, outboxPort, transactionPort,
+                Clock.fixed(NOW, ZoneOffset.UTC), FreshnessPolicy.defaults());
+
+        serviceNoChange.update(new UpdateAvailabilityCommand(FACILITY, "maternity", AvailabilityStatus.LIMITED));
+
+        assertThat(operations).containsExactly("tx-begin", "save", "tx-commit");
+        assertThat(outbox).isEmpty();
     }
 }
