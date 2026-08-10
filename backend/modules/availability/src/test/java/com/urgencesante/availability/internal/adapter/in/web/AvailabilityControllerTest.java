@@ -99,4 +99,16 @@ class AvailabilityControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Requête invalide"));
     }
+
+    @Test
+    void retourne_409_en_cas_de_violation_de_contrainte() throws Exception {
+        given(updateAvailability.update(any()))
+                .willThrow(new org.springframework.dao.DataIntegrityViolationException("Unique constraint violated"));
+
+        mockMvc.perform(put("/api/v1/facilities/{id}/availability/{svc}", FACILITY, "maternity")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"AVAILABLE\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Conflit de contrainte"));
+    }
 }

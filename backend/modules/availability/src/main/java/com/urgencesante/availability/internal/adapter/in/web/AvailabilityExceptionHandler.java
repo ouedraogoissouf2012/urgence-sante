@@ -2,6 +2,7 @@ package com.urgencesante.availability.internal.adapter.in.web;
 
 import com.urgencesante.availability.internal.domain.exception.AvailabilityValidationException;
 import com.urgencesante.availability.internal.domain.exception.ServiceNotOfferedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,6 +25,14 @@ public class AvailabilityExceptionHandler {
         final ProblemDetail problem =
                 ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
         problem.setTitle("Service non offert par cet établissement");
+        return problem;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException exception) {
+        final ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT, "Cette ressource existe déjà ou viole une contrainte d'unicité");
+        problem.setTitle("Conflit de contrainte");
         return problem;
     }
 }
