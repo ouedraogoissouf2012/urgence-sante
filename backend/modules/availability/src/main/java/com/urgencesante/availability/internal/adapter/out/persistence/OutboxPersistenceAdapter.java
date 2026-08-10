@@ -32,7 +32,7 @@ public class OutboxPersistenceAdapter implements OutboxPort {
 
     @Override
     public List<AvailabilityUpdated> unpublished(int limit) {
-        return repository.findByPublishedAtIsNullOrderByOccurredAtAsc(PageRequest.of(0, limit))
+        return repository.findByPublishedAtIsNullOrderByOccurredAtAscWithLock(PageRequest.of(0, limit))
                 .stream()
                 .map(OutboxJpaEntity::toEvent)
                 .toList();
