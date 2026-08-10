@@ -57,4 +57,23 @@ public class SecurityConfiguration {
             @Qualifier("patientAttemptsPerIp") RateLimiter patientAttemptsPerIp) {
         return new PatientRateLimitInterceptor(patientAttemptsPerIp);
     }
+
+    /**
+     * Orientation par IP (endpoint public, anonyme). Capacité généreuse : un
+     * usage légitime enchaîne recherche, réessais de localisation et changement
+     * de catégorie — la limite vise l'abus (flood), pas l'usage normal.
+     */
+    @Bean
+    RateLimiter orientationAttemptsPerIp(
+            Clock clock,
+            @Value("${security.orientation.rate.per-ip:30}") int capacity,
+            @Value("${security.orientation.rate.window-ms:60000}") long windowMs) {
+        return new RateLimiter(capacity, Duration.ofMillis(windowMs), clock);
+    }
+
+    @Bean
+    OrientationRateLimitInterceptor orientationRateLimitInterceptor(
+            @Qualifier("orientationAttemptsPerIp") RateLimiter orientationAttemptsPerIp) {
+        return new OrientationRateLimitInterceptor(orientationAttemptsPerIp);
+    }
 }
