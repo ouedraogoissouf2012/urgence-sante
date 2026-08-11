@@ -21,8 +21,12 @@ de la CI). À activer **une fois par clone** :
 git config core.hooksPath scripts/git-hooks
 ```
 
-Le hook lance `check-file-length.sh` puis `./mvnw verify` (build, tests,
-vérification d'architecture). Contournement d'urgence : `git push --no-verify`.
+Le hook lance `check-file-length.sh`, puis `./mvnw verify` avec
+`REQUIRE_DOCKER_TESTS=true` (même garde qu'en CI : échec dur si Docker/
+Testcontainers est injoignable, au lieu d'ignorer silencieusement les tests
+d'intégration PostGIS), puis `check-integration-tests-ran.sh` (garde anti-skip
+qui relit les rapports Surefire), puis les contrôles Flutter. Docker doit être
+lancé pour pousser. Contournement d'urgence : `git push --no-verify`.
 
 ## Règles
 
