@@ -1,4 +1,4 @@
-package com.urgencesante.identity.internal.domain.model;
+package com.urgencesante.buildingblocks.security;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -8,6 +8,8 @@ import java.util.HexFormat;
 /**
  * Empreinte SHA-256 (hex) d'un jeton. Le jeton en clair n'est jamais persisté
  * ni journalisé : seule l'empreinte sert au stockage et à la recherche.
+ * SHA-256 (sans sel) convient ici car le jeton est aléatoire à haute entropie —
+ * contrairement à un mot de passe choisi par l'humain, qui exige BCrypt.
  */
 public final class TokenHasher {
 
