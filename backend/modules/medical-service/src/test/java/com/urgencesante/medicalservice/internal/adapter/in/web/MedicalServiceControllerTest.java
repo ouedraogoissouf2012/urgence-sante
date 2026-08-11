@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.adapter.in.web.mapper.MedicalServiceWebMapper;
 import com.urgencesante.medicalservice.internal.application.port.in.ListMedicalServicesUseCase;
 import com.urgencesante.medicalservice.internal.domain.model.MedicalService;
-import com.urgencesante.medicalservice.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -3,6 +3,7 @@ package com.urgencesante.facility.internal.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.facility.internal.domain.exception.FacilityValidationException;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -52,13 +53,6 @@ class FacilityTest {
         assertThat(facility.services()).hasSize(1);
         assertThatThrownBy(() -> facility.services().add(MedicalServiceCode.of("x")))
                 .isInstanceOf(UnsupportedOperationException.class);
-    }
-
-    @Test
-    void refuse_un_code_de_service_trop_long() {
-        assertThatThrownBy(() -> MedicalServiceCode.of("x".repeat(65)))
-                .isInstanceOf(FacilityValidationException.class)
-                .hasMessageContaining("64");
     }
 
     @Test

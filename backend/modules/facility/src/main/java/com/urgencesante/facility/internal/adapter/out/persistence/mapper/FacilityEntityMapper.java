@@ -1,10 +1,10 @@
 package com.urgencesante.facility.internal.adapter.out.persistence.mapper;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.facility.internal.adapter.out.persistence.entity.FacilityJpaEntity;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;

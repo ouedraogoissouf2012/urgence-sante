@@ -1,5 +1,6 @@
 package com.urgencesante.facility.internal.adapter.in.web;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.Page;
 import com.urgencesante.buildingblocks.pagination.PageRequest;
 import com.urgencesante.facility.internal.adapter.in.web.dto.response.FacilityResponse;
@@ -12,7 +13,6 @@ import com.urgencesante.facility.internal.domain.exception.FacilityValidationExc
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,5 +1,6 @@
 package com.urgencesante.facility.internal.adapter.in.web.mapper;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.Page;
 import com.urgencesante.facility.internal.adapter.in.web.dto.response.FacilityResponse;
 import com.urgencesante.facility.internal.adapter.in.web.dto.response.GeoPointResponse;
@@ -7,7 +8,6 @@ import com.urgencesante.facility.internal.adapter.in.web.dto.response.PageMetada
 import com.urgencesante.facility.internal.adapter.in.web.dto.response.PagedFacilitiesResponse;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import org.springframework.stereotype.Component;
 
 /** Traduit le domaine en DTO de réponse HTTP, sans logique métier. */

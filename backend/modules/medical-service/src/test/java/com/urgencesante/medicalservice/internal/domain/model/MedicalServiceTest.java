@@ -3,6 +3,7 @@ package com.urgencesante.medicalservice.internal.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.domain.exception.MedicalServiceValidationException;
 import org.junit.jupiter.api.Test;
 
@@ -23,12 +24,6 @@ class MedicalServiceTest {
         assertThatThrownBy(() -> MedicalService.of(MedicalServiceCode.of("x"), "  ", null))
                 .isInstanceOf(MedicalServiceValidationException.class)
                 .hasMessageContaining("libellé");
-    }
-
-    @Test
-    void refuse_un_code_vide() {
-        assertThatThrownBy(() -> MedicalServiceCode.of("  "))
-                .isInstanceOf(MedicalServiceValidationException.class);
     }
 
     @Test

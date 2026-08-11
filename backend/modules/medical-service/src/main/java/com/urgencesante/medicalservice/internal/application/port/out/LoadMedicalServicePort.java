@@ -1,7 +1,7 @@
 package com.urgencesante.medicalservice.internal.application.port.out;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.domain.model.MedicalService;
-import com.urgencesante.medicalservice.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Optional;
 

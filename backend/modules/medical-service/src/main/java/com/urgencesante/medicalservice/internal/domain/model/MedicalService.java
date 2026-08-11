@@ -1,5 +1,6 @@
 package com.urgencesante.medicalservice.internal.domain.model;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.domain.exception.MedicalServiceValidationException;
 import java.util.Locale;
 import java.util.Objects;

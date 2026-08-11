@@ -1,5 +1,6 @@
 package com.urgencesante.facility.internal;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.PageRequest;
 import com.urgencesante.facility.FacilityFacade;
 import com.urgencesante.facility.FacilityView;
@@ -8,7 +9,6 @@ import com.urgencesante.facility.internal.application.port.out.LoadFacilityPort;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

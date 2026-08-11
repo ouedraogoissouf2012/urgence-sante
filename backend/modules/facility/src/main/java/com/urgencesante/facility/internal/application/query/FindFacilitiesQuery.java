@@ -1,8 +1,8 @@
 package com.urgencesante.facility.internal.application.query;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.PageRequest;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
