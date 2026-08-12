@@ -118,4 +118,59 @@ void main() {
     expect(secureKv._data.containsKey('medical_profile_v1'), isFalse);
     expect(legacyKv._data.containsKey('medical_profile_v1'), isFalse);
   });
+
+  group('migration de clé (issue #140 — futur bump de schéma)', () {
+    test(
+        'une fiche trouvée sous une clé plus ancienne est reprise sous la clé courante',
+        () async {
+      // keysNewestFirst n'est fourni qu'en test : simule "aujourd'hui, une
+      // clé plus ancienne que medical_profile_v1 existe encore".
+      final storeWithHistory = LocalMedicalProfileStore(
+        secureKv,
+        legacyKv,
+        keysNewestFirst: const ['medical_profile_v1', 'medical_profile_v0'],
+      );
+      await secureKv.write(
+          'medical_profile_v0', '{"version":1,"fullName":"Ancienne fiche"}');
+
+      final loaded = await storeWithHistory.load();
+
+      expect(loaded.fullName, 'Ancienne fiche');
+      // Reprise sous la clé courante : les données ne restent pas orphelines
+      // sous l'ancienne clé, une lecture normale (sans historique étendu) les
+      // retrouve désormais aussi.
+      expect(secureKv._data['medical_profile_v1'], isNotNull);
+      expect((await store.load()).fullName, 'Ancienne fiche');
+      // L'ancienne clé ne traîne plus une fois la fiche reprise.
+      expect(secureKv._data['medical_profile_v0'], '');
+    });
+
+    test(
+        'une fiche déjà sous la clé courante n\'est jamais recopiée depuis une clé plus ancienne',
+        () async {
+      final storeWithHistory = LocalMedicalProfileStore(
+        secureKv,
+        legacyKv,
+        keysNewestFirst: const ['medical_profile_v1', 'medical_profile_v0'],
+      );
+      await secureKv.write(
+          'medical_profile_v1', '{"version":1,"fullName":"Fiche courante"}');
+      await secureKv.write(
+          'medical_profile_v0', '{"version":1,"fullName":"Fiche obsolète"}');
+
+      final loaded = await storeWithHistory.load();
+
+      expect(loaded.fullName, 'Fiche courante');
+    });
+
+    test(
+        'sans liste de clés historiques étendue (comportement par défaut), '
+        'une clé plus ancienne inconnue n\'est jamais consultée', () async {
+      await secureKv.write(
+          'medical_profile_v0', '{"version":1,"fullName":"Ancienne fiche"}');
+
+      // `store` par défaut : keysNewestFirst réel de production, une seule clé.
+      expect((await store.load()).isEmpty, isTrue);
+    });
+  });
 }
