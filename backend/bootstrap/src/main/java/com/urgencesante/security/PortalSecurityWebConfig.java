@@ -1,5 +1,6 @@
 package com.urgencesante.security;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.NonNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -15,13 +16,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 class PortalSecurityWebConfig implements WebMvcConfigurer {
 
     private final PortalSecurityInterceptor interceptor;
-    private final PatientRateLimitInterceptor patientRateLimit;
-    private final OrientationRateLimitInterceptor orientationRateLimit;
+    private final GenericRateLimitInterceptor patientRateLimit;
+    private final GenericRateLimitInterceptor orientationRateLimit;
 
     PortalSecurityWebConfig(
             PortalSecurityInterceptor interceptor,
-            PatientRateLimitInterceptor patientRateLimit,
-            OrientationRateLimitInterceptor orientationRateLimit) {
+            @Qualifier("patientRateLimitInterceptor") GenericRateLimitInterceptor patientRateLimit,
+            @Qualifier("orientationRateLimitInterceptor") GenericRateLimitInterceptor orientationRateLimit) {
         this.interceptor = interceptor;
         this.patientRateLimit = patientRateLimit;
         this.orientationRateLimit = orientationRateLimit;
