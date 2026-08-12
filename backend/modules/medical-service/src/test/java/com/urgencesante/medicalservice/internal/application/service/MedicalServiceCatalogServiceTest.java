@@ -2,9 +2,9 @@ package com.urgencesante.medicalservice.internal.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.application.port.out.LoadMedicalServicePort;
 import com.urgencesante.medicalservice.internal.domain.model.MedicalService;
-import com.urgencesante.medicalservice.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

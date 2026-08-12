@@ -1,9 +1,9 @@
 package com.urgencesante.patient.internal.adapter.out.session;
 
+import com.urgencesante.buildingblocks.security.TokenHasher;
 import com.urgencesante.patient.internal.adapter.out.persistence.entity.PatientSessionJpaEntity;
 import com.urgencesante.patient.internal.adapter.out.persistence.repository.PatientSessionSpringRepository;
 import com.urgencesante.patient.internal.application.port.out.PatientSessionPort;
-import com.urgencesante.patient.internal.domain.model.TokenHasher;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;

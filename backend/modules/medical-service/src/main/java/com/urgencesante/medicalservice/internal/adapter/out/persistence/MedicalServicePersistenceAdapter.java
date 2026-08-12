@@ -1,11 +1,11 @@
 package com.urgencesante.medicalservice.internal.adapter.out.persistence;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.medicalservice.internal.adapter.out.persistence.entity.MedicalServiceJpaEntity;
 import com.urgencesante.medicalservice.internal.adapter.out.persistence.mapper.MedicalServiceEntityMapper;
 import com.urgencesante.medicalservice.internal.adapter.out.persistence.repository.MedicalServiceSpringRepository;
 import com.urgencesante.medicalservice.internal.application.port.out.LoadMedicalServicePort;
 import com.urgencesante.medicalservice.internal.domain.model.MedicalService;
-import com.urgencesante.medicalservice.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;

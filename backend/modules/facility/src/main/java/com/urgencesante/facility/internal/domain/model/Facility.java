@@ -1,5 +1,6 @@
 package com.urgencesante.facility.internal.domain.model;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.facility.internal.domain.exception.FacilityValidationException;
 import java.util.Collections;
 import java.util.LinkedHashSet;

@@ -1,9 +1,13 @@
-package com.urgencesante.medicalservice.internal.domain.model;
+package com.urgencesante.buildingblocks.medicalservice;
 
-import com.urgencesante.medicalservice.internal.domain.exception.MedicalServiceValidationException;
 import java.util.Locale;
 
-/** Code unique et stable d'un service médical. Value object normalisé. */
+/**
+ * Code d'un service médical (ex. « maternity »). Value object immuable et
+ * normalisé, partagé par les modules qui référencent le catalogue des
+ * services (facility, medical-service) — la validation ne doit exister qu'à
+ * un seul endroit.
+ */
 public record MedicalServiceCode(String value) {
 
     /** Longueur maximale d'un code (alignée sur le contrat OpenAPI). */
@@ -11,11 +15,11 @@ public record MedicalServiceCode(String value) {
 
     public MedicalServiceCode {
         if (value == null || value.isBlank()) {
-            throw new MedicalServiceValidationException("Le code de service médical est requis");
+            throw new IllegalArgumentException("Le code de service médical est requis");
         }
         value = value.trim().toLowerCase(Locale.ROOT);
         if (value.length() > MAX_LENGTH) {
-            throw new MedicalServiceValidationException(
+            throw new IllegalArgumentException(
                     "Code de service trop long (max " + MAX_LENGTH + " caractères)");
         }
     }

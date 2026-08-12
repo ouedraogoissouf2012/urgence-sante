@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.Page;
 import com.urgencesante.facility.internal.adapter.in.web.mapper.FacilityWebMapper;
 import com.urgencesante.facility.internal.application.port.in.FindFacilitiesUseCase;
@@ -15,7 +16,6 @@ import com.urgencesante.facility.internal.domain.exception.FacilityNotFoundExcep
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

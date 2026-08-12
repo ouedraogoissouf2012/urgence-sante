@@ -19,4 +19,17 @@
       Aucune dépendance Spring/JPA : ce module reste volontairement minimal et
       neutre. Une brique n'est ajoutée que lorsqu'elle est réellement partagée.
     -->
+    <dependencies>
+        <!-- Tests unitaires uniquement (scope test) : le code de production reste neutre. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

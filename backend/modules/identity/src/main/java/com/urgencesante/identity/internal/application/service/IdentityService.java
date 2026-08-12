@@ -1,10 +1,10 @@
 package com.urgencesante.identity.internal.application.service;
 
+import com.urgencesante.buildingblocks.security.TokenHasher;
 import com.urgencesante.identity.PortalPrincipalView;
 import com.urgencesante.identity.internal.application.port.in.AuthenticatePortalUseCase;
 import com.urgencesante.identity.internal.application.port.out.LoadCredentialPort;
 import com.urgencesante.identity.internal.domain.model.PortalCredential;
-import com.urgencesante.identity.internal.domain.model.TokenHasher;
 import java.util.Objects;
 import java.util.Optional;
 

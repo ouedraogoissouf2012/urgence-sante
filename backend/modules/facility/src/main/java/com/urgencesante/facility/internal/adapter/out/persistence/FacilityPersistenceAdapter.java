@@ -1,5 +1,6 @@
 package com.urgencesante.facility.internal.adapter.out.persistence;
 
+import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.Page;
 import com.urgencesante.facility.internal.adapter.out.persistence.entity.FacilityJpaEntity;
 import com.urgencesante.facility.internal.adapter.out.persistence.mapper.FacilityEntityMapper;
@@ -9,7 +10,6 @@ import com.urgencesante.facility.internal.application.query.FindFacilitiesQuery;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
-import com.urgencesante.facility.internal.domain.model.MedicalServiceCode;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
