@@ -16,6 +16,13 @@ enum LocationFailure {
 
   /// Autorisation refusée définitivement (passer par les réglages).
   deniedForever,
+
+  /// Aucune position reçue dans le délai imparti (GPS lent, signal faible…) —
+  /// pas un refus de permission : l'action utile est de réessayer.
+  timeout,
+
+  /// Échec inattendu (panne plateforme, etc.), sans cause qualifiable.
+  unknown,
 }
 
 /// Échec d'obtention de la position, qualifié pour l'interface.
