@@ -2,6 +2,7 @@ package com.urgencesante.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.urgencesante.config.ErrorResponses;
 import com.urgencesante.identity.IdentityFacade;
 import com.urgencesante.identity.PortalPrincipalView;
 import com.urgencesante.identity.PortalRole;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.HandlerMapping;
@@ -21,6 +23,9 @@ class PortalSecurityInterceptorTest {
     private static final UUID FACILITY = UUID.fromString("11111111-0000-0000-0000-000000000001");
     private static final UUID OTHER = UUID.fromString("11111111-0000-0000-0000-000000000002");
     private static final UUID OP_ID = UUID.randomUUID();
+
+    private static final ErrorResponses ERROR_RESPONSES =
+            new ErrorResponses(Jackson2ObjectMapperBuilder.json().build());
 
     private IdentityFacade identity;
     private PortalSecurityInterceptor interceptor;
@@ -41,7 +46,8 @@ class PortalSecurityInterceptorTest {
         return new PortalSecurityInterceptor(
                 identity,
                 new RateLimiter(authPerIp, Duration.ofMinutes(1), Clock.systemUTC()),
-                new RateLimiter(updates, Duration.ofMinutes(1), Clock.systemUTC()));
+                new RateLimiter(updates, Duration.ofMinutes(1), Clock.systemUTC()),
+                ERROR_RESPONSES);
     }
 
     /** PUT routé par Spring : variables de gabarit déjà décodées/normalisées. */
@@ -83,6 +89,13 @@ class PortalSecurityInterceptorTest {
 
         assertThat(response.getStatus()).isEqualTo(403);
         assertThat(response.getContentType()).contains("problem+json");
+        // Le corps doit être un ProblemDetail RFC 9457 sérialisé via
+        // ErrorResponses (issue #148), pas du JSON composé à la main.
+        assertThat(response.getContentAsString())
+                .contains("\"status\":403")
+                .contains("\"title\":\"Accès refusé\"")
+                .contains("\"detail\":\"Cet agent n'est pas autorisé sur cet établissement.\"")
+                .contains("\"instance\":\"/api/v1/facilities/" + OTHER + "/availability/maternity\"");
     }
 
     @Test
@@ -128,5 +141,23 @@ class PortalSecurityInterceptorTest {
         final MockHttpServletResponse blocked = new MockHttpServletResponse();
         assertThat(interceptor.preHandle(r2, blocked, new Object())).isFalse();
         assertThat(blocked.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void un_chemin_de_requete_non_conforme_a_uri_ne_fait_pas_planter_le_rejet() throws Exception {
+        // request.getRequestURI() n'est pas garanti conforme à java.net.URI
+        // (RFC 2396) du seul fait d'avoir traversé le conteneur servlet.
+        // Avant correction, URI.create(...) levait dans reject() AVANT que le
+        // 401 ne soit écrit sur la réponse.
+        final MockHttpServletRequest request = new MockHttpServletRequest(
+                "PUT", "/api/v1/facilities/{bad}/availability/maternity");
+        request.setAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE,
+                Map.of("facilityId", FACILITY.toString(), "serviceCode", "maternity"));
+        final MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThat(interceptor.preHandle(request, response, new Object())).isFalse();
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).doesNotContain("\"instance\"");
     }
 }

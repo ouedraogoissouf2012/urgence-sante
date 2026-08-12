@@ -1,5 +1,6 @@
 package com.urgencesante.security;
 
+import com.urgencesante.config.ErrorResponses;
 import com.urgencesante.identity.IdentityFacade;
 import java.time.Clock;
 import java.time.Duration;
@@ -38,9 +39,10 @@ public class SecurityConfiguration {
     PortalSecurityInterceptor portalSecurityInterceptor(
             IdentityFacade identityFacade,
             @Qualifier("authAttemptsPerIp") RateLimiter authAttemptsPerIp,
-            @Qualifier("updatesPerPrincipal") RateLimiter updatesPerPrincipal) {
+            @Qualifier("updatesPerPrincipal") RateLimiter updatesPerPrincipal,
+            ErrorResponses errorResponses) {
         return new PortalSecurityInterceptor(
-                identityFacade, authAttemptsPerIp, updatesPerPrincipal);
+                identityFacade, authAttemptsPerIp, updatesPerPrincipal, errorResponses);
     }
 
     /** Inscriptions/connexions patient par IP (endpoints publics, anti-abus). */
@@ -53,9 +55,14 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    PatientRateLimitInterceptor patientRateLimitInterceptor(
-            @Qualifier("patientAttemptsPerIp") RateLimiter patientAttemptsPerIp) {
-        return new PatientRateLimitInterceptor(patientAttemptsPerIp);
+    GenericRateLimitInterceptor patientRateLimitInterceptor(
+            @Qualifier("patientAttemptsPerIp") RateLimiter patientAttemptsPerIp,
+            ErrorResponses errorResponses) {
+        return new GenericRateLimitInterceptor(
+                patientAttemptsPerIp,
+                "patient-ip:",
+                errorResponses,
+                "Trop de tentatives, réessayez plus tard.");
     }
 
     /**
@@ -72,8 +79,13 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    OrientationRateLimitInterceptor orientationRateLimitInterceptor(
-            @Qualifier("orientationAttemptsPerIp") RateLimiter orientationAttemptsPerIp) {
-        return new OrientationRateLimitInterceptor(orientationAttemptsPerIp);
+    GenericRateLimitInterceptor orientationRateLimitInterceptor(
+            @Qualifier("orientationAttemptsPerIp") RateLimiter orientationAttemptsPerIp,
+            ErrorResponses errorResponses) {
+        return new GenericRateLimitInterceptor(
+                orientationAttemptsPerIp,
+                "orientation-ip:",
+                errorResponses,
+                "Trop de recherches, réessayez plus tard.");
     }
 }

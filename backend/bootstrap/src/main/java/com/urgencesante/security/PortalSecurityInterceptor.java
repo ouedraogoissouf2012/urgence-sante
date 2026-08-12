@@ -1,5 +1,6 @@
 package com.urgencesante.security;
 
+import com.urgencesante.config.ErrorResponses;
 import com.urgencesante.identity.IdentityFacade;
 import com.urgencesante.identity.PortalPrincipalView;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +12,6 @@ import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 
@@ -34,14 +34,17 @@ public class PortalSecurityInterceptor implements HandlerInterceptor {
     private final IdentityFacade identityFacade;
     private final RateLimiter authAttemptsPerIp;
     private final RateLimiter updatesPerPrincipal;
+    private final ErrorResponses errorResponses;
 
     public PortalSecurityInterceptor(
             IdentityFacade identityFacade,
             RateLimiter authAttemptsPerIp,
-            RateLimiter updatesPerPrincipal) {
+            RateLimiter updatesPerPrincipal,
+            ErrorResponses errorResponses) {
         this.identityFacade = identityFacade;
         this.authAttemptsPerIp = authAttemptsPerIp;
         this.updatesPerPrincipal = updatesPerPrincipal;
+        this.errorResponses = errorResponses;
     }
 
     @Override
@@ -55,7 +58,7 @@ public class PortalSecurityInterceptor implements HandlerInterceptor {
 
         // 1) Débit par IP (adresse de transport, non falsifiable par en-tête).
         if (!authAttemptsPerIp.tryAcquire("ip:" + request.getRemoteAddr())) {
-            return reject(response, HttpStatus.TOO_MANY_REQUESTS, "Trop de requêtes",
+            return reject(request, response, HttpStatus.TOO_MANY_REQUESTS, "Trop de requêtes",
                     "Débit dépassé, réessayez plus tard.");
         }
 
@@ -63,7 +66,7 @@ public class PortalSecurityInterceptor implements HandlerInterceptor {
         final Optional<PortalPrincipalView> principal =
                 bearerToken(request).flatMap(identityFacade::authenticate);
         if (principal.isEmpty()) {
-            return reject(response, HttpStatus.UNAUTHORIZED, "Non authentifié",
+            return reject(request, response, HttpStatus.UNAUTHORIZED, "Non authentifié",
                     "Jeton du portail absent ou invalide.");
         }
 
@@ -71,17 +74,17 @@ public class PortalSecurityInterceptor implements HandlerInterceptor {
         final Optional<UUID> targetFacility = routedFacilityId(request);
         if (targetFacility.isEmpty()) {
             // Chemin protégé sans identifiant exploitable : rejet (échec fermé).
-            return reject(response, HttpStatus.BAD_REQUEST, "Requête invalide",
+            return reject(request, response, HttpStatus.BAD_REQUEST, "Requête invalide",
                     "Identifiant d'établissement absent ou invalide.");
         }
         if (!principal.get().canActOn(targetFacility.get())) {
-            return reject(response, HttpStatus.FORBIDDEN, "Accès refusé",
+            return reject(request, response, HttpStatus.FORBIDDEN, "Accès refusé",
                     "Cet agent n'est pas autorisé sur cet établissement.");
         }
 
         // 4) Débit des mises à jour par agent (clé = identifiant immuable unique).
         if (!updatesPerPrincipal.tryAcquire("principal:" + principal.get().id())) {
-            return reject(response, HttpStatus.TOO_MANY_REQUESTS, "Trop de requêtes",
+            return reject(request, response, HttpStatus.TOO_MANY_REQUESTS, "Trop de requêtes",
                     "Trop de mises à jour, réessayez plus tard.");
         }
 
@@ -115,15 +118,12 @@ public class PortalSecurityInterceptor implements HandlerInterceptor {
         return token.isEmpty() ? Optional.empty() : Optional.of(token);
     }
 
-    private static boolean reject(
-            HttpServletResponse response, HttpStatus status, String title, String detail)
+    private boolean reject(
+            HttpServletRequest request, HttpServletResponse response,
+            HttpStatus status, String title, String detail)
             throws IOException {
-        response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         // Jamais de jeton ni de donnée sensible dans la réponse.
-        response.getWriter().write(String.format(
-                "{\"type\":\"about:blank\",\"title\":\"%s\",\"status\":%d,\"detail\":\"%s\"}",
-                title, status.value(), detail));
+        errorResponses.writeProblem(request, response, status, title, detail);
         return false;
     }
 }
