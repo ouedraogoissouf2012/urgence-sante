@@ -14,15 +14,90 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
-echo "▶ Garde 1/3 — limite de 300 lignes"
+echo "▶ Garde 1/4 — limite de 300 lignes"
 bash scripts/check-file-length.sh
 
 echo ""
-echo "▶ Garde 2/3 — build, tests et vérification d'architecture (backend)"
-( cd backend && ./mvnw -B --no-transfer-progress verify )
+echo "▶ Garde 2/4 — build, tests et vérification d'architecture (backend)"
+docker_diagnostic="$(docker info 2>&1)" || {
+  echo "" >&2
+  echo "✗ Docker n'est pas joignable (\`docker info\` a échoué)." >&2
+  echo "  Les tests d'intégration PostGIS (backend/bootstrap/src/test/.../*IntegrationTest*)" >&2
+  echo "  ont besoin d'une base réelle. Sans Docker, mvnw les ignore SILENCIEUSEMENT" >&2
+  echo "  (visibles seulement en « Skipped » dans le rapport Surefire) — c'est ce trou" >&2
+  echo "  qui a laissé passer une collision de migration Flyway jusqu'à la CI (#154)." >&2
+  echo "" >&2
+  echo "  Détail de \`docker info\` :" >&2
+  echo "$docker_diagnostic" | sed 's/^/    /' >&2
+  echo "" >&2
+  echo "  → Docker Desktop arrêté : démarrez-le puis relancez le push." >&2
+  echo "  → \`docker\` introuvable ou droits refusés : corrigez PATH/permissions (voir détail ci-dessus)." >&2
+  echo "  → Contournement d'urgence (à éviter, non tracé) : git push --no-verify" >&2
+  exit 1
+}
+
+# Base PostGIS éphémère dédiée au hook — même mécanisme que scripts/verify-all.sh
+# (base externe via IT_DB_URL), délibérément PAS l'auto-détection Docker de
+# Testcontainers : sur ce projet, `docker info` peut réussir alors que
+# org.testcontainers.dockerclient.DockerClientProviderStrategy ne trouve aucun
+# environnement Docker valide (constaté en test manuel) — REQUIRE_DOCKER_TESTS
+# ferait alors échouer DockerAvailabilityGuardTest à tort. IT_DB_URL contourne
+# cette détection : DatabaseAvailableCondition l'utilise en priorité, sans
+# jamais interroger Testcontainers.
+PRE_PUSH_DB_NAME="urgence_sante_prepush"
+PRE_PUSH_DB_USER="urgence_sante"
+PRE_PUSH_DB_PASSWORD="prepush_$(date +%s)"
+PRE_PUSH_DB_PORT="${PRE_PUSH_DB_PORT:-55434}"
+PRE_PUSH_DB_CONTAINER="urgence-prepush-postgis"
+PRE_PUSH_DB_READY_STABLE_CHECKS=3
+PRE_PUSH_DB_READY_MAX_ATTEMPTS=60
+PRE_PUSH_DB_READY_POLL_SECONDS=2
+
+cleanup_prepush_db() { docker rm -f "$PRE_PUSH_DB_CONTAINER" >/dev/null 2>&1 || true; }
+trap cleanup_prepush_db EXIT
+
+cleanup_prepush_db
+docker run -d --name "$PRE_PUSH_DB_CONTAINER" \
+    -e POSTGRES_DB="$PRE_PUSH_DB_NAME" \
+    -e POSTGRES_USER="$PRE_PUSH_DB_USER" \
+    -e POSTGRES_PASSWORD="$PRE_PUSH_DB_PASSWORD" \
+    -p "127.0.0.1:$PRE_PUSH_DB_PORT:5432" postgis/postgis:16-3.4 >/dev/null
+
+stable=0
+ready=0
+for _ in $(seq 1 "$PRE_PUSH_DB_READY_MAX_ATTEMPTS"); do
+  if docker exec "$PRE_PUSH_DB_CONTAINER" pg_isready -q -U "$PRE_PUSH_DB_USER" -d "$PRE_PUSH_DB_NAME" 2>/dev/null; then
+    stable=$((stable + 1))
+    (( stable >= PRE_PUSH_DB_READY_STABLE_CHECKS )) && { ready=1; break; }
+  else
+    stable=0
+  fi
+  sleep "$PRE_PUSH_DB_READY_POLL_SECONDS"
+done
+
+if (( ready != 1 )); then
+  echo "" >&2
+  echo "✗ La base PostGIS éphémère n'a pas démarré à temps (port $PRE_PUSH_DB_PORT)." >&2
+  echo "  Vérifiez Docker Desktop (ressources allouées, image postgis/postgis:16-3.4) puis relancez le push." >&2
+  exit 1
+fi
+
+# Rapports d'un `verify` antérieur supprimés : un rapport « Skipped: 0 » ne
+# peut provenir QUE du build qui va suivre, jamais d'un run précédent laissé
+# sur disque (target/ n'est pas nettoyé par un simple `verify`).
+find backend -type d -name surefire-reports -exec rm -rf {} +
+
+IT_DB_URL="jdbc:postgresql://localhost:$PRE_PUSH_DB_PORT/$PRE_PUSH_DB_NAME" \
+IT_DB_USER="$PRE_PUSH_DB_USER" \
+IT_DB_PASSWORD="$PRE_PUSH_DB_PASSWORD" \
+  bash -c "cd backend && ./mvnw -B --no-transfer-progress verify"
 
 echo ""
-echo "▶ Garde 3/3 — analyse et tests Flutter (frontend)"
+echo "▶ Garde 3/4 — tests d'intégration PostGIS réellement exécutés (anti-skip)"
+bash scripts/check-integration-tests-ran.sh
+
+echo ""
+echo "▶ Garde 4/4 — analyse et tests Flutter (frontend)"
 (
   cd frontend
   flutter pub get >/dev/null

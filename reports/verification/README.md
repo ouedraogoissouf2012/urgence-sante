@@ -27,6 +27,8 @@ commit vérifié, l'environnement et le détail des contrôles.
 > Une branche ne se fusionne vers `main` qu'avec un rapport **✅ VALIDE**
 > couvrant son commit de tête, committé dans la PR.
 
-Le hook `pre-push` reste la garde rapide quotidienne ; `verify-all.sh` est la
-garde complète de fusion. Les workflows GitHub Actions restent en place et
-reprendront ce rôle le jour où le compte est débloqué.
+Le hook `pre-push` exige lui aussi Docker et un anti-skip PostGIS réel à
+chaque push (mêmes garanties que la CI, voir `scripts/git-hooks/pre-push`) ;
+`verify-all.sh` reste la garde complète de fusion (OpenAPI, Flutter, APK,
+rapport daté). Les workflows GitHub Actions restent en place et reprendront
+ce rôle le jour où le compte est débloqué.
