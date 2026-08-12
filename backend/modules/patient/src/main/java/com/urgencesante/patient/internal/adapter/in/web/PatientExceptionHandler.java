@@ -1,5 +1,6 @@
 package com.urgencesante.patient.internal.adapter.in.web;
 
+import com.urgencesante.buildingblocks.web.ExceptionHandlerSupport;
 import com.urgencesante.patient.internal.domain.exception.InvalidCredentialsException;
 import com.urgencesante.patient.internal.domain.exception.PatientValidationException;
 import com.urgencesante.patient.internal.domain.exception.PhoneAlreadyRegisteredException;
@@ -15,18 +16,14 @@ public class PatientExceptionHandler {
 
     @ExceptionHandler({PatientValidationException.class, IllegalArgumentException.class})
     public ProblemDetail handleBadRequest(RuntimeException exception) {
-        final ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
-        problem.setTitle("Requête invalide");
-        return problem;
+        return ExceptionHandlerSupport.problemDetail(
+                HttpStatus.BAD_REQUEST, exception.getMessage(), "Requête invalide");
     }
 
     @ExceptionHandler(PhoneAlreadyRegisteredException.class)
     public ProblemDetail handleConflict(PhoneAlreadyRegisteredException exception) {
-        final ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
-        problem.setTitle("Numéro déjà utilisé");
-        return problem;
+        return ExceptionHandlerSupport.problemDetail(
+                HttpStatus.CONFLICT, exception.getMessage(), "Numéro déjà utilisé");
     }
 
     /**
@@ -42,9 +39,7 @@ public class PatientExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ProblemDetail handleUnauthorized(InvalidCredentialsException exception) {
-        final ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
-        problem.setTitle("Authentification refusée");
-        return problem;
+        return ExceptionHandlerSupport.problemDetail(
+                HttpStatus.UNAUTHORIZED, exception.getMessage(), "Authentification refusée");
     }
 }
