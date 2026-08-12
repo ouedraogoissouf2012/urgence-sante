@@ -62,20 +62,33 @@ class _MedicalProfileFormPageState
 
   /// Protégé contre le double-tap : un appui supplémentaire pendant une
   /// sauvegarde en cours est ignoré (bouton aussi désactivé visuellement).
+  ///
+  /// Un échec d'écriture n'est jamais silencieux : la page ne se ferme QUE
+  /// si la sauvegarde a réussi, sinon un SnackBar prévient l'utilisateur que
+  /// rien n'a été enregistré (issue #140).
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
-    await ref.read(medicalProfileViewModelProvider.notifier).save(MedicalProfile(
-          fullName: _trimmedOrNull(_fullName),
-          bloodType: _bloodType,
-          allergies: _trimmedOrNull(_allergies),
-          conditions: _trimmedOrNull(_conditions),
-          treatments: _trimmedOrNull(_treatments),
-          emergencyContactName: _trimmedOrNull(_contactName),
-          emergencyContactPhone: _trimmedOrNull(_contactPhone),
-          notes: _trimmedOrNull(_notes),
-        ));
-    if (mounted) Navigator.of(context).pop();
+    final bool saved =
+        await ref.read(medicalProfileViewModelProvider.notifier).save(MedicalProfile(
+              fullName: _trimmedOrNull(_fullName),
+              bloodType: _bloodType,
+              allergies: _trimmedOrNull(_allergies),
+              conditions: _trimmedOrNull(_conditions),
+              treatments: _trimmedOrNull(_treatments),
+              emergencyContactName: _trimmedOrNull(_contactName),
+              emergencyContactPhone: _trimmedOrNull(_contactPhone),
+              notes: _trimmedOrNull(_notes),
+            ));
+    if (!mounted) return;
+    if (saved) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Échec de l'enregistrement. Réessayez.")),
+    );
   }
 
   @override
