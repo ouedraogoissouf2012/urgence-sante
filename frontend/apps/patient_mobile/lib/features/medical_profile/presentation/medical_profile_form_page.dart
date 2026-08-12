@@ -28,6 +28,7 @@ class _MedicalProfileFormPageState
   final _notes = TextEditingController();
   BloodType? _bloodType;
   bool _initialised = false;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -59,7 +60,11 @@ class _MedicalProfileFormPageState
     return text.isEmpty ? null : text;
   }
 
+  /// Protégé contre le double-tap : un appui supplémentaire pendant une
+  /// sauvegarde en cours est ignoré (bouton aussi désactivé visuellement).
   Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
     await ref.read(medicalProfileViewModelProvider.notifier).save(MedicalProfile(
           fullName: _trimmedOrNull(_fullName),
           bloodType: _bloodType,
@@ -159,8 +164,14 @@ class _MedicalProfileFormPageState
 
             const SizedBox(height: AppSpacing.xl),
             FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save_outlined),
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      height: AppSizing.iconMarker / 2,
+                      width: AppSizing.iconMarker / 2,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
           ],
