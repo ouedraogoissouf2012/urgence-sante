@@ -19,4 +19,10 @@ public interface PatientSessionSpringRepository
     @Transactional
     @Query("DELETE FROM PatientSessionJpaEntity s WHERE s.expiresAt < :now")
     int deleteByExpiresAtBefore(@Param("now") Instant now);
+
+    /** Révocation par empreinte de jeton. 0 si déjà absente (idempotent). */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PatientSessionJpaEntity s WHERE s.tokenHash = :tokenHash")
+    int deleteByTokenHash(@Param("tokenHash") String tokenHash);
 }

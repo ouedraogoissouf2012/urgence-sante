@@ -8,6 +8,11 @@
 # Lancer :   docker compose -f deploy/docker-compose.yml up -d --build
 # Mise à jour (méthode git) :
 #   git pull && docker compose -f deploy/docker-compose.yml up -d --build
+#
+# IMAGE_TAG (optionnel, ${IMAGE_TAG:-latest}) : le workflow de déploiement
+# (.github/workflows/deploy-backend.yml) le fixe au SHA court du commit
+# déployé, pour tagger l'image et permettre un retour en arrière rapide vers
+# le tag précédent (encore présent localement) sans reconstruire.
 # ============================================================================
 name: urgence-sante
 
@@ -30,6 +35,13 @@ services:
       retries: 30
 
   api:
+    # Taggée par commit (audit P3 #140) : IMAGE_TAG vient du workflow de
+    # déploiement (git rev-parse --short HEAD) ; "latest" en usage local
+    # (docker compose up sans IMAGE_TAG défini). Une image taggée reste
+    # présente localement après un nouveau déploiement — c'est ce qui permet
+    # au workflow de revenir en arrière en pointant à nouveau vers le tag
+    # précédent, sans reconstruire.
+    image: urgence-sante-api:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile
