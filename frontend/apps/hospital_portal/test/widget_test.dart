@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hospital_portal/app/portal_app.dart';
@@ -5,6 +6,8 @@ import 'package:hospital_portal/di/providers.dart';
 import 'package:hospital_portal/features/board/domain/model/facility_summary.dart';
 import 'package:hospital_portal/features/board/domain/model/service_line.dart';
 import 'package:hospital_portal/features/board/domain/repository/portal_repository.dart';
+
+import 'support/fake_token_store.dart';
 
 /// Faux repository configurable, substituable au vrai adaptateur API.
 class FakePortalRepository implements PortalRepository {
@@ -42,11 +45,18 @@ class FakePortalRepository implements PortalRepository {
 void main() {
   late FakePortalRepository repository;
 
+  // Un jeton est déjà présent : ces tests couvrent le tableau, pas la
+  // connexion elle-même (voir le groupe "porte d'authentification" ci-dessous
+  // pour ce dernier cas, et test/features/board/data/api_portal_repository_test.dart
+  // pour la vérification du VRAI en-tête HTTP — issue #163).
   Future<void> pumpApp(WidgetTester tester) async {
     repository = FakePortalRepository();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [portalRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(FakeTokenStore('test-operator-token')),
+          portalRepositoryProvider.overrideWithValue(repository),
+        ],
         child: const PortalApp(),
       ),
     );
@@ -95,5 +105,81 @@ void main() {
     // « Disponible » apparaît aussi dans la puce de choix derrière le panneau :
     // l'entrée d'historique ajoute une occurrence supplémentaire.
     expect(find.text('Disponible'), findsNWidgets(2));
+  });
+
+  group('porte d\'authentification (issue #163)', () {
+    testWidgets('sans jeton stocké, le portail affiche la connexion, pas le tableau',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tokenStoreProvider.overrideWithValue(FakeTokenStore()),
+            portalRepositoryProvider.overrideWithValue(FakePortalRepository()),
+          ],
+          child: const PortalApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connexion agent'), findsOneWidget);
+      expect(find.text('Accès agent — démonstration'), findsNothing);
+    });
+
+    testWidgets('saisir un jeton et valider fait basculer vers le tableau',
+        (tester) async {
+      final store = FakeTokenStore();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tokenStoreProvider.overrideWithValue(store),
+            portalRepositoryProvider.overrideWithValue(FakePortalRepository()),
+          ],
+          child: const PortalApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'un-jeton-valide');
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      expect(await store.readToken(), 'un-jeton-valide');
+      expect(find.text('Accès agent — démonstration'), findsOneWidget);
+      expect(find.text('Connexion agent'), findsNothing);
+    });
+
+    testWidgets('valider un jeton vide affiche une erreur sans basculer', (tester) async {
+      final store = FakeTokenStore();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tokenStoreProvider.overrideWithValue(store),
+            portalRepositoryProvider.overrideWithValue(FakePortalRepository()),
+          ],
+          child: const PortalApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continuer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Le jeton est requis.'), findsOneWidget);
+      expect(await store.readToken(), isNull);
+      expect(find.text('Connexion agent'), findsOneWidget);
+    });
+
+    testWidgets('le bouton de déconnexion efface le jeton et revient à la connexion',
+        (tester) async {
+      await pumpApp(tester);
+      await tester.tap(find.text('CHU de Cocody'));
+      await tester.pumpAndSettle();
+      expect(find.text('Disponibilité des services'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Se déconnecter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connexion agent'), findsOneWidget);
+    });
   });
 }

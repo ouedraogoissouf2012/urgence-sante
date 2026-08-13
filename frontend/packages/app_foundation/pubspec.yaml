@@ -11,6 +11,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Stockage CHIFFRÉ d'un jeton opaque (Keystore/Keychain), générique et
+  # partagé entre applications — même version que patient_mobile.
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:
