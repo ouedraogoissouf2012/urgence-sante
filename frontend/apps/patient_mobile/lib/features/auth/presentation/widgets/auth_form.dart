@@ -55,10 +55,20 @@ class _AuthFormState extends ConsumerState<AuthForm> {
 
   void _clearPhoneError() {
     if (_phoneError != null) setState(() => _phoneError = null);
+    _dismissSubmitError();
   }
 
   void _clearPasswordError() {
     if (_passwordError != null) setState(() => _passwordError = null);
+    _dismissSubmitError();
+  }
+
+  /// Efface aussi le message d'erreur global (l'{@link InfoCard} renvoyée par
+  /// une soumission précédente) dès que l'utilisateur reprend la saisie —
+  /// sinon il resterait affiché sur des champs déjà corrigés jusqu'à la
+  /// prochaine tentative. Sans effet hors état d'erreur (garde côté VM).
+  void _dismissSubmitError() {
+    ref.read(authViewModelProvider.notifier).dismissError();
   }
 
   void _submit(AuthViewModel vm) {
