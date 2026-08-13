@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.urgencesante.config.ErrorResponses;
 import com.urgencesante.identity.IdentityFacade;
+import com.urgencesante.identity.NewPortalCredential;
 import com.urgencesante.identity.PortalPrincipalView;
 import com.urgencesante.identity.PortalRole;
 import java.time.Clock;
@@ -32,12 +33,22 @@ class PortalSecurityInterceptorTest {
 
     @BeforeEach
     void setUp() {
-        identity = rawToken -> switch (rawToken) {
-            case "op-token" -> Optional.of(
-                    new PortalPrincipalView(OP_ID, "CHU", PortalRole.FACILITY_OPERATOR, FACILITY));
-            case "admin-token" -> Optional.of(
-                    new PortalPrincipalView(UUID.randomUUID(), "SAMU", PortalRole.ADMIN, null));
-            default -> Optional.empty();
+        identity = new IdentityFacade() {
+            @Override
+            public Optional<PortalPrincipalView> authenticate(String rawToken) {
+                return switch (rawToken) {
+                    case "op-token" -> Optional.of(
+                            new PortalPrincipalView(OP_ID, "CHU", PortalRole.FACILITY_OPERATOR, FACILITY));
+                    case "admin-token" -> Optional.of(
+                            new PortalPrincipalView(UUID.randomUUID(), "SAMU", PortalRole.ADMIN, null));
+                    default -> Optional.empty();
+                };
+            }
+
+            @Override
+            public NewPortalCredential provision(String label, PortalRole role, UUID facilityId) {
+                throw new UnsupportedOperationException("non sollicité par ce test");
+            }
         };
         interceptor = newInterceptor(20, 60);
     }

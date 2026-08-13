@@ -38,6 +38,17 @@ public class PortalCredentialJpaEntity {
         // requis par JPA
     }
 
+    public static PortalCredentialJpaEntity fromDomain(PortalCredential credential) {
+        final PortalCredentialJpaEntity entity = new PortalCredentialJpaEntity();
+        entity.id = credential.id();
+        entity.label = credential.label();
+        entity.tokenHash = credential.tokenHash();
+        entity.role = credential.role();
+        entity.facilityId = credential.facilityId();
+        entity.active = credential.active();
+        return entity;
+    }
+
     public PortalCredential toDomain() {
         return new PortalCredential(id, label, tokenHash, role, facilityId, active);
     }
