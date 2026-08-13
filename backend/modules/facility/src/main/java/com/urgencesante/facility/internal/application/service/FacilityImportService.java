@@ -104,6 +104,15 @@ public class FacilityImportService implements ImportFacilitiesUseCase {
         return new ImportReport(inserted, updated, rejected);
     }
 
+    @Override
+    public boolean purgeDemoDataIfReplaced() {
+        if (!directoryPort.hasNonDemoData()) {
+            return false;
+        }
+        directoryPort.purgeDemoData();
+        return true;
+    }
+
     private static String naturalKey(FacilityImportRecord record) {
         if (record.source() == null || record.externalRef() == null) {
             return null;

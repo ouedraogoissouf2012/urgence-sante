@@ -10,3 +10,48 @@ management:
     health:
       show-components: never
       show-details: never
+
+spring:
+  flyway:
+    # Cutover issue #123 : la base de production a tourné en profil local
+    # (bug corrigé par cette même PR) — flyway_schema_history y contient donc
+    # déjà la migration répétable `R__seed_demo` (locations
+    # classpath:db/migration,classpath:db/local-seed, voir application.yml
+    # bloc local). classpath:db/migration seul (ce profil) ne la résout plus :
+    # SANS cette ligne, Flyway refuse de démarrer (« Detected applied
+    # migration not resolved locally »). `repeatable:missing` ne couvre QUE
+    # les migrations répétables absentes du classpath courant — une migration
+    # VERSIONNÉE manquante reste une erreur fatale (fichier supprimé/altéré).
+    # Réplique le défaut Spring Boot (`*:future`) : ignoreMigrationPatterns
+    # REMPLACE la liste, il ne s'ajoute pas.
+    ignore-migration-patterns:
+      - "*:future"
+      - "repeatable:missing"
+
+# Annuaire RÉEL (issue #123) : importé au démarrage depuis le fichier livré
+# avec l'image (voir deploy/Dockerfile), en remplacement du seed DEMO —
+# lui-même réservé au profil local (application.yml). Idempotent (upsert par
+# clé naturelle) : rejouable à chaque redémarrage sans effet de bord. Purge
+# ensuite les données de démonstration résiduelles éventuelles UNIQUEMENT si
+# l'import a réussi (FacilityImportRunner) — jamais l'inverse, pour ne pas
+# vider l'annuaire sur un import cassé. Chemin surchargeable par
+# FACILITY_IMPORT_FILE : ce dépôt ne monte AUCUN volume pour ce fichier
+# (docker-compose.yml copie l'image telle quelle) — pour pointer un fichier mis
+# à jour sans reconstruire l'image, ajouter un volume et positionner cette
+# variable en conséquence dans deploy/docker-compose.yml.
+facility:
+  import:
+    file: ${FACILITY_IMPORT_FILE:/app/infrastructure/directory/abidjan-starter.json}
+
+# OSRM (issue #126) : routing.osrm.base-url n'a AUCUN défaut en production
+# (RoutingConfiguration) — le serveur de démonstration public
+# router.project-osrm.org n'a pas de SLA et est throttlé ; l'utiliser en
+# production a causé l'incident diagnostiqué par l'audit technique. La
+# variable d'environnement ROUTING_OSRM_BASEURL est OBLIGATOIRE (voir
+# deploy/docker-compose.yml : le démarrage échoue sans elle, avec un message
+# citant explicitement cette clé) et doit pointer vers :
+#   - une instance OSRM auto-hébergée : image officielle `osrm/osrm-backend`
+#     (https://hub.docker.com/r/osrm/osrm-backend), avec un extrait OSM de la
+#     Côte d'Ivoire prétraité (osrm-extract puis osrm-contract/osrm-partition
+#     + osrm-customize selon le profil MLD/CH) ; ou
+#   - un hôte OSRM de production géré (SLA payant).

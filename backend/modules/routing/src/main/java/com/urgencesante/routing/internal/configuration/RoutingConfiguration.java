@@ -18,11 +18,23 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RoutingConfiguration {
 
-    /** Client HTTP vers OSRM — le budget de latence est borné par ces délais. */
+    /**
+     * Client HTTP vers OSRM — le budget de latence est borné par ces délais.
+     *
+     * <p>{@code routing.osrm.base-url} n'a AUCUN défaut ici (issue #126) : le
+     * serveur de démonstration public {@code router.project-osrm.org} n'a pas
+     * de SLA et est throttlé — un défaut silencieux vers ce serveur en
+     * production a causé la panne diagnostiquée par l'audit technique. Le
+     * profil {@code local} fournit sa propre valeur (voir application.yml,
+     * bloc {@code local}) ; le profil {@code production} DOIT recevoir la
+     * variable d'environnement {@code ROUTING_OSRM_BASEURL} (auto-hébergement
+     * ou hôte de production — voir application-production.yml), sans quoi le
+     * démarrage échoue avec un message citant cette clé.
+     */
     @Bean
     RestClient osrmRestClient(
             RestClient.Builder builder,
-            @Value("${routing.osrm.base-url:https://router.project-osrm.org}") String baseUrl,
+            @Value("${routing.osrm.base-url}") String baseUrl,
             @Value("${routing.osrm.connect-timeout-ms:2000}") int connectTimeoutMs,
             @Value("${routing.osrm.read-timeout-ms:5000}") int readTimeoutMs) {
         final SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();

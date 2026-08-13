@@ -3,6 +3,14 @@ spring:
   main:
     banner-mode: "off"
 
+# routing.osrm.base-url n'a plus de défaut (issue #126) : les tests démarrant
+# le contexte complet (@SpringBootTest) ont besoin d'une valeur pour que le
+# bean osrmRestClient se construise. `.invalid` est un TLD réservé (RFC 2606) —
+# ne résout JAMAIS : aucun test ne doit dépendre d'un appel réseau réel à OSRM.
+routing:
+  osrm:
+    base-url: http://osrm.test.invalid
+
 # Le rate-limiter anti-abus (10/min par défaut, pensé pour la production) n'a
 # rien à voir avec ce que les tests d'intégration vérifient : une classe de
 # test @SpringBootTest partage UN SEUL contexte (donc UN SEUL RateLimiter,

@@ -69,4 +69,30 @@ class FacilityDirectoryAdapter implements FacilityDirectoryPort {
                 Boolean.class, DataStatus.DEMO.name());
         return Boolean.TRUE.equals(exists);
     }
+
+    @Override
+    public boolean hasNonDemoData() {
+        final Boolean exists = jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM facility WHERE data_status <> ?)",
+                Boolean.class, DataStatus.DEMO.name());
+        return Boolean.TRUE.equals(exists);
+    }
+
+    @Override
+    @Transactional
+    public void purgeDemoData() {
+        // facility_service (ON DELETE CASCADE) puis availability (ON DELETE
+        // CASCADE via facility_service) sont purgés en cascade par la base
+        // (V2__create_facility.sql, V5__referential_integrity.sql).
+        // availability_history est un journal d'audit volontairement sans FK
+        // (V5) : il survit à la purge, comme à toute suppression d'établissement.
+        // portal_credential.facility_id n'a PAS de FK non plus (V7) : un
+        // établissement démo purgé laisserait un jeton FACILITY_OPERATOR orphelin
+        // (facility_id pointant vers un id disparu — échoue fermé, sans risque de
+        // sécurité, mais incohérence référentielle). Non traité ici : le seed démo
+        // livré n'insère JAMAIS de portal_credential (DemoSeedSecurityTest), donc
+        // le cas ne peut survenir qu'un opérateur ait créé un jeton MANUELLEMENT
+        // pour un établissement démo — hors périmètre de cette purge automatique.
+        jdbc.update("DELETE FROM facility WHERE data_status = ?", DataStatus.DEMO.name());
+    }
 }
