@@ -44,6 +44,17 @@ services:
       DB_NAME: urgence_sante
       DB_USER: urgence_sante
       DB_PASSWORD: ${DB_PASSWORD:?definir DB_PASSWORD dans deploy/.env}
+      # Garde dure (issue #123) : SANS cette variable, Spring retombe sur le
+      # profil local (spring.profiles.default) -> seed DÉMO + garde-fous
+      # production inactifs. Valeur figée (pas de ${...}) : ce fichier ne sert
+      # QUE le déploiement production, il n'y a rien à rendre configurable.
+      SPRING_PROFILES_ACTIVE: production
+      # Garde dure (issue #126) : routing.osrm.base-url n'a plus de défaut en
+      # production (RoutingConfiguration) -> démarrage refusé sans hôte réel,
+      # au lieu de retomber silencieusement sur le serveur de démo public
+      # (sans SLA, throttlé). Auto-hébergement ou hôte de production : voir
+      # backend/bootstrap/src/main/resources/application-production.yml.
+      ROUTING_OSRM_BASEURL: ${OSRM_BASE_URL:?definir OSRM_BASE_URL dans deploy/.env}
     ports:
       - "8086:8090"
     # Garde-fou mémoire : le VPS héberge d'autres projets.

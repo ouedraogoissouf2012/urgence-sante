@@ -161,3 +161,11 @@ app:
 # vivent les données DEMO) ; 15 km n'y trouverait rien. Produit : 15 km.
 orientation:
   default-radius-meters: ${ORIENTATION_DEFAULT_RADIUS_METERS:100000}
+
+# Serveur de démonstration public OSRM : SANS SLA, throttlé — acceptable
+# UNIQUEMENT en local (issue #126). `routing.osrm.base-url` n'a AUCUN défaut
+# hors de ce profil (RoutingConfiguration) : la production DOIT fournir sa
+# propre valeur (auto-hébergement ou hôte de production).
+routing:
+  osrm:
+    base-url: https://router.project-osrm.org

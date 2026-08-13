@@ -10,6 +10,7 @@ import com.urgencesante.facility.internal.domain.directory.ImportReport;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,5 +83,50 @@ class FacilityImportIntegrationTest extends AbstractPostgisIntegrationTest {
         assertThat(directoryPort.hasDemoData())
                 .as("le lot importé est VERIFIED, pas DEMO")
                 .isFalse();
+    }
+
+    @Test
+    void hasNonDemoData_devient_vrai_des_qu_un_etablissement_reel_existe() {
+        importFacilities.importDirectory(batch());
+
+        assertThat(directoryPort.hasNonDemoData())
+                .as("un établissement VERIFIED compte comme non-démo")
+                .isTrue();
+    }
+
+    /**
+     * Reproduit le scénario de cutover de l'issue #123 : la démo et le réel
+     * coexistent un instant (avant purge), la purge ne doit retirer QUE la démo.
+     *
+     * <p>ATTENTION : {@code purgeDemoData()} est {@code DELETE FROM facility
+     * WHERE data_status = 'DEMO'} SANS filtre de source — global à la base
+     * partagée par toute la suite {@code bootstrap} (voir
+     * {@code AbstractPostgisIntegrationTest}). C'est le comportement RÉEL et
+     * voulu en production (purger toute démo, pas seulement celle d'un import).
+     * Aucune autre classe de test ne sème de ligne {@code data_status = DEMO}
+     * aujourd'hui (vérifié) ; si une future classe en sème une hors du
+     * {@code source = 'it-src'} nettoyé par {@link #clean()}, elle sera
+     * emportée par ce test — la coordonner avec cette purge globale plutôt que
+     * de la découvrir en échec intermittent.
+     */
+    @Test
+    void purgeDemoData_supprime_la_demo_et_epargne_le_reste() {
+        jdbc.update("INSERT INTO facility "
+                        + "(id, name, phone, location, source, external_ref, data_status) "
+                        + "VALUES (?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?)",
+                UUID.randomUUID(), "Hôpital Démo IT", "+2252722481000",
+                -4.0, 5.35, "it-src", "demo-1", DataStatus.DEMO.name());
+        importFacilities.importDirectory(batch());
+
+        directoryPort.purgeDemoData();
+
+        assertThat(existsByNaturalKey("it-src", "demo-1")).as("la démo est purgée").isFalse();
+        assertThat(existsByNaturalKey("it-src", "ref-1")).as("le réel survit à la purge").isTrue();
+    }
+
+    private boolean existsByNaturalKey(String source, String externalRef) {
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM facility WHERE source = ? AND external_ref = ?)",
+                Boolean.class, source, externalRef));
     }
 }

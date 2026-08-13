@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StreamUtils;
@@ -43,5 +45,29 @@ class DemoSeedSecurityTest {
                 .as("le seed doit purger tout jeton opérateur de démo résiduel (VPS) au "
                         + "rechargement de la migration répétable")
                 .contains("delete from portal_credential");
+    }
+
+    /**
+     * Garde de sécurité (issue #123) : le jeu RÉEL importé en production
+     * (infrastructure/directory/abidjan-starter.json, chargé par
+     * FacilityImportRunner) ne doit jamais contenir un statut DEMO — un tel
+     * enregistrement serait accepté hors production puis, en production,
+     * rejeté par FacilityImportService MAIS déclencherait quand même la garde
+     * DemoDataProductionGuard au prochain redémarrage si un import antérieur
+     * l'avait laissé passer. Autant l'exclure à la source.
+     */
+    @Test
+    void le_jeu_reel_de_demarrage_ne_contient_aucun_statut_demo() throws IOException {
+        // Fichier NON embarqué au classpath (FacilityImportRunner le lit du système de
+        // fichiers, voir facility.import.file) : chemin relatif à la racine du module
+        // bootstrap (répertoire de travail Maven Surefire), pas une ClassPathResource.
+        final String starter = Files.readString(
+                Path.of("../../infrastructure/directory/abidjan-starter.json"),
+                StandardCharsets.UTF_8);
+
+        assertThat(starter.toLowerCase())
+                .as("infrastructure/directory/abidjan-starter.json est importé tel quel en "
+                        + "production : aucun enregistrement ne doit porter dataStatus=DEMO")
+                .doesNotContain("\"demo\"");
     }
 }

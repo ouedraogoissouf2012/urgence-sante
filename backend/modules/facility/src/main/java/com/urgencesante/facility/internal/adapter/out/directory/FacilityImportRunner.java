@@ -18,15 +18,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
  * Import d'annuaire au démarrage depuis un fichier JSON, activé UNIQUEMENT si la
  * propriété {@code facility.import.file} est fournie. Journalise un rapport
- * (insérés, mis à jour, rejetés avec motifs) pour revue manuelle.
+ * (insérés, mis à jour, rejetés avec motifs) pour revue manuelle, puis délègue
+ * à {@link ImportFacilitiesUseCase#purgeDemoDataIfReplaced()} la décision de
+ * purger les données de démonstration résiduelles (règle métier — jamais vider
+ * l'annuaire — testée unitairement dans {@code FacilityImportServiceTest} via
+ * un faux port, pas ici). {@link Order} garantit l'exécution AVANT
+ * {@code DemoDataProductionGuard} et {@code EmptyDirectoryProductionGuard}
+ * (même liste d'{@link ApplicationRunner}) : la donnée réelle doit être en
+ * place avant que ces gardes n'évaluent l'état de l'annuaire (issue #123).
  */
 @Component
 @ConditionalOnProperty(name = "facility.import.file")
+@Order(Ordered.HIGHEST_PRECEDENCE)
 class FacilityImportRunner implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(FacilityImportRunner.class);
@@ -59,6 +69,14 @@ class FacilityImportRunner implements ApplicationRunner {
         for (final ImportReport.Rejection rejection : report.rejected()) {
             LOG.warn("Rejeté [{}/{}] {} : {}",
                     rejection.source(), rejection.externalRef(), rejection.name(), rejection.reasons());
+        }
+
+        if (importFacilities.purgeDemoDataIfReplaced()) {
+            LOG.info("Données de démonstration résiduelles purgées.");
+        } else {
+            LOG.warn("Aucun établissement non-démo en annuaire après import : "
+                    + "les données de démonstration NE SONT PAS purgées "
+                    + "(éviterait de vider l'annuaire — corrigez {} puis redémarrez).", filePath);
         }
     }
 

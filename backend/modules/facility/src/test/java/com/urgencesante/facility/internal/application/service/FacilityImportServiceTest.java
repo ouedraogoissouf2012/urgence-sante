@@ -8,30 +8,47 @@ import com.urgencesante.facility.internal.domain.directory.DataStatus;
 import com.urgencesante.facility.internal.domain.directory.FacilityImportRecord;
 import com.urgencesante.facility.internal.domain.directory.ImportReport;
 import java.time.LocalDate;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class FacilityImportServiceTest {
 
-    /** Faux annuaire en mémoire, avec upsert idempotent par clé naturelle. */
+    /**
+     * Faux annuaire en mémoire, avec upsert idempotent par clé naturelle.
+     * Trace le {@link DataStatus} de chaque établissement (pas seulement sa
+     * présence) : {@link #hasDemoData()}/{@link #hasNonDemoData()} doivent
+     * refléter le statut réel pour que {@code purgeDemoDataIfReplaced()} soit
+     * exercé fidèlement par ce double de test.
+     */
     private static final class FakeDirectory implements FacilityDirectoryPort {
-        final Set<String> keys = new HashSet<>();
+        final Map<String, DataStatus> byKey = new LinkedHashMap<>();
 
         @Override
         public boolean existsByNaturalKey(String source, String externalRef) {
-            return keys.contains(source + '/' + externalRef);
+            return byKey.containsKey(source + '/' + externalRef);
         }
 
         @Override
         public void upsert(FacilityImportRecord record) {
-            keys.add(record.source() + '/' + record.externalRef());
+            byKey.put(record.source() + '/' + record.externalRef(), record.dataStatus());
         }
 
         @Override
         public boolean hasDemoData() {
-            return false;
+            return byKey.containsValue(DataStatus.DEMO);
+        }
+
+        @Override
+        public boolean hasNonDemoData() {
+            return byKey.values().stream().anyMatch(status -> status != DataStatus.DEMO);
+        }
+
+        @Override
+        public void purgeDemoData() {
+            byKey.values().removeIf(status -> status == DataStatus.DEMO);
         }
     }
 
@@ -112,5 +129,51 @@ class FacilityImportServiceTest {
                 valid("a", "Hôpital DEMO", 5.35, -4.0, DataStatus.DEMO)));
 
         assertThat(report.inserted()).isEqualTo(1);
+    }
+
+    /**
+     * Coeur de la garde de sécurité issue #123 : un import réussi (au moins un
+     * établissement non-démo accepté) purge la démo résiduelle.
+     */
+    @Test
+    void purgeDemoDataIfReplaced_purge_quand_l_import_a_reussi() {
+        final FakeDirectory directory = new FakeDirectory();
+        // Démo pré-existante (simule un ancien déploiement local mal configuré).
+        directory.upsert(new FacilityImportRecord(
+                "demo-src", "demo-1", "Hôpital DEMO", "+2252722481000",
+                5.35, -4.0, Set.of("emergency"), DataStatus.DEMO, null, "resp"));
+        final FacilityImportService service =
+                new FacilityImportService(directory, knownServices, true);
+
+        service.importDirectory(List.of(
+                valid("a", "Hôpital A", 5.35, -4.0, DataStatus.VERIFIED)));
+        final boolean purged = service.purgeDemoDataIfReplaced();
+
+        assertThat(purged).as("import réussi -> purge autorisée").isTrue();
+        assertThat(directory.hasDemoData()).as("la démo a été retirée").isFalse();
+    }
+
+    /**
+     * Garde de sécurité issue #123 : SANS établissement non-démo en annuaire
+     * (import totalement raté, ou jamais lancé), la purge doit être refusée —
+     * ne jamais vider l'annuaire.
+     */
+    @Test
+    void purgeDemoDataIfReplaced_refuse_si_aucune_donnee_non_demo() {
+        final FakeDirectory directory = new FakeDirectory();
+        directory.upsert(new FacilityImportRecord(
+                "demo-src", "demo-1", "Hôpital DEMO", "+2252722481000",
+                5.35, -4.0, Set.of("emergency"), DataStatus.DEMO, null, "resp"));
+        final FacilityImportService service =
+                new FacilityImportService(directory, knownServices, true);
+
+        // Lot entièrement rejeté (hors zone d'Abidjan) : rien d'accepté.
+        final ImportReport report = service.importDirectory(List.of(
+                valid("a", "Hôpital hors zone", 0.0, 0.0, DataStatus.VERIFIED)));
+        final boolean purged = service.purgeDemoDataIfReplaced();
+
+        assertThat(report.inserted()).isZero();
+        assertThat(purged).as("import raté -> purge refusée").isFalse();
+        assertThat(directory.hasDemoData()).as("la démo survit à un import raté").isTrue();
     }
 }

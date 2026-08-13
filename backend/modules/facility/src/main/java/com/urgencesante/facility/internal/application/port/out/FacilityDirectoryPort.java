@@ -13,4 +13,15 @@ public interface FacilityDirectoryPort {
 
     /** Vrai si des données de démonstration (fictives) sont présentes. */
     boolean hasDemoData();
+
+    /** Vrai si au moins un établissement non-démo (VERIFIED ou PROVISIONAL) existe. */
+    boolean hasNonDemoData();
+
+    /**
+     * Purge les données de démonstration (fictives). Appelant : voir
+     * {@code FacilityImportRunner}, qui n'appelle cette méthode QU'après avoir
+     * confirmé {@link #hasNonDemoData()} — ne jamais purger sans donnée de
+     * remplacement, sous peine de vider l'annuaire.
+     */
+    void purgeDemoData();
 }

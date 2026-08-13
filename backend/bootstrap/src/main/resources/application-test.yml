@@ -2,3 +2,11 @@
 spring:
   main:
     banner-mode: "off"
+
+# routing.osrm.base-url n'a plus de défaut (issue #126) : les tests démarrant
+# le contexte complet (@SpringBootTest) ont besoin d'une valeur pour que le
+# bean osrmRestClient se construise. `.invalid` est un TLD réservé (RFC 2606) —
+# ne résout JAMAIS : aucun test ne doit dépendre d'un appel réseau réel à OSRM.
+routing:
+  osrm:
+    base-url: http://osrm.test.invalid
