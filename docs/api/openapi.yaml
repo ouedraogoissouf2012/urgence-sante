@@ -458,11 +458,12 @@ components:
       name: page
       in: query
       required: false
-      description: Index de page, à partir de 0.
+      description: Index de page, à partir de 0 (plafonné à 10000 — pagination profonde refusée).
       schema:
         type: integer
         format: int32
         minimum: 0
+        maximum: 10000
         default: 0
     SizeParam:
       name: size
