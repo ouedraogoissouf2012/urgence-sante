@@ -30,6 +30,10 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   testing_support:
     path: ../../packages/testing_support
+  # Interception d'ApiClient.client (MockClient) pour vérifier le vrai en-tête
+  # HTTP envoyé par ApiPortalRepository — pas seulement un mock du ViewModel
+  # (issue #163).
+  http: ^1.6.0
 
 flutter:
   uses-material-design: true

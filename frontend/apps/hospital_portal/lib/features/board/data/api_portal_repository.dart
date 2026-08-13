@@ -2,6 +2,7 @@ import 'package:api_client/api.dart';
 
 import '../domain/model/facility_summary.dart';
 import '../domain/model/service_line.dart';
+import '../domain/portal_auth_exception.dart';
 import '../domain/repository/portal_repository.dart';
 
 /// Adaptateur API du portail : fusionne catalogue et disponibilité, sans
@@ -60,16 +61,34 @@ class ApiPortalRepository implements PortalRepository {
     required ServiceLine line,
     required String status,
   }) async {
-    final ServiceAvailability? updated = await _availabilityApi.updateAvailability(
-      facilityId,
-      line.serviceCode,
-      UpdateAvailabilityRequest(status: AvailabilityStatus.fromJson(status)!),
-    );
-    return line.withUpdate(
-      status: updated?.status.value ?? status,
-      freshness: updated?.freshness.value,
-      updatedAt: updated?.updatedAt ?? DateTime.now().toUtc(),
-    );
+    try {
+      final ServiceAvailability? updated = await _availabilityApi.updateAvailability(
+        facilityId,
+        line.serviceCode,
+        UpdateAvailabilityRequest(status: AvailabilityStatus.fromJson(status)!),
+      );
+      return line.withUpdate(
+        status: updated?.status.value ?? status,
+        freshness: updated?.freshness.value,
+        updatedAt: updated?.updatedAt ?? DateTime.now().toUtc(),
+      );
+    } on ApiException catch (error) {
+      // Seule cette écriture est protégée côté serveur (PortalSecurityInterceptor
+      // ne garde que PUT) : 401 = jeton absent/invalide/révoqué (permanent tant
+      // qu'un nouveau jeton n'est pas fourni), 403 = jeton valide mais agent hors
+      // de la portée de cet établissement. Les deux sont des refus définitifs,
+      // pas des pannes réseau — distingués ici pour que le ViewModel ne les
+      // traite pas comme transitoires (issue #163). Toute autre erreur (réseau,
+      // 5xx, …) est propagée telle quelle : `rethrow` conserve la pile d'appel
+      // d'origine, contrairement à un nouveau `throw error`.
+      if (error.code == 401) {
+        throw const PortalAuthException(PortalAuthFailure.unauthenticated);
+      }
+      if (error.code == 403) {
+        throw const PortalAuthException(PortalAuthFailure.forbidden);
+      }
+      rethrow;
+    }
   }
 
   @override

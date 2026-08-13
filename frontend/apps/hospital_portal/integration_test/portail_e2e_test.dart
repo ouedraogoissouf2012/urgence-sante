@@ -8,6 +8,8 @@ import 'package:hospital_portal/features/board/domain/model/service_line.dart';
 import 'package:hospital_portal/features/board/domain/repository/portal_repository.dart';
 import 'package:integration_test/integration_test.dart';
 
+import '../test/support/fake_token_store.dart';
+
 /// Test E2E NAVIGATEUR du portail hospitalier (moteur web réel) :
 /// accès agent → sélection établissement → tableau des services →
 /// mise à jour d'un statut (horodatée) → consultation de l'historique.
@@ -55,7 +57,10 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(600, 1000));
 
     await tester.pumpWidget(ProviderScope(
-      overrides: [portalRepositoryProvider.overrideWithValue(repo)],
+      overrides: [
+        tokenStoreProvider.overrideWithValue(FakeTokenStore('test-operator-token')),
+        portalRepositoryProvider.overrideWithValue(repo),
+      ],
       child: const PortalApp(),
     ));
     await tester.pumpAndSettle();

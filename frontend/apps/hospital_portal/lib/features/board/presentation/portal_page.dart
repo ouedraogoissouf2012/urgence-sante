@@ -17,9 +17,28 @@ class PortalPage extends ConsumerWidget {
     final PortalState state = ref.watch(portalViewModelProvider);
     final PortalViewModel viewModel = ref.read(portalViewModelProvider.notifier);
 
+    // Échec ponctuel d'une mise à jour (403, panne réseau…) : bandeau
+    // temporaire, sans quitter le tableau (issue #163 — avant, c'était
+    // invisible). `clearUpdateError` au début de chaque tentative garantit
+    // que ce listener se redéclenche même pour un message identique au
+    // précédent (transition par `null` entre deux tentatives).
+    ref.listen<PortalState>(portalViewModelProvider, (previous, next) {
+      final String? message = next.updateError;
+      if (message != null && message != previous?.updateError) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text(state.selectedFacility?.name ?? 'Portail hospitalier'),
+        actions: [
+          IconButton(
+            tooltip: 'Se déconnecter',
+            icon: const Icon(Icons.logout),
+            onPressed: viewModel.logout,
+          ),
+        ],
       ),
       body: switch (state.phase) {
         PortalPhase.loadingFacilities =>
@@ -46,7 +65,7 @@ class PortalPage extends ConsumerWidget {
         const Text('Accès agent — démonstration', style: AppTypography.title),
         const SizedBox(height: AppSpacing.xs),
         const Text(
-          'Sélectionnez votre établissement (authentification à venir).',
+          'Sélectionnez votre établissement.',
           style: AppTypography.caption,
         ),
         const SizedBox(height: AppSpacing.md),

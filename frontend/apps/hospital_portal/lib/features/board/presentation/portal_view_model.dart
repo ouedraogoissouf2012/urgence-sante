@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../di/providers.dart';
 import '../domain/model/facility_summary.dart';
 import '../domain/model/service_line.dart';
+import '../domain/portal_auth_exception.dart';
 import '../domain/repository/portal_repository.dart';
 import 'portal_state.dart';
 
@@ -56,7 +59,7 @@ class PortalViewModel extends Notifier<PortalState> {
     if (facility == null || state.updatingServiceCode != null) {
       return;
     }
-    state = state.copyWith(updatingServiceCode: line.serviceCode);
+    state = state.copyWith(updatingServiceCode: line.serviceCode, clearUpdateError: true);
     try {
       final updated = await _repository.updateStatus(
         facilityId: facility.id,
@@ -70,10 +73,25 @@ class PortalViewModel extends Notifier<PortalState> {
         ],
         clearUpdating: true,
       );
+    } on PortalAuthException catch (error) {
+      state = state.copyWith(clearUpdating: true);
+      switch (error.failure) {
+        case PortalAuthFailure.unauthenticated:
+          // Jeton absent/invalide/révoqué : rien à réessayer ici, l'agent doit
+          // se reconnecter. Même chemin que le bouton de déconnexion (voir
+          // logout()) : la porte d'authentification (PortalApp) bascule
+          // automatiquement vers l'écran de connexion.
+          await logout();
+        case PortalAuthFailure.forbidden:
+          // Jeton valide : l'agent reste sur le tableau, message ciblé.
+          state = state.copyWith(
+            updateError: "Cet agent n'est pas autorisé sur cet établissement.",
+          );
+      }
     } on Exception {
       state = state.copyWith(
         clearUpdating: true,
-        errorMessage: 'La mise à jour a échoué. Réessayez.',
+        updateError: 'La mise à jour a échoué. Réessayez.',
       );
     }
   }
@@ -91,5 +109,25 @@ class PortalViewModel extends Notifier<PortalState> {
   Future<void> retry() {
     final facility = state.selectedFacility;
     return facility == null ? loadFacilities() : enter(facility);
+  }
+
+  /// Déconnecte l'agent : efface le jeton, fait basculer la porte
+  /// d'authentification vers l'écran de connexion, ET repart d'un tableau
+  /// vierge (portalViewModelProvider n'est pas `.autoDispose` : sans cette
+  /// ré-initialisation explicite, un poste partagé afficherait encore
+  /// l'établissement et les lignes de service de l'agent précédent au agent
+  /// suivant qui se connecte). `ref.invalidate(portalViewModelProvider)` est
+  /// impossible ici : Riverpod interdit explicitement à un provider de
+  /// s'invalider lui-même (assertion « A provider cannot depend on itself »,
+  /// constatée en test réel) — d'où la réinitialisation manuelle, qui
+  /// reproduit `build()`.
+  Future<void> logout() async {
+    await ref.read(tokenStoreProvider).clear();
+    ref.invalidate(sessionTokenProvider);
+    state = const PortalState();
+    // Volontairement non attendu (même choix que build(), qui ne peut pas
+    // await) : logout() n'a pas besoin d'attendre le rechargement pour
+    // rendre la main à la porte d'authentification.
+    unawaited(Future.microtask(loadFacilities));
   }
 }

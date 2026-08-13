@@ -28,6 +28,7 @@ class PortalState {
     this.lines = const [],
     this.updatingServiceCode,
     this.errorMessage,
+    this.updateError,
   });
 
   final PortalPhase phase;
@@ -37,7 +38,15 @@ class PortalState {
 
   /// Service en cours de mise à jour (désactive ses contrôles).
   final String? updatingServiceCode;
+
+  /// Message plein écran (phase [PortalPhase.error]).
   final String? errorMessage;
+
+  /// Échec ponctuel d'une mise à jour de statut, affiché en superposition
+  /// (bandeau) SANS quitter le tableau — distinct de [errorMessage], qui
+  /// remplace tout l'écran. Voir issue #163 : avant, un tel échec ne
+  /// produisait AUCUN signal visible.
+  final String? updateError;
 
   PortalState copyWith({
     PortalPhase? phase,
@@ -46,7 +55,9 @@ class PortalState {
     List<ServiceLine>? lines,
     String? updatingServiceCode,
     String? errorMessage,
+    String? updateError,
     bool clearUpdating = false,
+    bool clearUpdateError = false,
   }) {
     return PortalState(
       phase: phase ?? this.phase,
@@ -56,6 +67,7 @@ class PortalState {
       updatingServiceCode:
           clearUpdating ? null : (updatingServiceCode ?? this.updatingServiceCode),
       errorMessage: errorMessage ?? this.errorMessage,
+      updateError: clearUpdateError ? null : (updateError ?? this.updateError),
     );
   }
 }
