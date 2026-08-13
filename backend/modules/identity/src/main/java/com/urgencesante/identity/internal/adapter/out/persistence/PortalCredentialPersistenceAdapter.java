@@ -1,7 +1,9 @@
 package com.urgencesante.identity.internal.adapter.out.persistence;
 
+import com.urgencesante.identity.internal.adapter.out.persistence.entity.PortalCredentialJpaEntity;
 import com.urgencesante.identity.internal.adapter.out.persistence.repository.PortalCredentialSpringRepository;
 import com.urgencesante.identity.internal.application.port.out.LoadCredentialPort;
+import com.urgencesante.identity.internal.application.port.out.SaveCredentialPort;
 import com.urgencesante.identity.internal.domain.model.PortalCredential;
 import java.util.Objects;
 import java.util.Optional;
@@ -9,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 /** Adaptateur de persistance des identifiants du portail. */
 @Component
-class PortalCredentialPersistenceAdapter implements LoadCredentialPort {
+class PortalCredentialPersistenceAdapter implements LoadCredentialPort, SaveCredentialPort {
 
     private final PortalCredentialSpringRepository repository;
 
@@ -21,5 +23,10 @@ class PortalCredentialPersistenceAdapter implements LoadCredentialPort {
     public Optional<PortalCredential> findActiveByTokenHash(String tokenHash) {
         return repository.findByTokenHashAndActiveIsTrue(tokenHash)
                 .map(entity -> entity.toDomain());
+    }
+
+    @Override
+    public void save(PortalCredential credential) {
+        repository.save(PortalCredentialJpaEntity.fromDomain(credential));
     }
 }
