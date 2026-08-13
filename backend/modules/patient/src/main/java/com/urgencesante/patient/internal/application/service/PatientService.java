@@ -41,6 +41,16 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
     private final Clock clock;
     private final Supplier<UUID> idGenerator;
 
+    /**
+     * Empreinte factice (calculée une fois, coût BCrypt identique à une vraie
+     * empreinte) : contre l'énumération de comptes par timing (audit P3
+     * #140). Sans elle, {@link #login} ne comparait via BCrypt (~100 ms) QUE
+     * si le compte existait — un compte inconnu échouait en microsecondes,
+     * rendant l'existence d'un numéro observable par la seule latence de la
+     * réponse, malgré un message d'erreur unique.
+     */
+    private final String dummyPasswordHash;
+
     public PatientService(
             LoadPatientPort loadPatient,
             SavePatientPort savePatient,
@@ -56,6 +66,7 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
         this.transactionPort = Objects.requireNonNull(transactionPort);
         this.clock = Objects.requireNonNull(clock);
         this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.dummyPasswordHash = passwordHasher.hash("mot-de-passe-factice-comparaison-a-temps-constant");
     }
 
     @Override
@@ -65,6 +76,8 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
 
         // Contrôle applicatif ; la contrainte d'unicité en base reste le dernier
         // rempart contre une course entre deux inscriptions simultanées.
+        // Impasse latente si une désactivation existe un jour (aucune
+        // aujourd'hui) : voir Javadoc de LoadPatientPort#existsByPhone.
         if (loadPatient.existsByPhone(phone)) {
             throw new PhoneAlreadyRegisteredException();
         }
@@ -92,11 +105,14 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
         }
 
         final Optional<PatientAccount> found = loadPatient.findByPhone(phone);
-        // Message unique quel que soit le motif (compte inconnu, inactif, mot de
-        // passe faux) : on ne divulgue pas l'existence d'un compte.
-        if (found.isEmpty()
-                || !found.get().active()
-                || !passwordHasher.matches(command.password(), found.get().passwordHash())) {
+        // Comparaison BCrypt INCONDITIONNELLE (temps constant) : que le compte
+        // existe ou non, actif ou non, le même travail cryptographique est
+        // effectué avant de conclure. Message unique quel que soit le motif
+        // (compte inconnu, inactif, mot de passe faux) : on ne divulgue pas
+        // l'existence d'un compte, ni par le message ni par la latence.
+        final String hashToCompare = found.map(PatientAccount::passwordHash).orElse(dummyPasswordHash);
+        final boolean passwordMatches = passwordHasher.matches(command.password(), hashToCompare);
+        if (found.isEmpty() || !found.get().active() || !passwordMatches) {
             throw new InvalidCredentialsException();
         }
 

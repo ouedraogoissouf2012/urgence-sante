@@ -150,6 +150,33 @@ class PatientServiceTest {
                 .isInstanceOf(InvalidCredentialsException.class);
     }
 
+    @Test
+    void connexion_compare_toujours_un_mot_de_passe_meme_si_le_compte_est_inconnu() {
+        // Anti-énumération par timing (audit P3 #140) : si la comparaison
+        // BCrypt (coûteuse) n'a lieu QUE pour un compte existant, la latence
+        // de la réponse révèle à elle seule si un numéro est enregistré,
+        // même avec un message d'erreur unique. La comparaison doit donc
+        // avoir lieu à CHAQUE tentative, compte existant ou non.
+        assertThatThrownBy(() ->
+                service.login(new LoginCommand("+2250909090909", "PeuImporte1")))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        assertThat(hasher.matchesCallCount).isEqualTo(1);
+    }
+
+    @Test
+    void connexion_compare_toujours_un_mot_de_passe_meme_pour_un_compte_inactif() {
+        service.register(new RegisterPatientCommand("+2250102030405", "Secret123"));
+        patients.deactivate(PhoneNumber.of("+2250102030405"));
+        hasher.matchesCallCount = 0;
+
+        assertThatThrownBy(() ->
+                service.login(new LoginCommand("+2250102030405", "Secret123")))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        assertThat(hasher.matchesCallCount).isEqualTo(1);
+    }
+
     // ── Faux ports (substituables — LSP) ─────────────────────────────────────
 
     private static final class InMemoryPatients implements LoadPatientPort, SavePatientPort {
@@ -187,8 +214,12 @@ class PatientServiceTest {
      * Faux hachage : ne stocke pas le clair (comme BCrypt), mais reste
      * vérifiable par {@link #matches}. On encode l'empreinte du hashCode, ce
      * qui suffit au déterminisme des tests sans exposer le mot de passe.
+     * Compte les appels à {@link #matches} : sert à prouver qu'une
+     * comparaison a bien lieu même pour un compte inconnu (temps constant).
      */
     private static final class FakePasswordHasher implements PasswordHasherPort {
+        int matchesCallCount;
+
         @Override
         public String hash(String rawPassword) {
             return "bcrypt$" + Integer.toHexString(rawPassword.hashCode());
@@ -196,6 +227,7 @@ class PatientServiceTest {
 
         @Override
         public boolean matches(String rawPassword, String passwordHash) {
+            matchesCallCount++;
             return hash(rawPassword).equals(passwordHash);
         }
     }
