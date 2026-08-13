@@ -30,9 +30,18 @@ class MedicalProfileViewModel extends Notifier<MedicalProfileState> {
   }
 
   /// Enregistre la fiche sur l'appareil et met l'état à jour.
-  Future<void> save(MedicalProfile profile) async {
-    await _store.save(profile);
+  ///
+  /// Retourne `false` si l'écriture a échoué : l'état n'est alors PAS mis à
+  /// jour (l'ancienne fiche reste affichée) et l'appelant doit avertir
+  /// l'utilisateur — un échec ne doit jamais être silencieux (issue #140).
+  Future<bool> save(MedicalProfile profile) async {
+    try {
+      await _store.save(profile);
+    } on Exception {
+      return false;
+    }
     state = state.copyWith(phase: MedicalProfilePhase.ready, profile: profile);
+    return true;
   }
 
   /// Efface la fiche de l'appareil.

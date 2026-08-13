@@ -28,6 +28,7 @@ class _MedicalProfileFormPageState
   final _notes = TextEditingController();
   BloodType? _bloodType;
   bool _initialised = false;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -59,18 +60,35 @@ class _MedicalProfileFormPageState
     return text.isEmpty ? null : text;
   }
 
+  /// Protégé contre le double-tap : un appui supplémentaire pendant une
+  /// sauvegarde en cours est ignoré (bouton aussi désactivé visuellement).
+  ///
+  /// Un échec d'écriture n'est jamais silencieux : la page ne se ferme QUE
+  /// si la sauvegarde a réussi, sinon un SnackBar prévient l'utilisateur que
+  /// rien n'a été enregistré (issue #140).
   Future<void> _save() async {
-    await ref.read(medicalProfileViewModelProvider.notifier).save(MedicalProfile(
-          fullName: _trimmedOrNull(_fullName),
-          bloodType: _bloodType,
-          allergies: _trimmedOrNull(_allergies),
-          conditions: _trimmedOrNull(_conditions),
-          treatments: _trimmedOrNull(_treatments),
-          emergencyContactName: _trimmedOrNull(_contactName),
-          emergencyContactPhone: _trimmedOrNull(_contactPhone),
-          notes: _trimmedOrNull(_notes),
-        ));
-    if (mounted) Navigator.of(context).pop();
+    if (_saving) return;
+    setState(() => _saving = true);
+    final bool saved =
+        await ref.read(medicalProfileViewModelProvider.notifier).save(MedicalProfile(
+              fullName: _trimmedOrNull(_fullName),
+              bloodType: _bloodType,
+              allergies: _trimmedOrNull(_allergies),
+              conditions: _trimmedOrNull(_conditions),
+              treatments: _trimmedOrNull(_treatments),
+              emergencyContactName: _trimmedOrNull(_contactName),
+              emergencyContactPhone: _trimmedOrNull(_contactPhone),
+              notes: _trimmedOrNull(_notes),
+            ));
+    if (!mounted) return;
+    if (saved) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Échec de l'enregistrement. Réessayez.")),
+    );
   }
 
   @override
@@ -159,8 +177,14 @@ class _MedicalProfileFormPageState
 
             const SizedBox(height: AppSpacing.xl),
             FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save_outlined),
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      height: AppSizing.iconMarker / 2,
+                      width: AppSizing.iconMarker / 2,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
           ],
