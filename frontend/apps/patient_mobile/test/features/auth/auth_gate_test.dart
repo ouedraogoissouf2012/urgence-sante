@@ -5,6 +5,7 @@ import 'package:patient_mobile/app/patient_app.dart';
 import 'package:patient_mobile/core/consent/consent_store.dart';
 import 'package:patient_mobile/core/location/location_service.dart';
 import 'package:patient_mobile/di/providers.dart';
+import 'package:patient_mobile/features/auth/domain/auth_failure.dart';
 import 'package:patient_mobile/features/auth/domain/auth_repository.dart';
 import 'package:patient_mobile/features/emergency_taxonomy/domain/model/emergency_category.dart';
 import 'package:patient_mobile/features/emergency_taxonomy/domain/repository/emergency_taxonomy_repository.dart';
@@ -205,5 +206,36 @@ void main() {
 
     expect(find.text('Le mot de passe doit contenir au moins 8 caractères.'),
         findsNothing);
+  });
+
+  testWidgets(
+      "reprendre la saisie efface le message d'erreur serveur (InfoCard)",
+      (tester) async {
+    final auth = FakeAuthRepository()
+      ..failWith = const AuthException(
+          AuthFailure.invalidInput,
+          'Vérifiez le numéro (format international) et le mot de passe '
+              '(8 caractères minimum).');
+    await tester.pumpWidget(
+        _app(session: SessionStoreProvider.empty(), auth: auth));
+    await tester.pumpAndSettle();
+
+    // Saisie valide localement (mot de passe ≥ 8) : la requête part et échoue
+    // côté serveur, ce qui affiche l'InfoCard globale.
+    await tester.enterText(find.byType(TextField).first, '+2250102030405');
+    await tester.enterText(find.byType(TextField).last, 'MotDePasse2026');
+    final submit = find.widgetWithText(FilledButton, 'S\'inscrire');
+    await tester.scrollUntilVisible(submit, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text('Impossible de continuer'), findsOneWidget);
+
+    // Dès que l'utilisateur reprend la saisie, le message obsolète disparaît —
+    // sans attendre une nouvelle tentative (défaut observé sur les captures).
+    await tester.enterText(find.byType(TextField).first, '+2250102030406');
+    await tester.pump();
+
+    expect(find.text('Impossible de continuer'), findsNothing);
   });
 }
