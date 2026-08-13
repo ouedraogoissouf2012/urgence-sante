@@ -22,6 +22,24 @@ import java.util.Set;
  * proches), puis inséré ou mis à jour par sa clé naturelle — rejouer le même
  * lot ne crée pas de doublon. En profil production, les données DÉMO (fictives)
  * sont refusées : elles ne peuvent pas être chargées.
+ *
+ * <p><b>Le lot n'est PAS atomique</b> : chaque enregistrement accepté est
+ * persisté par son propre appel à {@link FacilityDirectoryPort#upsert}
+ * (transaction indépendante côté adaptateur), traité séquentiellement dans la
+ * boucle ci-dessous. Si le traitement s'interrompt en cours de lot (exception,
+ * perte de connexion base, processus tué), les enregistrements déjà upsertés
+ * RESTENT commités ; ceux non encore atteints ne sont simplement pas traités —
+ * c'est une <b>progression partielle</b>, assumée plutôt que cachée derrière
+ * une fausse promesse d'atomicité globale.
+ *
+ * <p>C'est acceptable, et même sans conséquence opérationnelle, PARCE QUE
+ * chaque enregistrement est individuellement idempotent (upsert par clé
+ * naturelle {@code source}/{@code external_ref}, voir {@link
+ * FacilityDirectoryPort#upsert}) : <b>rejouer le lot COMPLET</b> après une
+ * interruption ne crée aucun doublon — les enregistrements déjà appliqués
+ * redeviennent des mises à jour no-op (mêmes valeurs), et ceux manqués sont
+ * appliqués à leur tour. La réparation d'une progression partielle est donc
+ * un simple rejeu du lot d'origine, pas une procédure de reprise dédiée.
  */
 public class FacilityImportService implements ImportFacilitiesUseCase {
 
