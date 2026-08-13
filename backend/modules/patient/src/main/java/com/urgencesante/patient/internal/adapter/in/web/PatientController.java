@@ -7,10 +7,15 @@ import com.urgencesante.patient.internal.application.command.LoginCommand;
 import com.urgencesante.patient.internal.application.command.RegisterPatientCommand;
 import com.urgencesante.patient.internal.application.port.in.AuthenticatePatientUseCase;
 import com.urgencesante.patient.internal.application.port.in.RegisterPatientUseCase;
+import com.urgencesante.patient.internal.application.port.in.RevokePatientSessionUseCase;
 import com.urgencesante.patient.internal.application.result.PatientSession;
+import com.urgencesante.patient.internal.domain.exception.PatientValidationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,12 +32,15 @@ public class PatientController {
 
     private final RegisterPatientUseCase registerPatient;
     private final AuthenticatePatientUseCase authenticatePatient;
+    private final RevokePatientSessionUseCase revokeSession;
 
     public PatientController(
             RegisterPatientUseCase registerPatient,
-            AuthenticatePatientUseCase authenticatePatient) {
+            AuthenticatePatientUseCase authenticatePatient,
+            RevokePatientSessionUseCase revokeSession) {
         this.registerPatient = registerPatient;
         this.authenticatePatient = authenticatePatient;
+        this.revokeSession = revokeSession;
     }
 
     /**
@@ -54,5 +62,34 @@ public class PatientController {
         final PatientSession session = authenticatePatient.login(
                 new LoginCommand(request.phone(), request.password()));
         return new PatientSessionResponse(session.patientId(), session.token());
+    }
+
+    /**
+     * Révocation (déconnexion) : invalide le jeton présenté avant son
+     * expiration naturelle (audit P3 #140). Idempotent — un jeton déjà
+     * révoqué, expiré ou inconnu renvoie aussi 204.
+     */
+    @DeleteMapping("/session")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeSession(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+        // required = false : un en-tête absent doit passer par bearerToken()
+        // ci-dessous (400 "Requête invalide", cohérent avec le reste du
+        // contrôleur) plutôt que par MissingRequestHeaderException, que ni
+        // PatientExceptionHandler ni le filet de dernier recours (#140 pt. 4)
+        // ne mappent explicitement en 400.
+        revokeSession.revoke(bearerToken(authorization));
+    }
+
+    /** Extraction du jeton porteur (même convention que le portail hospitalier). */
+    private static String bearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            throw new PatientValidationException("En-tête Authorization: Bearer <jeton> requis");
+        }
+        final String token = authorizationHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            throw new PatientValidationException("En-tête Authorization: Bearer <jeton> requis");
+        }
+        return token;
     }
 }

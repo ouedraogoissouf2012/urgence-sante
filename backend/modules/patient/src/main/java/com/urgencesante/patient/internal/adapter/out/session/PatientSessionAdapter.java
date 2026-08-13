@@ -62,6 +62,14 @@ public class PatientSessionAdapter implements PatientSessionPort {
     }
 
     @Override
+    public void revoke(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return;
+        }
+        repository.deleteByTokenHash(TokenHasher.sha256Hex(rawToken.trim()));
+    }
+
+    @Override
     public int purgeExpired() {
         return repository.deleteByExpiresAtBefore(clock.instant());
     }

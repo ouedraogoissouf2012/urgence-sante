@@ -4,6 +4,7 @@ import com.urgencesante.patient.internal.application.command.LoginCommand;
 import com.urgencesante.patient.internal.application.command.RegisterPatientCommand;
 import com.urgencesante.patient.internal.application.port.in.AuthenticatePatientUseCase;
 import com.urgencesante.patient.internal.application.port.in.RegisterPatientUseCase;
+import com.urgencesante.patient.internal.application.port.in.RevokePatientSessionUseCase;
 import com.urgencesante.patient.internal.application.port.out.LoadPatientPort;
 import com.urgencesante.patient.internal.application.port.out.PasswordHasherPort;
 import com.urgencesante.patient.internal.application.port.out.PatientSessionPort;
@@ -28,7 +29,8 @@ import java.util.function.Supplier;
  * uniquement de ports — donc testable en isolation avec des faux. L'{@code id}
  * et l'horloge sont injectés (déterminisme des tests).
  */
-public class PatientService implements RegisterPatientUseCase, AuthenticatePatientUseCase {
+public class PatientService
+        implements RegisterPatientUseCase, AuthenticatePatientUseCase, RevokePatientSessionUseCase {
 
     /** Longueur minimale d'un mot de passe (borne serveur, non négociable). */
     static final int MIN_PASSWORD_LENGTH = 8;
@@ -118,6 +120,11 @@ public class PatientService implements RegisterPatientUseCase, AuthenticatePatie
 
         final UUID patientId = found.get().id();
         return new PatientSession(patientId, sessions.issueToken(patientId));
+    }
+
+    @Override
+    public void revoke(String rawToken) {
+        sessions.revoke(rawToken);
     }
 
     private static void validatePassword(String password) {

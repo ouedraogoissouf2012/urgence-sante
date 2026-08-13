@@ -2,3 +2,16 @@
 spring:
   main:
     banner-mode: "off"
+
+# Le rate-limiter anti-abus (10/min par défaut, pensé pour la production) n'a
+# rien à voir avec ce que les tests d'intégration vérifient : une classe de
+# test @SpringBootTest partage UN SEUL contexte (donc UN SEUL RateLimiter,
+# état cumulé) entre toutes ses méthodes — au-delà d'une poignée
+# d'inscriptions/connexions dans la même classe, le budget de production
+# s'épuise et des tests plus tard dans la classe échouent en 429, sans rapport
+# avec ce qu'ils vérifient (audit P3 #140, découvert en ajoutant les tests de
+# révocation de session).
+security:
+  patient:
+    rate:
+      per-ip: 1000

@@ -177,6 +177,16 @@ class PatientServiceTest {
         assertThat(hasher.matchesCallCount).isEqualTo(1);
     }
 
+    // ── Révocation ──────────────────────────────────────────────────────────
+
+    @Test
+    void revocation_delegue_au_port_de_sessions_avec_le_meme_jeton() {
+        service.revoke("un-jeton-quelconque");
+
+        assertThat(operations).contains("revoke");
+        assertThat(sessions.lastRevokedToken).isEqualTo("un-jeton-quelconque");
+    }
+
     // ── Faux ports (substituables — LSP) ─────────────────────────────────────
 
     private static final class InMemoryPatients implements LoadPatientPort, SavePatientPort {
@@ -234,6 +244,7 @@ class PatientServiceTest {
 
     private static final class FakeSessions implements PatientSessionPort {
         private final List<String> operations;
+        String lastRevokedToken;
 
         FakeSessions(List<String> operations) {
             this.operations = operations;
@@ -248,6 +259,12 @@ class PatientServiceTest {
         @Override
         public Optional<UUID> resolvePatient(String rawToken) {
             return Optional.empty(); // non sollicité par les tests du service
+        }
+
+        @Override
+        public void revoke(String rawToken) {
+            operations.add("revoke");
+            lastRevokedToken = rawToken;
         }
 
         @Override

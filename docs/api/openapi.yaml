@@ -435,6 +435,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [Patients]
+      operationId: revokePatientSession
+      summary: Révocation (déconnexion) de la session patient courante
+      description: >-
+        Invalide immédiatement le jeton présenté, avant son expiration
+        naturelle (90 jours par défaut). Idempotent : un jeton déjà révoqué,
+        expiré ou inconnu ne produit pas d'erreur (même réponse 204).
+      security:
+        - patientBearer: []
+      responses:
+        '204':
+          description: Session révoquée (ou déjà absente/expirée).
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
 components:
   securitySchemes:
@@ -451,8 +466,8 @@ components:
       scheme: bearer
       description: >-
         Jeton porteur de session patient, obtenu à l'inscription ou à la
-        connexion. Destiné aux futurs endpoints authentifiés du patient
-        (aucun en Lot 1 : les données médicales restent sur l'appareil).
+        connexion. Requis pour la révocation de session ; les autres endpoints
+        patient restent publics (les données médicales restent sur l'appareil).
   parameters:
     PageParam:
       name: page

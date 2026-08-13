@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -146,5 +149,54 @@ class PatientApiIntegrationTest extends AbstractPostgisIntegrationTest {
                 Map.class);
 
         assertThat(register.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void revoque_la_session_courante_avant_son_expiration_naturelle() {
+        // Audit P3 #140, point 8 : jusqu'ici, un jeton volé restait valide
+        // jusqu'à 90 jours, sans aucun moyen de le révoquer plus tôt.
+        final ResponseEntity<Map> register = rest.postForEntity(
+                "/api/v1/patients",
+                Map.of("phone", "+2250102030405", "password", "MotDePasse2026"),
+                Map.class);
+        final String token = (String) register.getBody().get("token");
+        assertThat(count("patient_session")).isEqualTo(1);
+
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        final ResponseEntity<Void> revoke = rest.exchange(
+                "/api/v1/patients/session", HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+
+        assertThat(revoke.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        // La session a bien disparu de la base — pas seulement une réponse 204
+        // de façade.
+        assertThat(count("patient_session")).isZero();
+    }
+
+    @Test
+    void revoquer_un_jeton_deja_revoque_reste_sans_erreur_204() {
+        // Idempotence explicite : un logout rejoué (double-clic, réessai
+        // réseau) ne doit jamais échouer.
+        final ResponseEntity<Map> register = rest.postForEntity(
+                "/api/v1/patients",
+                Map.of("phone", "+2250102030405", "password", "MotDePasse2026"),
+                Map.class);
+        final String token = (String) register.getBody().get("token");
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        rest.exchange("/api/v1/patients/session", HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+
+        final ResponseEntity<Void> secondRevoke = rest.exchange(
+                "/api/v1/patients/session", HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+
+        assertThat(secondRevoke.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void revocation_sans_en_tete_authorization_est_refusee_400() {
+        final ResponseEntity<Map> revoke = rest.exchange(
+                "/api/v1/patients/session", HttpMethod.DELETE, null, Map.class);
+
+        assertThat(revoke.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }
