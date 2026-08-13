@@ -91,9 +91,10 @@ Au-delà du simple CRUD, le socle porte des garanties de niveau production :
   tests e2e du parcours patient **et** du parcours agent dans le navigateur
   (Chrome), APK de démonstration téléchargeable (#48, #16).
 
-> Note : `audit` et `notification` sont encore à l'état de squelette
-> (1 fichier chacun) — conformes à leur statut « hors périmètre / phase
-> ultérieure » du Lot 1.
+> Note : `audit` consomme désormais réellement `AvailabilityUpdated` et
+> persiste une trace (issue #136, ADR-006). `notification` reste à l'état de
+> squelette (1 fichier) — aucun besoin métier concret ne justifie encore d'y
+> construire une infrastructure.
 
 ---
 

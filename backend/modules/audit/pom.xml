@@ -21,5 +21,31 @@
             <groupId>com.urgencesante</groupId>
             <artifactId>building-blocks</artifactId>
         </dependency>
+        <!-- API publique consommée : l'événement AvailabilityUpdated (aucun accès à
+             l'internal du module). Audit ne consomme QUE des événements (voir
+             docs/architecture/MODULE_DEPENDENCIES.md) — jamais appelé directement. -->
+        <dependency>
+            <groupId>com.urgencesante</groupId>
+            <artifactId>availability</artifactId>
+        </dependency>
+
+        <!-- Adaptateur de persistance de la trace d'audit. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <!-- Compteur d'échecs d'enregistrement (même usage que routing/OsrmRouteProvider) :
+             sans reprise automatique (voir ADR-006), une alerte reste le seul filet. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Tests : domaine, application et adaptateurs (JUnit + Mockito). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

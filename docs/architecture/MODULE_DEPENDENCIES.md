@@ -6,6 +6,15 @@ Une case autorisée signifie qu’un module peut dépendre uniquement de l’API
 publique du module cible. Elle n’autorise jamais l’accès à son package
 `internal`, ses entités JPA ou ses repositories techniques.
 
+Les cases « événements » sont un cas particulier : elles décrivent un flux
+d’événements (ligne = émetteur, colonne = abonné), pas une dépendance de
+compilation au sens « ligne dépend de colonne ». Un émetteur (ex. `facility`)
+n’a besoin d’aucune dépendance Maven vers `audit` pour publier un événement —
+c’est l’abonné qui dépend, à la compilation, de l’API publique de l’émetteur
+pour importer le type d’événement (ex. `audit` dépend de `availability` pour
+`AvailabilityUpdated`, voir ADR-006). Les cases « événements » symétriques
+(ex. lignes `availability`↔`audit`) ne constituent donc pas un cycle.
+
 | Source | facility | medical-service | availability | routing | identity | audit | notification |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | facility | — | non | non | non | non | événements | non |
@@ -14,7 +23,7 @@ publique du module cible. Elle n’autorise jamais l’accès à son package
 | routing | non | non | non | — | non | événements | non |
 | orientation | API | API | API | API | non | événements | non |
 | identity | non | non | non | non | — | événements | événements |
-| audit | non | non | non | non | non | — | non |
+| audit | non | non | événements | non | non | — | non |
 | notification | non | non | non | non | non | événements | — |
 
 ## Règles
