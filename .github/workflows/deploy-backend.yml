@@ -4,8 +4,14 @@
 # À chaque évolution du backend sur main (ou à la demande), ce workflow se
 # connecte au VPS et met l'API à jour de façon déterministe :
 #   1. aligne le dépôt du VPS sur l'état exact de `origin/main` ;
-#   2. reconstruit et relance les conteneurs (docker compose --build) ;
-#   3. vérifie que l'API repasse « UP » (/actuator/health) — sinon échec.
+#   2. construit une image TAGGÉE par commit (docker compose build) ;
+#   3. démarre cette image et vérifie que l'API repasse « UP »
+#      (/actuator/health) ;
+#   4. si l'API ne repasse pas UP (y compris si Flyway échoue à appliquer une
+#      migration — transactionnel côté PostgreSQL, donc jamais de schéma à
+#      moitié appliqué), RESTAURE automatiquement la dernière image qui
+#      fonctionnait avant d'échouer le job — c'est la garde de migration :
+#      aucun déploiement cassé ne reste servi.
 #
 # Tout se passe entre GitHub et le VPS : le poste de développement n'est jamais
 # sollicité. Miroir de « Release APK » (même secret VPS_SSH_KEY, même hôte).
@@ -57,37 +63,70 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Déployer (aligner sur main puis reconstruire)
+      - name: Déployer une image taggée, avec retour en arrière automatique
         if: ${{ env.HAS_VPS_KEY == 'true' }}
         run: |
           ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" bash -s <<'REMOTE'
           set -euo pipefail
           cd ~/urgence-sante
+          COMPOSE="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
+
+          # Dernière image connue comme fonctionnelle : état persistant sur le
+          # VPS (hors dépôt git, jamais écrasé par git reset --hard). Absent
+          # au tout premier déploiement — un déploiement raté n'a alors rien
+          # de plus ancien vers quoi revenir, c'est attendu.
+          LAST_GOOD_FILE=deploy/.last-good-tag
+          PREVIOUS_TAG="$(cat "$LAST_GOOD_FILE" 2>/dev/null || true)"
+
           # Déploiement déterministe : on sert EXACTEMENT origin/main. Le
           # reset --hard ne touche pas aux fichiers non suivis (deploy/.env,
-          # site/…), qui sont gitignorés et donc préservés.
+          # deploy/.last-good-tag, site/…), qui sont gitignorés et préservés.
           git fetch --prune origin main
           git reset --hard origin/main
-          docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
-          REMOTE
+          NEW_TAG="$(git rev-parse --short HEAD)"
 
-      - name: Vérifier la santé de l'API (/actuator/health == UP)
-        if: ${{ env.HAS_VPS_KEY == 'true' }}
-        run: |
-          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" bash -s <<'REMOTE'
-          set -euo pipefail
+          rollback_and_fail() {
+            echo "::error::Déploiement de $NEW_TAG en échec." >&2
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+              echo "::warning::Retour à la dernière image fonctionnelle ($PREVIOUS_TAG)." >&2
+              IMAGE_TAG="$PREVIOUS_TAG" $COMPOSE up -d api || true
+            else
+              echo "::error::Aucune image précédente à restaurer (premier déploiement)." >&2
+            fi
+            exit 1
+          }
+
+          # Construit puis démarre l'image taggée par commit ($NEW_TAG) —
+          # jamais "latest" seul : chaque déploiement laisse une image
+          # identifiable et immédiatement réutilisable pour un retour arrière.
+          IMAGE_TAG="$NEW_TAG" $COMPOSE build api || rollback_and_fail
+          IMAGE_TAG="$NEW_TAG" $COMPOSE up -d || rollback_and_fail
+
           # L'API redémarre + Flyway rejoue les migrations : on laisse jusqu'à
           # ~5 min avant de conclure à l'échec.
+          healthy=0
           for tentative in $(seq 1 30); do
             if curl -fsS http://localhost:8086/actuator/health | grep -q '"status":"UP"'; then
-              echo "API UP (tentative $tentative)."
-              exit 0
+              healthy=1
+              break
             fi
             echo "En attente du démarrage de l'API (tentative $tentative)…"
             sleep 10
           done
-          echo "::error::L'API n'est pas repassée UP après le déploiement." >&2
-          exit 1
+          if [[ "$healthy" -ne 1 ]]; then
+            rollback_and_fail
+          fi
+
+          echo "$NEW_TAG" > "$LAST_GOOD_FILE"
+          echo "API UP sur $NEW_TAG."
+
+          # Ne garde que l'image courante et la précédente (rollback) : les
+          # images plus anciennes sont purgées pour ne pas accumuler sur le
+          # VPS. Non bloquant : un échec de nettoyage ne fait pas échouer le
+          # déploiement, déjà confirmé sain à ce stade.
+          docker images urgence-sante-api --format '{{.Tag}}' \
+            | grep -v -E "^(${NEW_TAG}|${PREVIOUS_TAG:-__none__})\$" \
+            | xargs -r -I{} docker rmi "urgence-sante-api:{}" || true
           REMOTE
 
       - name: Serveur non configuré (fork sans secret)

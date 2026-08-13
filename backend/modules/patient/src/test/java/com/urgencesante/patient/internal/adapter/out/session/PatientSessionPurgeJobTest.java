@@ -25,6 +25,11 @@ class PatientSessionPurgeJobTest {
         }
 
         @Override
+        public void revoke(String rawToken) {
+            throw new UnsupportedOperationException("non sollicité par ce test");
+        }
+
+        @Override
         public int purgeExpired() {
             purgeCalls++;
             final int purged = expiredCount;

@@ -21,6 +21,15 @@ public interface PatientSessionPort {
     Optional<UUID> resolvePatient(String rawToken);
 
     /**
+     * Révoque (déconnexion) la session correspondant à ce jeton, avant son
+     * expiration naturelle (audit P3 #140 : 90 jours sans révocation
+     * possible). IDEMPOTENT : un jeton déjà révoqué, expiré (et déjà purgé)
+     * ou inconnu ne produit aucune erreur — l'état final visé (« cette
+     * session n'existe plus ») est déjà atteint.
+     */
+    void revoke(String rawToken);
+
+    /**
      * Supprime les sessions déjà expirées (issue #132 : sans purge, la table
      * grossit sans fin). Renvoie le nombre de sessions supprimées.
      */

@@ -3,10 +3,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_mobile/di/providers.dart';
 import 'package:patient_mobile/features/medical_profile/data/local_medical_profile_store.dart';
 import 'package:patient_mobile/features/medical_profile/domain/medical_profile.dart';
+import 'package:patient_mobile/features/medical_profile/domain/profile_store.dart';
 import 'package:patient_mobile/features/medical_profile/presentation/medical_profile_state.dart';
 import 'package:patient_mobile/features/medical_profile/presentation/medical_profile_view_model.dart';
 
 import '../auth/support/auth_fakes.dart' show InMemoryKeyValueStore;
+
+/// Écriture qui échoue toujours, pour vérifier qu'un échec n'est jamais
+/// silencieux (issue #140).
+class _ThrowingProfileStore implements ProfileStore {
+  const _ThrowingProfileStore();
+
+  @override
+  Future<MedicalProfile> load() async => const MedicalProfile();
+
+  @override
+  Future<void> save(MedicalProfile profile) async =>
+      throw Exception('écriture impossible (simulée)');
+
+  @override
+  Future<void> clear() async {}
+}
 
 void main() {
   late InMemoryKeyValueStore kv;
@@ -64,5 +81,26 @@ void main() {
     await vm().clear();
 
     expect(state().profile.isEmpty, isTrue);
+  });
+
+  test(
+      'un échec d\'écriture renvoie false et ne met PAS à jour la fiche affichée',
+      () async {
+    final failingContainer = ProviderContainer(overrides: [
+      profileStoreProvider.overrideWithValue(const _ThrowingProfileStore()),
+    ]);
+    addTearDown(failingContainer.dispose);
+    failingContainer.read(medicalProfileViewModelProvider.notifier);
+    await flush();
+
+    final bool saved = await failingContainer
+        .read(medicalProfileViewModelProvider.notifier)
+        .save(const MedicalProfile(allergies: 'Iode'));
+
+    expect(saved, isFalse);
+    // La fiche affichée reste celle d'avant l'échec (pas de fausse impression
+    // que "Iode" a été enregistré).
+    expect(failingContainer.read(medicalProfileViewModelProvider).profile.allergies,
+        isNull);
   });
 }

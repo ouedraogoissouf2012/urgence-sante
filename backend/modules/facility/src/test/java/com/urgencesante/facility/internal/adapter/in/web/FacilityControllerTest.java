@@ -112,4 +112,12 @@ class FacilityControllerTest {
                         .param("lat", "NaN").param("lon", "-4.0"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void retourne_400_si_page_au_dela_du_plafond() throws Exception {
+        // Audit P3 #140 : pagination profonde non bornée (OFFSET arbitraire).
+        mockMvc.perform(get("/api/v1/facilities").param("page", "2147483647"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Requête invalide"));
+    }
 }

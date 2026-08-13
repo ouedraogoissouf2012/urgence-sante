@@ -137,6 +137,18 @@ spring:
   datasource:
     # Aligné sur infrastructure/docker-compose.yml + .env.example :
     # PostGIS local exposé sur 55432, mot de passe de développement.
+    #
+    # Défaut en dur INTENTIONNEL (audit P3 #140) : ce bloc n'active QUE le
+    # profil local (spring.config.activate.on-profile: local ci-dessus), sur
+    # un PostGIS qui n'écoute que sur cette machine de développement — jamais
+    # exposé au réseau, jamais la base réelle. La production n'active jamais
+    # ce profil et n'hérite de RIEN d'ici : son mot de passe reste le
+    # ${DB_PASSWORD:} sans défaut de la section spring.datasource racine
+    # ci-dessus (ligne 12), qui échoue au démarrage si absent — donc pas de
+    # secret de production accessible en clair dans ce fichier versionné.
+    # Retirer ce défaut casserait le confort explicitement visé par ce fichier
+    # (« java -jar … démarre SANS variable d'environnement », voir en-tête)
+    # sans gain de sécurité réel.
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:55432}/${DB_NAME:urgence_sante}
     password: ${DB_PASSWORD:dev_local_pwd}
   flyway:
