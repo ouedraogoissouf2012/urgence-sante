@@ -72,4 +72,29 @@ void main() {
     expect(state().phase, AuthPhase.error);
     expect(state().errorMessage, isNotNull);
   });
+
+  test('reprendre la saisie efface le message d\'erreur affiché', () async {
+    repository.failWith = const AuthException(
+        AuthFailure.invalidInput, 'Vérifiez le numéro et le mot de passe.');
+    await vm().register(phone: '+2250102030405', password: 'MotDePasse2026');
+    expect(state().phase, AuthPhase.error);
+    expect(state().errorMessage, isNotNull);
+
+    // L'utilisateur recommence à taper : le message obsolète disparaît, sans
+    // attendre une nouvelle soumission.
+    vm().dismissError();
+
+    expect(state().phase, AuthPhase.idle);
+    expect(state().errorMessage, isNull);
+  });
+
+  test('dismissError ne réinitialise pas un état authentifié', () async {
+    await vm().register(phone: '+2250102030405', password: 'MotDePasse2026');
+    expect(state().phase, AuthPhase.authenticated);
+
+    vm().dismissError();
+
+    // Garde : n'agit que sur un état d'erreur, ne casse pas une session ouverte.
+    expect(state().phase, AuthPhase.authenticated);
+  });
 }

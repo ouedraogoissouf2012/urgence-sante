@@ -30,6 +30,17 @@ class AuthViewModel extends Notifier<AuthState> {
     return _submit(() => _repository.login(phone: phone, password: password));
   }
 
+  /// Efface le message d'erreur affiché dès que l'utilisateur reprend la
+  /// saisie : un message renvoyé par une soumission précédente ne doit pas
+  /// rester à l'écran sur des champs déjà modifiés. N'agit que sur un état
+  /// d'erreur — jamais sur une soumission en cours ni une session ouverte —
+  /// donc appelable sans risque à chaque frappe.
+  void dismissError() {
+    if (state.phase == AuthPhase.error) {
+      state = state.copyWith(phase: AuthPhase.idle, clearError: true);
+    }
+  }
+
   Future<void> _submit(Future<String> Function() action) async {
     state = state.copyWith(phase: AuthPhase.submitting, clearError: true);
     try {
