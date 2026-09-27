@@ -4,7 +4,7 @@
 # À chaque évolution de l'application sur main (ou à la demande), ce workflow :
 #   1. construit l'APK avec l'URL du serveur public compilée dedans ;
 #   2. le publie sur la release GitHub `mvp-demo-apk` (archive canonique) ;
-#   3. le dépose sur le VPS — le site https://sante.riqamb.com le sert
+#   3. le dépose sur le VPS — le site https://urgence-sante.napcor-group.com le sert
 #      immédiatement (bouton + QR code).
 #
 # Tout se passe entre les serveurs de GitHub et le VPS : la connexion du poste
@@ -19,7 +19,7 @@ on:
       api_base_url:
         description: "URL publique de l'API compilée dans l'APK"
         required: true
-        default: 'https://sante.riqamb.com/api/v1'
+        default: 'https://urgence-sante.napcor-group.com/api/v1'
   push:
     branches: [main]
     paths:
@@ -64,7 +64,7 @@ jobs:
         env:
           # Paramétrable au déclenchement manuel : un déploiement sur un AUTRE
           # domaine (fork client) fournit son URL ; les pushs gardent le défaut.
-          API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://sante.riqamb.com/api/v1' }}
+          API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://urgence-sante.napcor-group.com/api/v1' }}
         run: |
           flutter pub get
           flutter build apk --debug -t lib/main_development.dart \
