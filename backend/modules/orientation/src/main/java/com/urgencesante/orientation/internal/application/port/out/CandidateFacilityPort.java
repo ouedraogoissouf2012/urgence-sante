@@ -8,8 +8,9 @@ import java.util.UUID;
 public interface CandidateFacilityPort {
 
     /**
-     * Candidats offrant AU MOINS UN des services demandés (sémantique OU), triés
-     * par proximité.
+     * Candidats accueillant les urgences (jamais un centre de 1er niveau) et
+     * offrant AU MOINS UN des services demandés (sémantique OU), triés par
+     * proximité.
      */
     List<CandidateFacility> findCandidates(
             Set<String> serviceCodes, double latitude, double longitude, int radiusMeters, int limit);

@@ -160,9 +160,12 @@ flutter build apk --debug -t lib/main_development.dart
 |---|---|---|
 | 15 établissements « [DÉMO] » | fictifs (`data_status = DEMO`) | refus à l'import en prod + garde de démarrage |
 | Téléphones `+22501000000xx` | fictifs | idem |
+| Niveaux de soins | fictifs ; « Centre de Port-Bouët » et « Centre de Santé d'Attécoubé » en 1er niveau : listés dans l'annuaire, **jamais proposés** par l'orientation ([ADR-008](../decisions/ADR-008-niveau-de-soins-orientation.md)) | idem |
 | Jeton `demo-samu-admin-2026` | provisionné par `local-up.sh` (var `PORTAL_TOKEN`) | local uniquement — **jamais en production** |
 | Statuts initiaux | posés par `local-up.sh` | rechargés à chaque exécution |
 
 Le **jeu de démarrage réel** (`infrastructure/directory/abidjan-starter.json`)
 est distinct : établissements publics, marqués `PROVISIONAL` (à vérifier), avec
-provenance — voir [ADR-005](../decisions/ADR-005-annuaire-perimetre.md).
+provenance — voir [ADR-005](../decisions/ADR-005-annuaire-perimetre.md) — et
+niveau de soins obligatoire (`careLevel`, voir
+[ADR-008](../decisions/ADR-008-niveau-de-soins-orientation.md)).

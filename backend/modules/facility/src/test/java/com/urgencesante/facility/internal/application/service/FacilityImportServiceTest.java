@@ -58,7 +58,7 @@ class FacilityImportServiceTest {
     private FacilityImportRecord valid(String ref, String name, double lat, double lon,
             DataStatus status) {
         return new FacilityImportRecord("src", ref, name, "+2252722481000", lat, lon,
-                Set.of("emergency"), status, LocalDate.of(2026, 1, 1), "resp");
+                Set.of("emergency"), "SECONDARY", status, LocalDate.of(2026, 1, 1), "resp");
     }
 
     @Test
@@ -108,6 +108,24 @@ class FacilityImportServiceTest {
     }
 
     @Test
+    void rejette_sans_l_ecrire_un_etablissement_sans_niveau_de_soins() {
+        final FakeDirectory directory = new FakeDirectory();
+        final FacilityImportService service =
+                new FacilityImportService(directory, knownServices, false);
+
+        final ImportReport report = service.importDirectory(List.of(new FacilityImportRecord(
+                "src", "sans-niveau", "Centre sans niveau", "+2252722481000", 5.35, -4.0,
+                Set.of("emergency"), null, DataStatus.PROVISIONAL, null, "resp")));
+
+        assertThat(report.inserted()).isZero();
+        assertThat(report.rejected().get(0).reasons())
+                .anyMatch(r -> r.contains("niveau de soins requis"));
+        assertThat(directory.existsByNaturalKey("src", "sans-niveau"))
+                .as("une ligne rejetée n'atteint jamais l'annuaire")
+                .isFalse();
+    }
+
+    @Test
     void refuse_les_donnees_demo_en_production() {
         final FacilityImportService production =
                 new FacilityImportService(new FakeDirectory(), knownServices, true);
@@ -141,7 +159,7 @@ class FacilityImportServiceTest {
         // Démo pré-existante (simule un ancien déploiement local mal configuré).
         directory.upsert(new FacilityImportRecord(
                 "demo-src", "demo-1", "Hôpital DEMO", "+2252722481000",
-                5.35, -4.0, Set.of("emergency"), DataStatus.DEMO, null, "resp"));
+                5.35, -4.0, Set.of("emergency"), "SECONDARY", DataStatus.DEMO, null, "resp"));
         final FacilityImportService service =
                 new FacilityImportService(directory, knownServices, true);
 
@@ -163,7 +181,7 @@ class FacilityImportServiceTest {
         final FakeDirectory directory = new FakeDirectory();
         directory.upsert(new FacilityImportRecord(
                 "demo-src", "demo-1", "Hôpital DEMO", "+2252722481000",
-                5.35, -4.0, Set.of("emergency"), DataStatus.DEMO, null, "resp"));
+                5.35, -4.0, Set.of("emergency"), "SECONDARY", DataStatus.DEMO, null, "resp"));
         final FacilityImportService service =
                 new FacilityImportService(directory, knownServices, true);
 

@@ -64,8 +64,11 @@ public class FacilityController {
                 ? Set.of()
                 : Set.of(MedicalServiceCode.of(service));
 
+        // Annuaire public COMPLET (portail hospitalier) : aucun filtre de niveau.
+        // Seule l'orientation d'urgence écarte le 1er niveau (FacilityFacade).
         final FindFacilitiesQuery query = new FindFacilitiesQuery(
                 services,
+                Set.of(),
                 near,
                 radius,
                 PageRequest.of(page, size));

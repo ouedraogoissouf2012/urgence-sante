@@ -15,18 +15,12 @@ public interface FacilityFacade {
     Optional<FacilityView> findById(UUID id);
 
     /**
-     * Établissements offrant un service donné, proches d'un point, triés par
-     * proximité. Cas mono-service, équivalent à {@link #findNearbyOfferingAny}
-     * avec un ensemble singleton.
+     * Établissements ACCUEILLANT LES URGENCES (2e et 3e niveau de soins — un
+     * centre de 1er niveau n'est jamais retourné, ADR-008) et offrant AU MOINS
+     * UN des services demandés (sémantique OU), proches d'un point, triés par
+     * proximité. Candidats de l'orientation d'urgence : le niveau est filtré
+     * AVANT la limite, un centre écarté n'occupe donc aucune place.
      */
-    List<FacilityView> findNearbyOffering(
-            String serviceCode, double latitude, double longitude, int radiusMeters, int limit);
-
-    /**
-     * Établissements offrant AU MOINS UN des services demandés (sémantique OU),
-     * proches d'un point, triés par proximité. Utilisé par l'orientation quand un
-     * symptôme couvre plusieurs spécialités.
-     */
-    List<FacilityView> findNearbyOfferingAny(
+    List<FacilityView> findEmergencyCapableNearby(
             Set<String> serviceCodes, double latitude, double longitude, int radiusMeters, int limit);
 }

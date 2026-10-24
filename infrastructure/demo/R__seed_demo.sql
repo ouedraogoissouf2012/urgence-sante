@@ -10,22 +10,27 @@ TRUNCATE facility_service, availability, availability_history, facility;
 
 -- Toutes les lignes portent data_status = 'DEMO' : fictives, INTERDITES en
 -- production (refus à l'import et échec du démarrage en profil production).
-INSERT INTO facility (id, name, phone, location, source, external_ref, data_status) VALUES
-  ('11111111-0000-0000-0000-000000000001', 'CHU de Cocody [DÉMO]',            '+2250100000001', ST_SetSRID(ST_MakePoint(-3.9851, 5.3496), 4326)::geography, 'demo', 'demo-01', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000002', 'CHU de Treichville [DÉMO]',       '+2250100000002', ST_SetSRID(ST_MakePoint(-4.0104, 5.2930), 4326)::geography, 'demo', 'demo-002', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000003', 'CHU de Yopougon [DÉMO]',          '+2250100000003', ST_SetSRID(ST_MakePoint(-4.0894, 5.3363), 4326)::geography, 'demo', 'demo-003', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000004', 'Hôpital Général d''Abobo [DÉMO]', '+2250100000004', ST_SetSRID(ST_MakePoint(-4.0210, 5.4322), 4326)::geography, 'demo', 'demo-004', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000005', 'Hôpital de Marcory [DÉMO]',       '+2250100000005', ST_SetSRID(ST_MakePoint(-3.9820, 5.3010), 4326)::geography, 'demo', 'demo-005', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000006', 'PISAM Plateau [DÉMO]',            '+2250100000006', ST_SetSRID(ST_MakePoint(-4.0190, 5.3330), 4326)::geography, 'demo', 'demo-006', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000007', 'Clinique d''Adjamé [DÉMO]',       '+2250100000007', ST_SetSRID(ST_MakePoint(-4.0230, 5.3660), 4326)::geography, 'demo', 'demo-007', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000008', 'Hôpital de Koumassi [DÉMO]',      '+2250100000008', ST_SetSRID(ST_MakePoint(-3.9530, 5.2890), 4326)::geography, 'demo', 'demo-008', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000009', 'Centre de Port-Bouët [DÉMO]',     '+2250100000009', ST_SetSRID(ST_MakePoint(-3.9280, 5.2570), 4326)::geography, 'demo', 'demo-009', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000010', 'Clinique de Bingerville [DÉMO]',  '+2250100000010', ST_SetSRID(ST_MakePoint(-3.8850, 5.3560), 4326)::geography, 'demo', 'demo-010', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000011', 'Polyclinique Riviera [DÉMO]',     '+2250100000011', ST_SetSRID(ST_MakePoint(-3.9600, 5.3700), 4326)::geography, 'demo', 'demo-011', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000012', 'Centre de Santé d''Attécoubé [DÉMO]', '+2250100000012', ST_SetSRID(ST_MakePoint(-4.0480, 5.3400), 4326)::geography, 'demo', 'demo-012', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000013', 'Clinique du Banco [DÉMO]',        '+2250100000013', ST_SetSRID(ST_MakePoint(-4.0700, 5.3800), 4326)::geography, 'demo', 'demo-013', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000014', 'Hôpital d''Anyama [DÉMO]',        '+2250100000014', ST_SetSRID(ST_MakePoint(-4.0510, 5.4940), 4326)::geography, 'demo', 'demo-014', 'DEMO'),
-  ('11111111-0000-0000-0000-000000000015', 'Centre Mère-Enfant de Songon [DÉMO]', '+2250100000015', ST_SetSRID(ST_MakePoint(-4.2530, 5.3080), 4326)::geography, 'demo', 'demo-015', 'DEMO');
+-- care_level (V15, ADR-008) : les centres de proximité de Port-Bouët et
+-- d'Attécoubé sont de 1er niveau (PRIMARY) — présents dans l'annuaire mais
+-- JAMAIS proposés par l'orientation d'urgence, ce qui rend la règle visible en
+-- démonstration. EmergencyTaxonomyFacilityCoverageIntegrationTest vérifie que
+-- chaque catégorie reste couverte par un centre de 2e ou 3e niveau.
+INSERT INTO facility (id, name, phone, location, source, external_ref, data_status, care_level) VALUES
+  ('11111111-0000-0000-0000-000000000001', 'CHU de Cocody [DÉMO]',            '+2250100000001', ST_SetSRID(ST_MakePoint(-3.9851, 5.3496), 4326)::geography, 'demo', 'demo-01', 'DEMO', 'TERTIARY'),
+  ('11111111-0000-0000-0000-000000000002', 'CHU de Treichville [DÉMO]',       '+2250100000002', ST_SetSRID(ST_MakePoint(-4.0104, 5.2930), 4326)::geography, 'demo', 'demo-002', 'DEMO', 'TERTIARY'),
+  ('11111111-0000-0000-0000-000000000003', 'CHU de Yopougon [DÉMO]',          '+2250100000003', ST_SetSRID(ST_MakePoint(-4.0894, 5.3363), 4326)::geography, 'demo', 'demo-003', 'DEMO', 'TERTIARY'),
+  ('11111111-0000-0000-0000-000000000004', 'Hôpital Général d''Abobo [DÉMO]', '+2250100000004', ST_SetSRID(ST_MakePoint(-4.0210, 5.4322), 4326)::geography, 'demo', 'demo-004', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000005', 'Hôpital de Marcory [DÉMO]',       '+2250100000005', ST_SetSRID(ST_MakePoint(-3.9820, 5.3010), 4326)::geography, 'demo', 'demo-005', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000006', 'PISAM Plateau [DÉMO]',            '+2250100000006', ST_SetSRID(ST_MakePoint(-4.0190, 5.3330), 4326)::geography, 'demo', 'demo-006', 'DEMO', 'TERTIARY'),
+  ('11111111-0000-0000-0000-000000000007', 'Clinique d''Adjamé [DÉMO]',       '+2250100000007', ST_SetSRID(ST_MakePoint(-4.0230, 5.3660), 4326)::geography, 'demo', 'demo-007', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000008', 'Hôpital de Koumassi [DÉMO]',      '+2250100000008', ST_SetSRID(ST_MakePoint(-3.9530, 5.2890), 4326)::geography, 'demo', 'demo-008', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000009', 'Centre de Port-Bouët [DÉMO]',     '+2250100000009', ST_SetSRID(ST_MakePoint(-3.9280, 5.2570), 4326)::geography, 'demo', 'demo-009', 'DEMO', 'PRIMARY'),
+  ('11111111-0000-0000-0000-000000000010', 'Clinique de Bingerville [DÉMO]',  '+2250100000010', ST_SetSRID(ST_MakePoint(-3.8850, 5.3560), 4326)::geography, 'demo', 'demo-010', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000011', 'Polyclinique Riviera [DÉMO]',     '+2250100000011', ST_SetSRID(ST_MakePoint(-3.9600, 5.3700), 4326)::geography, 'demo', 'demo-011', 'DEMO', 'TERTIARY'),
+  ('11111111-0000-0000-0000-000000000012', 'Centre de Santé d''Attécoubé [DÉMO]', '+2250100000012', ST_SetSRID(ST_MakePoint(-4.0480, 5.3400), 4326)::geography, 'demo', 'demo-012', 'DEMO', 'PRIMARY'),
+  ('11111111-0000-0000-0000-000000000013', 'Clinique du Banco [DÉMO]',        '+2250100000013', ST_SetSRID(ST_MakePoint(-4.0700, 5.3800), 4326)::geography, 'demo', 'demo-013', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000014', 'Hôpital d''Anyama [DÉMO]',        '+2250100000014', ST_SetSRID(ST_MakePoint(-4.0510, 5.4940), 4326)::geography, 'demo', 'demo-014', 'DEMO', 'SECONDARY'),
+  ('11111111-0000-0000-0000-000000000015', 'Centre Mère-Enfant de Songon [DÉMO]', '+2250100000015', ST_SetSRID(ST_MakePoint(-4.2530, 5.3080), 4326)::geography, 'demo', 'demo-015', 'DEMO', 'SECONDARY');
 
 -- Offre de services par établissement. Les gros CHU sont polyvalents (large
 -- éventail de spécialités), les cliniques et centres de proximité plus ciblés,

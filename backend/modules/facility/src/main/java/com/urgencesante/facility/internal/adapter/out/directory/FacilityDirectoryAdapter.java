@@ -3,6 +3,7 @@ package com.urgencesante.facility.internal.adapter.out.directory;
 import com.urgencesante.facility.internal.application.port.out.FacilityDirectoryPort;
 import com.urgencesante.facility.internal.domain.directory.DataStatus;
 import com.urgencesante.facility.internal.domain.directory.FacilityImportRecord;
+import com.urgencesante.facility.internal.domain.model.CareLevel;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Écriture idempotente de l'annuaire. L'upsert s'appuie sur l'index unique
  * naturel (source, external_ref) : rejouer le même lot met à jour sans créer de
- * doublon. La position est reconstruite en geography WGS84.
+ * doublon — y compris le niveau de soins, pour qu'un reclassement s'applique au
+ * rejeu. La position est reconstruite en geography WGS84.
  */
 @Component
 class FacilityDirectoryAdapter implements FacilityDirectoryPort {
@@ -34,21 +36,28 @@ class FacilityDirectoryAdapter implements FacilityDirectoryPort {
     @Override
     @Transactional
     public void upsert(FacilityImportRecord record) {
+        // Forme canonique (enum) : le code saisi peut varier en casse/espaces.
+        // Un enregistrement non validé n'arrive jamais ici (FacilityImportService).
+        final CareLevel careLevel = record.parsedCareLevel().orElseThrow(() ->
+                new IllegalArgumentException("Niveau de soins invalide : " + record.careLevel()));
         final UUID id = jdbc.queryForObject(
                 "INSERT INTO facility "
-                        + "(id, name, phone, location, source, external_ref, verified_at, steward, data_status) "
-                        + "VALUES (?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?, ?, ?) "
+                        + "(id, name, phone, location, source, external_ref, verified_at, steward, "
+                        + "data_status, care_level) "
+                        + "VALUES (?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?, ?, ?, ?) "
                         + "ON CONFLICT (source, external_ref) "
                         + "WHERE source IS NOT NULL AND external_ref IS NOT NULL "
                         + "DO UPDATE SET name = EXCLUDED.name, phone = EXCLUDED.phone, "
                         + "location = EXCLUDED.location, verified_at = EXCLUDED.verified_at, "
-                        + "steward = EXCLUDED.steward, data_status = EXCLUDED.data_status "
+                        + "steward = EXCLUDED.steward, data_status = EXCLUDED.data_status, "
+                        + "care_level = EXCLUDED.care_level "
                         + "RETURNING id",
                 UUID.class,
                 UUID.randomUUID(), record.name(), record.phone(),
                 record.longitude(), record.latitude(),
                 record.source(), record.externalRef(),
-                record.verifiedAt(), record.steward(), record.dataStatus().name());
+                record.verifiedAt(), record.steward(), record.dataStatus().name(),
+                careLevel.name());
 
         // Remplace l'ensemble des services (idempotent).
         jdbc.update("DELETE FROM facility_service WHERE facility_id = ?", id);

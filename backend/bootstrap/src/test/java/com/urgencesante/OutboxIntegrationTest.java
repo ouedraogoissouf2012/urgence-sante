@@ -43,8 +43,9 @@ class OutboxIntegrationTest extends AbstractPostgisIntegrationTest {
         jdbc.update("DELETE FROM facility_service");
         jdbc.update("DELETE FROM facility WHERE id = ?", FACILITY);
         jdbc.update(
-                "INSERT INTO facility (id, name, location) "
-                        + "VALUES (?, 'Test Outbox', ST_SetSRID(ST_MakePoint(-4.0, 5.35), 4326)::geography)",
+                "INSERT INTO facility (id, name, location, care_level) "
+                        + "VALUES (?, 'Test Outbox', ST_SetSRID(ST_MakePoint(-4.0, 5.35), 4326)::geography, "
+                        + "'SECONDARY')",
                 FACILITY);
         jdbc.update(
                 "INSERT INTO facility_service (facility_id, service_code) VALUES (?, 'maternity')",

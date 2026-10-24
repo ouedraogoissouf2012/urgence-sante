@@ -40,14 +40,21 @@ class FacilityApiIntegrationTest extends AbstractPostgisIntegrationTest {
         jdbc.update("DELETE FROM facility_service");
         jdbc.update("DELETE FROM facility");
         insertFacility(UUID.randomUUID(), "CHU de Cocody", COCODY_LAT, COCODY_LON, "maternity");
-        insertFacility(UUID.randomUUID(), "Hôpital de San-Pédro", 4.75, -6.63, "surgery");
+        // 1er niveau : absent de l'orientation d'urgence, mais l'annuaire public
+        // (portail hospitalier) le liste comme tout établissement.
+        insertFacility(UUID.randomUUID(), "Hôpital de San-Pédro", 4.75, -6.63, "surgery", "PRIMARY");
     }
 
     private void insertFacility(UUID id, String name, double lat, double lon, String service) {
+        insertFacility(id, name, lat, lon, service, "SECONDARY");
+    }
+
+    private void insertFacility(
+            UUID id, String name, double lat, double lon, String service, String careLevel) {
         jdbc.update(
-                "INSERT INTO facility (id, name, phone, location) "
-                        + "VALUES (?, ?, NULL, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography)",
-                id, name, lon, lat);
+                "INSERT INTO facility (id, name, phone, location, care_level) "
+                        + "VALUES (?, ?, NULL, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)",
+                id, name, lon, lat, careLevel);
         jdbc.update(
                 "INSERT INTO facility_service (facility_id, service_code) VALUES (?, ?)", id, service);
     }
