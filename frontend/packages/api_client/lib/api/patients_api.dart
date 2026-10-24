@@ -128,4 +128,45 @@ class PatientsApi {
     }
     return null;
   }
+
+  /// Révocation (déconnexion) de la session patient courante
+  ///
+  /// Invalide immédiatement le jeton présenté, avant son expiration naturelle (90 jours par défaut). Idempotent : un jeton déjà révoqué, expiré ou inconnu ne produit pas d'erreur (même réponse 204).
+  ///
+  /// Note: This method returns the HTTP [Response].
+  Future<Response> revokePatientSessionWithHttpInfo({ Future<void>? abortTrigger, }) async {
+    // ignore: prefer_const_declarations
+    final path = r'/patients/session';
+
+    // ignore: prefer_final_locals
+    Object? postBody;
+
+    final queryParams = <QueryParam>[];
+    final headerParams = <String, String>{};
+    final formParams = <String, String>{};
+
+    const contentTypes = <String>[];
+
+
+    return apiClient.invokeAPI(
+      path,
+      'DELETE',
+      queryParams,
+      postBody,
+      headerParams,
+      formParams,
+      contentTypes.isEmpty ? null : contentTypes.first,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Révocation (déconnexion) de la session patient courante
+  ///
+  /// Invalide immédiatement le jeton présenté, avant son expiration naturelle (90 jours par défaut). Idempotent : un jeton déjà révoqué, expiré ou inconnu ne produit pas d'erreur (même réponse 204).
+  Future<void> revokePatientSession({ Future<void>? abortTrigger, }) async {
+    final response = await revokePatientSessionWithHttpInfo(abortTrigger: abortTrigger,);
+    if (response.statusCode >= HttpStatus.badRequest) {
+      throw ApiException(response.statusCode, await _decodeBodyBytes(response));
+    }
+  }
 }

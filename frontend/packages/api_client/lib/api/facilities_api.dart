@@ -80,7 +80,7 @@ class FacilitiesApi {
   /// Parameters:
   ///
   /// * [int] page:
-  ///   Index de page, à partir de 0.
+  ///   Index de page, à partir de 0 (plafonné à 10000 — pagination profonde refusée).
   ///
   /// * [int] size:
   ///   Taille de page (nombre d'éléments).
@@ -148,7 +148,7 @@ class FacilitiesApi {
   /// Parameters:
   ///
   /// * [int] page:
-  ///   Index de page, à partir de 0.
+  ///   Index de page, à partir de 0 (plafonné à 10000 — pagination profonde refusée).
   ///
   /// * [int] size:
   ///   Taille de page (nombre d'éléments).
