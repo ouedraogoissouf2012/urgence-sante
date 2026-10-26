@@ -3,12 +3,13 @@ package com.urgencesante.availability.internal.adapter.out.event;
 import com.urgencesante.availability.AvailabilityUpdated;
 import com.urgencesante.availability.internal.application.port.out.AvailabilityEventPublisher;
 import com.urgencesante.availability.internal.application.port.out.OutboxPort;
+import com.urgencesante.availability.internal.application.port.out.TransactionPort;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Relais de l'outbox : publie les événements en attente puis les marque
@@ -22,10 +23,18 @@ import org.springframework.transaction.annotation.Transactional;
  * aucun consommateur idempotent n'est livré ici. Dette tracée.
  *
  * <p>Multi-instances (issue #134) : {@code unpublished()} pose un verrou
- * pessimiste sur les lignes lues (repository), et {@link #relayOnce()} est
+ * pessimiste sur les lignes lues (repository), et chaque passage est
  * transactionnel de bout en bout — le verrou reste posé pendant TOUTE la
  * publication et le marquage, jamais relâché entre-temps. Deux instances
  * concurrentes ne peuvent donc plus lire (et republier) les mêmes lignes.
+ *
+ * <p>Frontière transactionnelle PROGRAMMATIQUE ({@link TransactionPort}) et non
+ * {@code @Transactional} : l'ordonnanceur appelle {@link #relay()}, qui
+ * appelle {@link #relayOnce()} sur {@code this} — un appel interne qui
+ * contourne le proxy Spring. Un {@code @Transactional} posé sur relayOnce()
+ * était donc ignoré sur ce chemin : la lecture verrouillante échouait toutes
+ * les 2 s (« Query requires transaction be in progress ») et aucun événement
+ * n'était relayé. La frontière explicite vaut quel que soit l'appelant.
  */
 @Component
 public class OutboxRelay {
@@ -35,10 +44,15 @@ public class OutboxRelay {
 
     private final OutboxPort outboxPort;
     private final AvailabilityEventPublisher publisher;
+    private final TransactionPort transactionPort;
 
-    public OutboxRelay(OutboxPort outboxPort, AvailabilityEventPublisher publisher) {
-        this.outboxPort = outboxPort;
-        this.publisher = publisher;
+    public OutboxRelay(
+            OutboxPort outboxPort,
+            AvailabilityEventPublisher publisher,
+            TransactionPort transactionPort) {
+        this.outboxPort = Objects.requireNonNull(outboxPort);
+        this.publisher = Objects.requireNonNull(publisher);
+        this.transactionPort = Objects.requireNonNull(transactionPort);
     }
 
     @Scheduled(fixedDelayString = "${availability.outbox.relay-delay-ms:2000}")
@@ -47,16 +61,19 @@ public class OutboxRelay {
     }
 
     /**
-     * Un passage de relais (extrait pour les tests). Retourne le nombre publié.
+     * Un passage de relais, dans UNE transaction. Retourne le nombre publié.
      *
-     * <p>Transactionnel : le verrou pessimiste posé par {@code unpublished()}
-     * reste tenu jusqu'au commit, après publication et marquage de tout le lot
-     * (issue #134). Une exception d'un événement individuel est interceptée
-     * localement (voir {@code catch} ci-dessous) et ne fait donc pas échouer
-     * (ni rollback) le traitement des autres événements du même lot.
+     * <p>Le verrou pessimiste posé par {@code unpublished()} reste tenu jusqu'au
+     * commit, après publication et marquage de tout le lot (issue #134). Une
+     * exception d'un événement individuel est interceptée localement (voir
+     * {@code catch} ci-dessous) et ne fait donc pas échouer (ni rollback) le
+     * traitement des autres événements du même lot.
      */
-    @Transactional
     public int relayOnce() {
+        return transactionPort.inTransaction(this::relayPendingBatch);
+    }
+
+    private int relayPendingBatch() {
         final List<AvailabilityUpdated> pending = outboxPort.unpublished(BATCH_SIZE);
         int published = 0;
         for (final AvailabilityUpdated event : pending) {
