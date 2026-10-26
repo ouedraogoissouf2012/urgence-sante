@@ -17,7 +17,7 @@ class OrientationApi {
 
   /// Recommander les centres adaptés pour un besoin médical
   ///
-  /// Classe les établissements offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
+  /// Classe les établissements accueillant les urgences (2e et 3e niveau de soins ; un centre de 1er niveau n'est jamais proposé) offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
   ///
   /// Note: This method returns the HTTP [Response].
   ///
@@ -79,7 +79,7 @@ class OrientationApi {
 
   /// Recommander les centres adaptés pour un besoin médical
   ///
-  /// Classe les établissements offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
+  /// Classe les établissements accueillant les urgences (2e et 3e niveau de soins ; un centre de 1er niveau n'est jamais proposé) offrant AU MOINS UN des services demandés (« service » mono, rétrocompatible, et/ou « services » multiples — un symptôme peut couvrir plusieurs spécialités) selon la proximité, la disponibilité (le meilleur statut parmi les services demandés ; un statut périmé est traité comme non confirmé) et le temps de trajet, avec une explication lisible.
   ///
   /// Parameters:
   ///

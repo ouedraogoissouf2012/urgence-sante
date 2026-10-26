@@ -1,6 +1,8 @@
 package com.urgencesante.facility.internal.domain.directory;
 
+import com.urgencesante.facility.internal.domain.model.CareLevel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -8,8 +10,8 @@ import java.util.regex.Pattern;
 /**
  * Valide un enregistrement d'import (pur). Retourne la liste des motifs de rejet
  * (vide si l'enregistrement est acceptable). Contrôle : champs requis,
- * traçabilité, coordonnées DANS le Grand Abidjan, téléphone ivoirien, et codes
- * de service connus (via un prédicat fourni).
+ * traçabilité, niveau de soins, coordonnées DANS le Grand Abidjan, téléphone
+ * ivoirien, et codes de service connus (via un prédicat fourni).
  */
 public final class FacilityImportValidator {
 
@@ -19,6 +21,10 @@ public final class FacilityImportValidator {
      * suites triviales comme « 0000000000 » (préfixe opérateur invalide).
      */
     private static final Pattern CI_PHONE = Pattern.compile("(\\+225)?0[157]\\d{8}|(\\+225)?2[157]\\d{8}");
+
+    /** Codes de niveau acceptés, rappelés dans les motifs de rejet. */
+    private static final String EXPECTED_CARE_LEVELS =
+            String.join(", ", Arrays.stream(CareLevel.values()).map(Enum::name).toList());
 
     private final Predicate<String> knownService;
 
@@ -34,6 +40,12 @@ public final class FacilityImportValidator {
         }
         if (isBlank(record.name())) {
             reasons.add("nom requis");
+        }
+        if (isBlank(record.careLevel())) {
+            reasons.add("niveau de soins requis (" + EXPECTED_CARE_LEVELS + ")");
+        } else if (record.parsedCareLevel().isEmpty()) {
+            reasons.add("niveau de soins inconnu : " + record.careLevel()
+                    + " (attendu " + EXPECTED_CARE_LEVELS + ")");
         }
         if (record.dataStatus() == null) {
             reasons.add("statut de donnée requis");

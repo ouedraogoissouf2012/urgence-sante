@@ -65,5 +65,18 @@ Mettre à jour l'annuaire : éditer `infrastructure/directory/abidjan-starter.js
 l'import est idempotent (upsert par clé naturelle `source`/`external_ref`),
 rejouable sans risque à chaque démarrage.
 
+Chaque établissement doit porter son **niveau de soins** (`careLevel`,
+obligatoire — [ADR-008](../docs/decisions/ADR-008-niveau-de-soins-orientation.md)) :
+
+| `careLevel` | Vocabulaire client | Proposé par l'orientation d'urgence |
+|---|---|---|
+| `PRIMARY` | centre de premier niveau | **jamais** (reste dans l'annuaire) |
+| `SECONDARY` | centre de deuxième niveau | oui, pour les besoins couverts par ses services |
+| `TERTIARY` | centre de troisième niveau | oui, pour les besoins couverts par ses services |
+
+Une ligne sans `careLevel`, ou avec une valeur inconnue, est **rejetée** (motif
+dans le journal d'import) sans bloquer le reste du lot. Reclasser un centre =
+modifier son `careLevel` puis redéployer : l'upsert applique le nouveau niveau.
+
 Le profil `local` (développement uniquement, jamais utilisé par ce
 docker-compose) reste seedé avec 15 établissements **[DÉMO]** fictifs.

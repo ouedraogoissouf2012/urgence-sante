@@ -51,8 +51,9 @@ class PortalSecurityIntegrationTest extends AbstractPostgisIntegrationTest {
         jdbc.update("DELETE FROM facility_service WHERE facility_id = ?::uuid", FACILITY);
         jdbc.update("DELETE FROM facility WHERE id = ?::uuid", FACILITY);
         jdbc.update(
-                "INSERT INTO facility (id, name, location) VALUES "
-                        + "(?::uuid, 'IT Facility', ST_SetSRID(ST_MakePoint(-4.0, 5.35), 4326)::geography)",
+                "INSERT INTO facility (id, name, location, care_level) VALUES "
+                        + "(?::uuid, 'IT Facility', ST_SetSRID(ST_MakePoint(-4.0, 5.35), 4326)::geography, "
+                        + "'SECONDARY')",
                 FACILITY);
         jdbc.update(
                 "INSERT INTO facility_service (facility_id, service_code) VALUES (?::uuid, 'maternity')",

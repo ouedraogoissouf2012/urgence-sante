@@ -6,6 +6,7 @@ import com.urgencesante.facility.FacilityFacade;
 import com.urgencesante.facility.FacilityView;
 import com.urgencesante.facility.internal.application.query.FindFacilitiesQuery;
 import com.urgencesante.facility.internal.application.port.out.LoadFacilityPort;
+import com.urgencesante.facility.internal.domain.model.CareLevel;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
@@ -32,19 +33,14 @@ class FacilityFacadeAdapter implements FacilityFacade {
     }
 
     @Override
-    public List<FacilityView> findNearbyOffering(
-            String serviceCode, double latitude, double longitude, int radiusMeters, int limit) {
-        return findNearbyOfferingAny(Set.of(serviceCode), latitude, longitude, radiusMeters, limit);
-    }
-
-    @Override
-    public List<FacilityView> findNearbyOfferingAny(
+    public List<FacilityView> findEmergencyCapableNearby(
             Set<String> serviceCodes, double latitude, double longitude, int radiusMeters, int limit) {
         final Set<MedicalServiceCode> codes = serviceCodes.stream()
                 .map(MedicalServiceCode::of)
                 .collect(Collectors.toUnmodifiableSet());
         final FindFacilitiesQuery query = new FindFacilitiesQuery(
                 codes,
+                CareLevel.emergencyCapable(),
                 Optional.of(new GeoLocation(latitude, longitude)),
                 Optional.of(radiusMeters),
                 PageRequest.of(0, limit));

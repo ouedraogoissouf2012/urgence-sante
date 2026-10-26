@@ -15,9 +15,10 @@ import org.springframework.lang.NonNull;
  * Repository Spring Data (détail de persistance). Manipule uniquement les
  * entités JPA. La recherche géographique s'appuie sur PostGIS.
  *
- * <p>Les booléens {@code hasService}/{@code hasPoint} évitent tout paramètre lié
- * à {@code NULL} dans les requêtes natives : les branches géographiques ne sont
- * évaluées que lorsqu'elles sont demandées.
+ * <p>Les booléens {@code hasService}/{@code hasCareLevel}/{@code hasPoint}
+ * évitent tout paramètre lié à {@code NULL} dans les requêtes natives : chaque
+ * branche de filtre n'est évaluée que lorsqu'elle est demandée. Le filtre de
+ * niveau s'applique dans le WHERE, donc AVANT le LIMIT.
  */
 public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntity, UUID> {
 
@@ -39,6 +40,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             WHERE (NOT :hasService OR EXISTS (
                      SELECT 1 FROM facility_service fs
                      WHERE fs.facility_id = f.id AND fs.service_code IN (:services)))
+              AND (NOT :hasCareLevel OR f.care_level IN (:careLevels))
               AND (NOT :hasPoint OR ST_DWithin(
                      f.location,
                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
@@ -55,6 +57,8 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
     List<UUID> searchIds(
             @Param("hasService") boolean hasService,
             @Param("services") Collection<String> services,
+            @Param("hasCareLevel") boolean hasCareLevel,
+            @Param("careLevels") Collection<String> careLevels,
             @Param("hasPoint") boolean hasPoint,
             @Param("lat") double lat,
             @Param("lon") double lon,
@@ -67,6 +71,7 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
             WHERE (NOT :hasService OR EXISTS (
                      SELECT 1 FROM facility_service fs
                      WHERE fs.facility_id = f.id AND fs.service_code IN (:services)))
+              AND (NOT :hasCareLevel OR f.care_level IN (:careLevels))
               AND (NOT :hasPoint OR ST_DWithin(
                      f.location,
                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
@@ -75,6 +80,8 @@ public interface FacilitySpringRepository extends JpaRepository<FacilityJpaEntit
     long countSearch(
             @Param("hasService") boolean hasService,
             @Param("services") Collection<String> services,
+            @Param("hasCareLevel") boolean hasCareLevel,
+            @Param("careLevels") Collection<String> careLevels,
             @Param("hasPoint") boolean hasPoint,
             @Param("lat") double lat,
             @Param("lon") double lon,

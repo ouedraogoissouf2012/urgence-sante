@@ -64,7 +64,7 @@ class FacilityQueryServiceTest {
         givenFacility("A");
         givenFacility("B");
         final FindFacilitiesQuery query = new FindFacilitiesQuery(
-                Set.of(), Optional.empty(), Optional.empty(), PageRequest.of(0, 20));
+                Set.of(), Set.of(), Optional.empty(), Optional.empty(), PageRequest.of(0, 20));
 
         final Page<Facility> page = service.findFacilities(query);
 

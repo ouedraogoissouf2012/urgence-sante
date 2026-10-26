@@ -44,15 +44,21 @@ public class FacilityPersistenceAdapter implements LoadFacilityPort {
         final Collection<String> services = hasService
                 ? query.services().stream().map(MedicalServiceCode::value).toList()
                 : List.of("");
+        final boolean hasCareLevel = !query.careLevels().isEmpty();
+        // Même principe de valeur muette que pour les services ci-dessus.
+        final Collection<String> careLevels = hasCareLevel
+                ? query.careLevels().stream().map(Enum::name).toList()
+                : List.of("");
         final boolean hasPoint = query.near().isPresent();
         final double lat = query.near().map(GeoLocation::latitude).orElse(0.0);
         final double lon = query.near().map(GeoLocation::longitude).orElse(0.0);
         final int radius = query.radiusMeters().orElse(1);
 
         final List<UUID> orderedIds = repository.searchIds(
-                hasService, services, hasPoint, lat, lon, radius,
+                hasService, services, hasCareLevel, careLevels, hasPoint, lat, lon, radius,
                 query.page().size(), query.page().offset());
-        final long total = repository.countSearch(hasService, services, hasPoint, lat, lon, radius);
+        final long total = repository.countSearch(
+                hasService, services, hasCareLevel, careLevels, hasPoint, lat, lon, radius);
 
         // findAllById hydrate la collection `services` via @EntityGraph (JOIN
         // FETCH) : une même racine peut apparaître sur plusieurs lignes. Hibernate

@@ -18,10 +18,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Recherche multi-services sur PostgreSQL réel (#94). Un symptôme couvrant
- * plusieurs spécialités trouve les centres offrant AU MOINS UN des services
- * (sémantique OU), triés par proximité — un centre hors de l'ensemble est exclu
- * même s'il est plus proche.
+ * Recherche des candidats d'orientation sur PostgreSQL réel. Un symptôme
+ * couvrant plusieurs spécialités trouve les centres offrant AU MOINS UN des
+ * services (sémantique OU, #94), triés par proximité — un centre hors de
+ * l'ensemble est exclu même s'il est plus proche. Seuls les centres accueillant
+ * les urgences (2e et 3e niveau) sont candidats : un centre de 1er niveau n'est
+ * jamais proposé, même le plus proche (demande client, ADR-008).
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -44,8 +46,13 @@ class MultiServiceSearchIntegrationTest extends AbstractPostgisIntegrationTest {
     }
 
     private static FacilityImportRecord record(String ref, String name, double lat, String service) {
+        return record(ref, name, lat, service, "TERTIARY");
+    }
+
+    private static FacilityImportRecord record(
+            String ref, String name, double lat, String service, String careLevel) {
         return new FacilityImportRecord(
-                "ms-src", ref, name, "+2252722481000", lat, -4.00, Set.of(service),
+                "ms-src", ref, name, "+2252722481000", lat, -4.00, Set.of(service), careLevel,
                 DataStatus.VERIFIED, LocalDate.of(2026, 1, 1), "cellule");
     }
 
@@ -57,7 +64,7 @@ class MultiServiceSearchIntegrationTest extends AbstractPostgisIntegrationTest {
                 // Le plus proche du point de recherche, mais hors de l'ensemble demandé.
                 record("ms-3", "Cardio", 5.351, "cardiology")));
 
-        final List<FacilityView> result = facilityFacade.findNearbyOfferingAny(
+        final List<FacilityView> result = facilityFacade.findEmergencyCapableNearby(
                 Set.of("pulmonology", "intensive_care"), 5.35, -4.00, 50_000, 10);
 
         assertThat(result)
@@ -75,14 +82,51 @@ class MultiServiceSearchIntegrationTest extends AbstractPostgisIntegrationTest {
         // indépendante de ce comportement implicite. Le centre apparaît UNE fois.
         importFacilities.importDirectory(List.of(new FacilityImportRecord(
                 "ms-src", "ms-multi", "Polyvalent", "+2252722481000", 5.35, -4.00,
-                Set.of("cardiology", "pulmonology", "intensive_care"),
+                Set.of("cardiology", "pulmonology", "intensive_care"), "TERTIARY",
                 DataStatus.VERIFIED, LocalDate.of(2026, 1, 1), "cellule")));
 
-        final List<FacilityView> result = facilityFacade.findNearbyOfferingAny(
+        final List<FacilityView> result = facilityFacade.findEmergencyCapableNearby(
                 Set.of("cardiology", "pulmonology"), 5.35, -4.00, 50_000, 10);
 
         assertThat(result)
                 .extracting(FacilityView::name)
                 .containsExactly("Polyvalent");
+    }
+
+    // « obstetrics » : aucun autre test de la suite (base partagée) n'insère de
+    // centre offrant ce service — « maternity » est déjà posé à ce point par
+    // Audit/Outbox/PortalSecurity et fausserait l'ordre attendu.
+    @Test
+    void un_centre_de_premier_niveau_n_est_jamais_propose_meme_le_plus_proche() {
+        importFacilities.importDirectory(List.of(
+                // Le plus proche et offrant le service, mais de 1er niveau.
+                record("ms-p", "Centre de sante", 5.351, "obstetrics", "PRIMARY"),
+                record("ms-s", "Hopital general", 5.360, "obstetrics", "SECONDARY"),
+                record("ms-t", "CHU", 5.370, "obstetrics", "TERTIARY")));
+
+        final List<FacilityView> result = facilityFacade.findEmergencyCapableNearby(
+                Set.of("obstetrics"), 5.35, -4.00, 50_000, 10);
+
+        assertThat(result)
+                .extracting(FacilityView::name)
+                .containsExactly("Hopital general", "CHU");
+    }
+
+    @Test
+    void le_filtre_s_applique_avant_la_limite_un_centre_de_premier_niveau_ne_prend_aucune_place() {
+        // Le vivier d'orientation est borné (OrientationService) : si le 1er
+        // niveau était écarté APRÈS la limite, des centres de santé proches
+        // pourraient évincer tous les hôpitaux du résultat.
+        importFacilities.importDirectory(List.of(
+                record("ms-p1", "Centre de sante 1", 5.351, "obstetrics", "PRIMARY"),
+                record("ms-p2", "Centre de sante 2", 5.352, "obstetrics", "PRIMARY"),
+                record("ms-s", "Hopital general", 5.380, "obstetrics", "SECONDARY")));
+
+        final List<FacilityView> result = facilityFacade.findEmergencyCapableNearby(
+                Set.of("obstetrics"), 5.35, -4.00, 50_000, 1);
+
+        assertThat(result)
+                .extracting(FacilityView::name)
+                .containsExactly("Hopital general");
     }
 }

@@ -94,6 +94,9 @@ class FacilityImportRunner implements ApplicationRunner {
                 ((Number) row.get("latitude")).doubleValue(),
                 ((Number) row.get("longitude")).doubleValue(),
                 services == null ? Set.of() : Set.copyOf((List<String>) services),
+                // Brut : un niveau absent ou inconnu rejette CETTE ligne (motif au
+                // rapport d'import) au lieu d'interrompre tout l'import.
+                str(row, "careLevel"),
                 DataStatus.valueOf(str(row, "dataStatus")),
                 verifiedAt,
                 str(row, "steward"));

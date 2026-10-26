@@ -2,6 +2,7 @@ package com.urgencesante.facility.internal.application.query;
 
 import com.urgencesante.buildingblocks.medicalservice.MedicalServiceCode;
 import com.urgencesante.buildingblocks.pagination.PageRequest;
+import com.urgencesante.facility.internal.domain.model.CareLevel;
 import com.urgencesante.facility.internal.domain.model.GeoLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -11,18 +12,21 @@ import java.util.Set;
  * Critères de recherche d'établissements.
  *
  * <p>Filtre optionnel par service médical (ensemble vide = aucun filtre ;
- * sémantique OU — l'établissement offre AU MOINS un des services demandés) et
- * tri optionnel par proximité (une position implique un rayon). La pagination
- * est toujours requise.
+ * sémantique OU — l'établissement offre AU MOINS un des services demandés),
+ * filtre optionnel par niveau de soins (ensemble vide = aucun filtre ;
+ * l'établissement a l'un des niveaux demandés) et tri optionnel par proximité
+ * (une position implique un rayon). La pagination est toujours requise.
  */
 public record FindFacilitiesQuery(
         Set<MedicalServiceCode> services,
+        Set<CareLevel> careLevels,
         Optional<GeoLocation> near,
         Optional<Integer> radiusMeters,
         PageRequest page) {
 
     public FindFacilitiesQuery {
         services = services == null ? Set.of() : Set.copyOf(services);
+        careLevels = careLevels == null ? Set.of() : Set.copyOf(careLevels);
         near = near == null ? Optional.empty() : near;
         radiusMeters = radiusMeters == null ? Optional.empty() : radiusMeters;
         Objects.requireNonNull(page, "La pagination est requise");

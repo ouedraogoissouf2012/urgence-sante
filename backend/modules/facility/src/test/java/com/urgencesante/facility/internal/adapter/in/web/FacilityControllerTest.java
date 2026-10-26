@@ -1,7 +1,9 @@
 package com.urgencesante.facility.internal.adapter.in.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,6 +14,7 @@ import com.urgencesante.buildingblocks.pagination.Page;
 import com.urgencesante.facility.internal.adapter.in.web.mapper.FacilityWebMapper;
 import com.urgencesante.facility.internal.application.port.in.FindFacilitiesUseCase;
 import com.urgencesante.facility.internal.application.port.in.GetFacilityUseCase;
+import com.urgencesante.facility.internal.application.query.FindFacilitiesQuery;
 import com.urgencesante.facility.internal.domain.exception.FacilityNotFoundException;
 import com.urgencesante.facility.internal.domain.model.Facility;
 import com.urgencesante.facility.internal.domain.model.FacilityId;
@@ -22,6 +25,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -67,6 +71,22 @@ class FacilityControllerTest {
                 .andExpect(jsonPath("$.content[0].location.latitude").value(5.35))
                 .andExpect(jsonPath("$.content[0].services[0]").value("maternity"))
                 .andExpect(jsonPath("$.page.totalElements").value(1));
+    }
+
+    @Test
+    void l_annuaire_public_n_est_pas_filtre_par_niveau_de_soins() throws Exception {
+        // Le portail hospitalier liste TOUS les établissements : seule
+        // l'orientation d'urgence écarte le 1er niveau (FacilityFacade).
+        given(findFacilities.findFacilities(any()))
+                .willReturn(new Page<>(List.of(sampleFacility()), 0, 20, 1));
+        final ArgumentCaptor<FindFacilitiesQuery> query =
+                ArgumentCaptor.forClass(FindFacilitiesQuery.class);
+
+        mockMvc.perform(get("/api/v1/facilities").param("service", "maternity"))
+                .andExpect(status().isOk());
+
+        then(findFacilities).should().findFacilities(query.capture());
+        assertThat(query.getValue().careLevels()).isEmpty();
     }
 
     @Test

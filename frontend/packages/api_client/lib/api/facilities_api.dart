@@ -73,14 +73,14 @@ class FacilitiesApi {
 
   /// Lister les établissements de santé
   ///
-  /// Retourne une page d'établissements. Peut être filtrée par service médical et triée par proximité si une position est fournie. 
+  /// Retourne une page d'établissements. Peut être filtrée par service médical et triée par proximité si une position est fournie. Annuaire complet : tous les niveaux de soins sont listés, y compris le 1er niveau que l'orientation d'urgence ne propose jamais. 
   ///
   /// Note: This method returns the HTTP [Response].
   ///
   /// Parameters:
   ///
   /// * [int] page:
-  ///   Index de page, à partir de 0.
+  ///   Index de page, à partir de 0 (plafonné à 10000 — pagination profonde refusée).
   ///
   /// * [int] size:
   ///   Taille de page (nombre d'éléments).
@@ -143,12 +143,12 @@ class FacilitiesApi {
 
   /// Lister les établissements de santé
   ///
-  /// Retourne une page d'établissements. Peut être filtrée par service médical et triée par proximité si une position est fournie. 
+  /// Retourne une page d'établissements. Peut être filtrée par service médical et triée par proximité si une position est fournie. Annuaire complet : tous les niveaux de soins sont listés, y compris le 1er niveau que l'orientation d'urgence ne propose jamais. 
   ///
   /// Parameters:
   ///
   /// * [int] page:
-  ///   Index de page, à partir de 0.
+  ///   Index de page, à partir de 0 (plafonné à 10000 — pagination profonde refusée).
   ///
   /// * [int] size:
   ///   Taille de page (nombre d'éléments).

@@ -20,7 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Import d'annuaire sur PostgreSQL réel : idempotence de l'upsert par clé
- * naturelle, écriture de la provenance et détection des données démo.
+ * naturelle, écriture de la provenance et du niveau de soins, et détection des
+ * données démo.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -46,10 +47,20 @@ class FacilityImportIntegrationTest extends AbstractPostgisIntegrationTest {
     }
 
     private List<FacilityImportRecord> batch() {
+        return batch("TERTIARY");
+    }
+
+    private List<FacilityImportRecord> batch(String careLevel) {
         return List.of(new FacilityImportRecord(
                 "it-src", "ref-1", "Hôpital Intégration", "+2252722481000",
-                5.35, -4.0, Set.of("emergency"), DataStatus.VERIFIED,
+                5.35, -4.0, Set.of("emergency"), careLevel, DataStatus.VERIFIED,
                 LocalDate.of(2026, 1, 1), "cellule"));
+    }
+
+    private String careLevelOfRef1() {
+        return jdbc.queryForObject(
+                "SELECT care_level FROM facility WHERE source = 'it-src' AND external_ref = 'ref-1'",
+                String.class);
     }
 
     private Integer countBySource() {
@@ -74,6 +85,30 @@ class FacilityImportIntegrationTest extends AbstractPostgisIntegrationTest {
                 java.sql.Date.class);
         assertThat(status).isEqualTo("VERIFIED");
         assertThat(verifiedAt.toLocalDate()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(careLevelOfRef1()).isEqualTo("TERTIARY");
+    }
+
+    @Test
+    void le_niveau_de_soins_est_ecrit_sous_sa_forme_canonique() {
+        importFacilities.importDirectory(batch(" secondary "));
+
+        assertThat(careLevelOfRef1()).isEqualTo("SECONDARY");
+    }
+
+    /**
+     * Filet de sécurité de la production : l'annuaire est réimporté à chaque
+     * démarrage. Un reclassement (ex. un centre requalifié en 1er niveau par la
+     * cellule annuaire) doit donc s'appliquer au rejeu, pas seulement à la
+     * première insertion.
+     */
+    @Test
+    void un_reclassement_de_niveau_est_applique_au_rejeu() {
+        importFacilities.importDirectory(batch("TERTIARY"));
+
+        final ImportReport replay = importFacilities.importDirectory(batch("PRIMARY"));
+
+        assertThat(replay.updated()).isEqualTo(1);
+        assertThat(careLevelOfRef1()).isEqualTo("PRIMARY");
     }
 
     @Test
@@ -112,10 +147,10 @@ class FacilityImportIntegrationTest extends AbstractPostgisIntegrationTest {
     @Test
     void purgeDemoData_supprime_la_demo_et_epargne_le_reste() {
         jdbc.update("INSERT INTO facility "
-                        + "(id, name, phone, location, source, external_ref, data_status) "
-                        + "VALUES (?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?)",
+                        + "(id, name, phone, location, source, external_ref, data_status, care_level) "
+                        + "VALUES (?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?, ?)",
                 UUID.randomUUID(), "Hôpital Démo IT", "+2252722481000",
-                -4.0, 5.35, "it-src", "demo-1", DataStatus.DEMO.name());
+                -4.0, 5.35, "it-src", "demo-1", DataStatus.DEMO.name(), "SECONDARY");
         importFacilities.importDirectory(batch());
 
         directoryPort.purgeDemoData();
