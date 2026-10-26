@@ -56,6 +56,14 @@ app:
 # Commun à tous les profils : sans proxy devant l'API (dev local, tests), sans
 # en-tête X-Forwarded-For entrant, le comportement est inchangé.
 server:
+  # Port d'écoute COMMUN à tous les profils : c'est le port conteneur publié
+  # par le déploiement (deploy/docker-compose.yml « 8086:8090 », EXPOSE du
+  # Dockerfile) et celui qu'attendent les applications Flutter en local
+  # (app_config.dart : localhost:8090). Longtemps déclaré dans le seul bloc
+  # du profil local : en profil production, Tomcat écoutait alors sur 8080 et
+  # le contrôle de santé du déploiement ne joignait jamais l'API. Verrouillé
+  # par DatabaseAndServerTuningIntegrationTest.
+  port: ${SERVER_PORT:8090}
   forward-headers-strategy: native
   tomcat:
     remoteip:
@@ -158,10 +166,8 @@ spring:
     # refuse de toute façon les données DEMO (défense en profondeur).
     locations: classpath:db/migration,classpath:db/local-seed
 
-# Port attendu par les applications Flutter (app_config.dart : localhost:8090)
-# et par la documentation locale.
-server:
-  port: ${SERVER_PORT:8090}
+# Le port d'écoute (8090) est commun à tous les profils : voir le bloc
+# `server` en tête de fichier.
 
 # Le portail Flutter Web tourne sur un port local aléatoire : on autorise
 # localhost/127.0.0.1 (motifs interdits en production par CorsPolicy).

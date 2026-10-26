@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.urgencesante.availability.AvailabilityUpdated;
 import com.urgencesante.availability.internal.application.port.out.OutboxPort;
+import com.urgencesante.availability.internal.application.port.out.TransactionPort;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 class OutboxRelayTest {
@@ -19,6 +22,9 @@ class OutboxRelayTest {
         final Map<UUID, AvailabilityUpdated> pending = new LinkedHashMap<>();
         final Map<UUID, Integer> failures = new LinkedHashMap<>();
         final List<UUID> published = new ArrayList<>();
+        /** Lectures verrouillantes faites HORS transaction (doit rester 0). */
+        int lockingReadsOutsideTransaction = 0;
+        BooleanSupplier transactionActive = () -> false;
 
         void add(AvailabilityUpdated event) {
             pending.put(event.eventId(), event);
@@ -31,6 +37,11 @@ class OutboxRelayTest {
 
         @Override
         public List<AvailabilityUpdated> unpublished(int limit) {
+            // L'adaptateur réel pose FOR UPDATE SKIP LOCKED : sans transaction,
+            // PostgreSQL/JPA refusent la requête (défaut de bascule production).
+            if (!transactionActive.getAsBoolean()) {
+                lockingReadsOutsideTransaction++;
+            }
             return pending.values().stream().limit(limit).toList();
         }
 
@@ -58,12 +69,32 @@ class OutboxRelayTest {
     private final List<AvailabilityUpdated> receivedEvents = new ArrayList<>();
     private boolean publisherDown = false;
 
+    /** Fausse frontière transactionnelle : trace les transactions ouvertes. */
+    private boolean transactionActive = false;
+    private int transactionsOpened = 0;
+    private final TransactionPort transactions = new TransactionPort() {
+        @Override
+        public <T> T inTransaction(Supplier<T> work) {
+            transactionsOpened++;
+            transactionActive = true;
+            try {
+                return work.get();
+            } finally {
+                transactionActive = false;
+            }
+        }
+    };
+
+    {
+        outbox.transactionActive = () -> transactionActive;
+    }
+
     private final OutboxRelay relay = new OutboxRelay(outbox, published -> {
         if (publisherDown) {
             throw new IllegalStateException("bus indisponible");
         }
         receivedEvents.add(published);
-    });
+    }, transactions);
 
     @Test
     void publie_puis_marque_chaque_evenement_une_seule_fois() {
@@ -94,6 +125,29 @@ class OutboxRelayTest {
         assertThat(relay.relayOnce()).isEqualTo(1);
         assertThat(receivedEvents).extracting(AvailabilityUpdated::eventId)
                 .containsExactly(pending.eventId());
+    }
+
+    @Test
+    void le_point_d_entree_planifie_lit_l_outbox_dans_une_transaction() {
+        // relay() est appelé par l'ordonnanceur : un @Transactional posé sur
+        // relayOnce() était contourné par cet appel interne (pas de proxy).
+        outbox.add(event());
+
+        relay.relay();
+
+        assertThat(transactionsOpened).as("une transaction par passage").isEqualTo(1);
+        assertThat(outbox.lockingReadsOutsideTransaction).isZero();
+        assertThat(receivedEvents).hasSize(1);
+    }
+
+    @Test
+    void relayOnce_lit_aussi_l_outbox_dans_une_transaction() {
+        outbox.add(event());
+
+        relay.relayOnce();
+
+        assertThat(transactionsOpened).isEqualTo(1);
+        assertThat(outbox.lockingReadsOutsideTransaction).isZero();
     }
 
     @Test

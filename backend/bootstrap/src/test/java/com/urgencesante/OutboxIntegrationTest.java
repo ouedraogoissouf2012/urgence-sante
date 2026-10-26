@@ -76,6 +76,29 @@ class OutboxIntegrationTest extends AbstractPostgisIntegrationTest {
                 .isEqualTo(1);
     }
 
+    /**
+     * Reproduit le défaut révélé par la répétition de bascule en production :
+     * l'ordonnanceur appelle {@code relay()}, qui appelait {@code
+     * this.relayOnce()} — un appel interne qui CONTOURNE le proxy Spring, donc
+     * le {@code @Transactional} de relayOnce. La lecture verrouillante de
+     * l'outbox ({@code FOR UPDATE SKIP LOCKED}) échouait alors toutes les 2 s
+     * (« Query requires transaction be in progress ») et aucun événement
+     * n'était jamais relayé. Invisible jusqu'ici : l'ordonnanceur est désactivé
+     * en profil test et les tests appelaient relayOnce() via le proxy.
+     */
+    @Test
+    void le_point_d_entree_planifie_relaie_dans_une_transaction() {
+        updateAvailability.update(
+                new UpdateAvailabilityCommand(FACILITY, "maternity", AvailabilityStatus.AVAILABLE));
+
+        relay.relay();
+
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM availability_outbox WHERE published_at IS NOT NULL", Integer.class))
+                .as("l'événement est publié et marqué par le chemin de l'ordonnanceur")
+                .isEqualTo(1);
+    }
+
     @Test
     void un_refus_metier_n_ecrit_rien_du_tout() {
         assertThatThrownBy(() -> updateAvailability.update(
