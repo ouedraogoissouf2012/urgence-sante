@@ -34,6 +34,7 @@ class OrientationApi {
   ///   Un ou plusieurs codes de services (union avec « service » ; sémantique OU). Utilisé quand un symptôme couvre plusieurs spécialités.
   ///
   /// * [int] radiusMeters:
+  ///   Rayon de recherche imposé (respecté tel quel). Absent : 15 km, puis élargissement automatique à 30, 50 et 70 km tant qu'AUCUN centre ne répond au besoin — en urgence, un centre éloigné vaut mieux qu'aucun.
   ///
   /// * [int] limit:
   Future<Response> recommendFacilitiesWithHttpInfo(double lat, double lon, { String? service, List<String>? services, int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {
@@ -94,6 +95,7 @@ class OrientationApi {
   ///   Un ou plusieurs codes de services (union avec « service » ; sémantique OU). Utilisé quand un symptôme couvre plusieurs spécialités.
   ///
   /// * [int] radiusMeters:
+  ///   Rayon de recherche imposé (respecté tel quel). Absent : 15 km, puis élargissement automatique à 30, 50 et 70 km tant qu'AUCUN centre ne répond au besoin — en urgence, un centre éloigné vaut mieux qu'aucun.
   ///
   /// * [int] limit:
   Future<List<Recommendation>?> recommendFacilities(double lat, double lon, { String? service, List<String>? services, int? radiusMeters, int? limit, Future<void>? abortTrigger, }) async {

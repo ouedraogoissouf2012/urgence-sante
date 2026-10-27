@@ -32,6 +32,7 @@ class OrientationControllerTest {
 
     /** Rayon par défaut du contrôleur pour ce test (aligné sur le produit : 15 km). */
     private static final int DEFAULT_RADIUS_METERS = 15_000;
+    private static final List<Integer> WIDENING_STEPS = List.of(30_000, 50_000, 70_000);
 
     @Mock
     private RecommendFacilitiesUseCase recommendFacilities;
@@ -45,7 +46,7 @@ class OrientationControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new OrientationController(
-                        recommendFacilities, new OrientationWebMapper(), DEFAULT_RADIUS_METERS))
+                        recommendFacilities, new OrientationWebMapper(), DEFAULT_RADIUS_METERS, WIDENING_STEPS))
                 .setControllerAdvice(new OrientationExceptionHandler())
                 .build();
     }
@@ -105,7 +106,7 @@ class OrientationControllerTest {
         final int rayonConfigure = 100_000;
         final MockMvc mvc = MockMvcBuilders
                 .standaloneSetup(new OrientationController(
-                        recommendFacilities, new OrientationWebMapper(), rayonConfigure))
+                        recommendFacilities, new OrientationWebMapper(), rayonConfigure, WIDENING_STEPS))
                 .setControllerAdvice(new OrientationExceptionHandler())
                 .build();
         given(recommendFacilities.recommend(any())).willReturn(List.of());
@@ -129,6 +130,29 @@ class OrientationControllerTest {
 
         verify(recommendFacilities).recommend(queryCaptor.capture());
         assertThat(queryCaptor.getValue().radiusMeters()).isEqualTo(3000);
+        // Un rayon IMPOSÉ par l'appelant est respecté tel quel : pas d'élargissement.
+        assertThat(queryCaptor.getValue().searchRadiiMeters()).containsExactly(3000);
+    }
+
+    @Test
+    void sans_rayon_demande_la_recherche_s_elargit_par_paliers_jusqu_a_70_km() throws Exception {
+        given(recommendFacilities.recommend(any())).willReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/orientation")
+                        .param("lat", "5.24").param("lon", "-3.90").param("service", "maternity"))
+                .andExpect(status().isOk());
+
+        verify(recommendFacilities).recommend(queryCaptor.capture());
+        assertThat(queryCaptor.getValue().searchRadiiMeters())
+                .containsExactly(DEFAULT_RADIUS_METERS, 30_000, 50_000, 70_000);
+    }
+
+    @Test
+    void refuse_de_demarrer_si_les_paliers_configures_ne_sont_pas_croissants() {
+        assertThatThrownBy(() -> new OrientationController(recommendFacilities,
+                        new OrientationWebMapper(), DEFAULT_RADIUS_METERS, List.of(50_000, 30_000)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("widening-radii-meters");
     }
 
     @Test
@@ -136,7 +160,8 @@ class OrientationControllerTest {
         // Une config serveur hors bornes doit échouer au DÉMARRAGE (fail-fast),
         // pas se transformer en 400 trompeur à la première requête sans rayon.
         assertThatThrownBy(() ->
-                        new OrientationController(recommendFacilities, new OrientationWebMapper(), 0))
+                        new OrientationController(
+                                recommendFacilities, new OrientationWebMapper(), 0, WIDENING_STEPS))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("default-radius-meters");
     }
@@ -145,7 +170,7 @@ class OrientationControllerTest {
     void refuse_de_demarrer_si_le_rayon_par_defaut_configure_depasse_le_maximum() {
         assertThatThrownBy(() -> new OrientationController(
                         recommendFacilities, new OrientationWebMapper(),
-                        OrientationQuery.MAX_RADIUS_METERS + 1))
+                        OrientationQuery.MAX_RADIUS_METERS + 1, WIDENING_STEPS))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("default-radius-meters");
     }
