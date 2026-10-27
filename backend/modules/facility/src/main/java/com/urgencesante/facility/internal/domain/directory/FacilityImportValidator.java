@@ -58,7 +58,13 @@ public final class FacilityImportValidator {
         if (record.phone() != null && !CI_PHONE.matcher(normalizePhone(record.phone())).matches()) {
             reasons.add("téléphone invalide : " + record.phone());
         }
-        if (record.services().isEmpty()) {
+        // Un centre de 1er niveau n'est jamais proposé pour une urgence (ADR-008) :
+        // ses services n'interviennent dans aucune orientation, ils restent
+        // facultatifs plutôt qu'inventés. Tout autre niveau doit en déclarer.
+        final boolean neverProposedForEmergency = record.parsedCareLevel()
+                .map(level -> !level.isEmergencyCapable())
+                .orElse(false);
+        if (record.services().isEmpty() && !neverProposedForEmergency) {
             reasons.add("au moins un service requis");
         }
         for (final String service : record.services()) {
