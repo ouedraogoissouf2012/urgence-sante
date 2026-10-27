@@ -35,11 +35,20 @@ public class OrientationController {
      */
     private final int defaultRadiusMeters;
 
+    /**
+     * Paliers d'élargissement (30, 50 puis 70 km par défaut) appliqués quand la
+     * requête n'impose pas de rayon et qu'aucun centre ne répond au besoin dans
+     * le rayon par défaut : {@code orientation.widening-radii-meters}.
+     */
+    private final List<Integer> wideningRadiiMeters;
+
     public OrientationController(
             RecommendFacilitiesUseCase recommendFacilities,
             OrientationWebMapper mapper,
             @Value("${orientation.default-radius-meters:" + DEFAULT_RADIUS_METERS + "}")
-                    int defaultRadiusMeters) {
+                    int defaultRadiusMeters,
+            @Value("${orientation.widening-radii-meters:30000,50000,70000}")
+                    List<Integer> wideningRadiiMeters) {
         // Échec RAPIDE au démarrage : une valeur de configuration hors bornes est
         // une faute serveur, pas une faute client. Sans ce contrôle, elle passerait
         // inaperçue jusqu'à la première requête sans rayon, qui renverrait alors un
@@ -51,6 +60,15 @@ public class OrientationController {
         this.recommendFacilities = recommendFacilities;
         this.mapper = mapper;
         this.defaultRadiusMeters = defaultRadiusMeters;
+        this.wideningRadiiMeters = List.copyOf(wideningRadiiMeters);
+        try {
+            // Même règle que la requête (croissants, bornés) : vérifiée au boot.
+            new OrientationQuery(0, 0, Set.of("verification"), defaultRadiusMeters, 1,
+                    this.wideningRadiiMeters);
+        } catch (RuntimeException invalid) {
+            throw new IllegalArgumentException(
+                    "orientation.widening-radii-meters invalide : " + invalid.getMessage(), invalid);
+        }
     }
 
     @GetMapping
@@ -71,10 +89,13 @@ public class OrientationController {
         if (service != null) {
             serviceCodes.add(service);
         }
+        // Rayon imposé par l'appelant : respecté tel quel. Sinon, rayon par
+        // défaut puis élargissement par paliers si rien ne répond au besoin.
         final OrientationQuery query = new OrientationQuery(
                 lat, lon, serviceCodes,
                 radiusMeters == null ? defaultRadiusMeters : radiusMeters,
-                limit == null ? DEFAULT_LIMIT : limit);
+                limit == null ? DEFAULT_LIMIT : limit,
+                radiusMeters == null ? wideningRadiiMeters : List.of());
         return recommendFacilities.recommend(query).stream().map(mapper::toResponse).toList();
     }
 }

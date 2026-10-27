@@ -1,6 +1,8 @@
 package com.urgencesante.orientation.internal.application.query;
 
 import com.urgencesante.orientation.internal.domain.exception.OrientationValidationException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -12,9 +14,22 @@ import java.util.Set;
  * candidat. Les maximums sont imposés CÔTÉ SERVEUR, indépendamment du client, et
  * alignés sur le contrat OpenAPI. {@code MAX_LIMIT} borne aussi le nombre
  * d'appels externes (un appel d'itinéraire par candidat retenu).
+ *
+ * <p>{@code wideningRadiiMeters} : paliers (strictement croissants) auxquels
+ * la recherche s'élargit quand AUCUN centre ne répond au besoin dans le rayon
+ * précédent — en urgence, un centre à 40 km vaut mieux qu'un écran vide. Vide =
+ * pas d'élargissement (rayon imposé par l'appelant). Les paliers qui ne
+ * dépassent pas {@code radiusMeters} sont ignorés.
  */
 public record OrientationQuery(
-        double latitude, double longitude, Set<String> serviceCodes, int radiusMeters, int limit) {
+        double latitude, double longitude, Set<String> serviceCodes, int radiusMeters, int limit,
+        List<Integer> wideningRadiiMeters) {
+
+    /** Requête à rayon unique, sans élargissement. */
+    public OrientationQuery(
+            double latitude, double longitude, Set<String> serviceCodes, int radiusMeters, int limit) {
+        this(latitude, longitude, serviceCodes, radiusMeters, limit, List.of());
+    }
 
     /** Rayon maximal de recherche (aligné sur le contrat). */
     public static final int MAX_RADIUS_METERS = 100_000;
@@ -62,5 +77,30 @@ public record OrientationQuery(
             throw new OrientationValidationException(
                     "La limite doit être dans [1, " + MAX_LIMIT + "]");
         }
+        wideningRadiiMeters = List.copyOf(Objects.requireNonNull(wideningRadiiMeters));
+        int previous = 0;
+        for (final int step : wideningRadiiMeters) {
+            if (step < 1 || step > MAX_RADIUS_METERS) {
+                throw new OrientationValidationException(
+                        "Palier d'élargissement hors de [1, " + MAX_RADIUS_METERS + "] mètres : " + step);
+            }
+            if (step <= previous) {
+                throw new OrientationValidationException(
+                        "Les paliers d'élargissement doivent être strictement croissants");
+            }
+            previous = step;
+        }
+    }
+
+    /** Rayons à essayer dans l'ordre : le rayon initial, puis les paliers plus larges. */
+    public List<Integer> searchRadiiMeters() {
+        final List<Integer> radii = new ArrayList<>();
+        radii.add(radiusMeters);
+        for (final int step : wideningRadiiMeters) {
+            if (step > radiusMeters) {
+                radii.add(step);
+            }
+        }
+        return List.copyOf(radii);
     }
 }

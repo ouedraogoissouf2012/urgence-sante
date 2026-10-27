@@ -128,6 +128,15 @@ springdoc:
     # Une seule spec (le contrat) : pas de sélecteur d'URL par défaut.
     disable-swagger-default-url: true
 
+# Orientation (commun à tous les profils) : recherche dans 15 km ; si AUCUN
+# centre ne répond au besoin, élargissement à 30, puis 50, puis 70 km — en
+# urgence, un centre éloigné vaut mieux qu'un écran vide. Un rayon imposé par
+# l'appelant (paramètre radiusMeters) n'est jamais élargi. Le profil local
+# surcharge le rayon initial (poste de test loin d'Abidjan).
+orientation:
+  default-radius-meters: ${ORIENTATION_DEFAULT_RADIUS_METERS:15000}
+  widening-radii-meters: ${ORIENTATION_WIDENING_RADII_METERS:30000,50000,70000}
+
 # ============================================================================
 # Profil LOCAL — développement sur le poste, et rien d'autre.
 #

@@ -101,6 +101,24 @@ class FacilityImportValidatorTest {
     }
 
     @Test
+    void un_centre_de_premier_niveau_peut_etre_importe_sans_service() {
+        // Jamais proposé pour une urgence : ses services n'interviennent dans
+        // aucune orientation — inutile (et faux) d'en inventer pour l'importer.
+        final var reasons = validator.validate(withCareLevel(
+                "PRIMARY", 5.35, -4.0, null, Set.of(), DataStatus.PROVISIONAL, null));
+
+        assertThat(reasons).isEmpty();
+    }
+
+    @Test
+    void un_centre_accueillant_les_urgences_exige_au_moins_un_service() {
+        final var reasons = validator.validate(withCareLevel(
+                "TERTIARY", 5.35, -4.0, null, Set.of(), DataStatus.PROVISIONAL, null));
+
+        assertThat(reasons).anyMatch(r -> r.contains("au moins un service"));
+    }
+
+    @Test
     void accepte_un_centre_de_premier_niveau() {
         // Le 1er niveau est une donnée valide de l'annuaire : il est importé,
         // c'est la recherche d'orientation qui l'écarte.

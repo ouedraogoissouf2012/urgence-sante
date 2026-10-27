@@ -7,6 +7,7 @@ import com.urgencesante.orientation.internal.application.port.out.AvailabilityLo
 import com.urgencesante.orientation.internal.application.port.out.CandidateFacilityPort;
 import com.urgencesante.orientation.internal.application.query.OrientationQuery;
 import com.urgencesante.orientation.internal.domain.exception.OrientationValidationException;
+import com.urgencesante.orientation.internal.domain.model.GeoDistance;
 import com.urgencesante.orientation.internal.domain.model.Recommendation;
 import com.urgencesante.orientation.internal.domain.strategy.AvailabilityStrategy;
 import com.urgencesante.orientation.internal.domain.strategy.ProximityStrategy;
@@ -36,16 +37,19 @@ class OrientationServiceTest {
     private boolean travelTimeAvailable = true;
     private int travelTimeCalls = 0;
     private int availabilityCalls = 0;
+    private final List<Integer> searchedRadii = new ArrayList<>();
 
     private final OrientationService service = new OrientationService(
             serviceCode -> !"unknown-service".equals(serviceCode),
-            // Faux port candidat : renvoie les `limit` plus proches (comme PostGIS),
-            // pour pouvoir tester la taille du vivier de candidats évalués.
-            (serviceCodes, lat, lon, radius, limit) -> candidates.stream()
+            // Faux port candidat : comme PostGIS, ne garde que les centres DANS le
+            // rayon puis renvoie les `limit` plus proches (vivier évalué) ; trace
+            // les rayons interrogés (élargissement par paliers).
+            (serviceCodes, lat, lon, radius, limit) -> searchedRadii.add(radius) ? candidates.stream()
+                    .filter(c -> GeoDistance.meters(lat, lon, c.latitude(), c.longitude()) <= radius)
                     .sorted(Comparator.comparingDouble(c ->
                             Math.pow(c.latitude() - lat, 2) + Math.pow(c.longitude() - lon, 2)))
                     .limit(limit)
-                    .toList(),
+                    .toList() : List.of(),
             // Faux port disponibilité : UN SEUL appel groupé (compté), quel que soit
             // le nombre d'établissements, qui renvoie les statuts des services
             // demandés pour chacun (par service, sinon niveau établissement).
@@ -244,5 +248,51 @@ class OrientationServiceTest {
         assertThat(result.get(0).facilityId())
                 .as("le centre disponible, hors des 5 plus proches, est recommandé en tête")
                 .isEqualTo(available);
+    }
+
+    // ── Élargissement : 15 km puis 30, 50, 70 km tant que rien ne répond ────
+
+    private static final OrientationQuery WIDENING = new OrientationQuery(
+            5.35, -4.00, Set.of("maternity"), 15_000, 5, List.of(30_000, 50_000, 70_000));
+
+    @Test
+    void sans_centre_dans_15_km_la_recherche_s_elargit_jusqu_au_premier_palier_utile() {
+        givenCandidate("À 40 km", 5.71, -4.00, null, null);
+
+        final List<Recommendation> result = service.recommend(WIDENING);
+
+        assertThat(result).extracting(Recommendation::name).containsExactly("À 40 km");
+        assertThat(searchedRadii).containsExactly(15_000, 30_000, 50_000);
+    }
+
+    @Test
+    void un_centre_proche_arrete_l_elargissement_des_le_premier_palier() {
+        givenCandidate("À 1 km", 5.36, -4.00, null, null);
+        givenCandidate("À 40 km", 5.71, -4.00, null, null);
+
+        assertThat(service.recommend(WIDENING)).extracting(Recommendation::name)
+                .containsExactly("À 1 km");
+        assertThat(searchedRadii).containsExactly(15_000);
+    }
+
+    @Test
+    void un_centre_proche_mais_ferme_ne_repond_pas_au_besoin_on_elargit() {
+        givenCandidate("Fermé à 1 km", 5.36, -4.00, "CLOSED", "FRESH");
+        givenCandidate("Disponible à 40 km", 5.71, -4.00, "AVAILABLE", "FRESH");
+
+        assertThat(service.recommend(WIDENING)).extracting(Recommendation::name)
+                .containsExactly("Disponible à 40 km");
+    }
+
+    @Test
+    void au_dela_de_70_km_aucun_centre_et_un_rayon_impose_n_est_pas_elargi() {
+        givenCandidate("À 90 km", 6.16, -4.00, null, null);
+
+        assertThat(service.recommend(WIDENING)).isEmpty();
+        assertThat(searchedRadii).containsExactly(15_000, 30_000, 50_000, 70_000);
+
+        searchedRadii.clear();
+        assertThat(service.recommend(QUERY)).isEmpty();
+        assertThat(searchedRadii).containsExactly(15_000);
     }
 }

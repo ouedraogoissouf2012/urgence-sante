@@ -352,6 +352,10 @@ paths:
         - name: radiusMeters
           in: query
           required: false
+          description: >-
+            Rayon de recherche imposé (respecté tel quel). Absent : 15 km, puis
+            élargissement automatique à 30, 50 et 70 km tant qu'AUCUN centre ne
+            répond au besoin — en urgence, un centre éloigné vaut mieux qu'aucun.
           schema:
             type: integer
             format: int32

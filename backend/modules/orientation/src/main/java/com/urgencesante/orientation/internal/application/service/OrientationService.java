@@ -71,6 +71,12 @@ public class OrientationService implements RecommendFacilitiesUseCase {
         this.strategies = List.copyOf(Objects.requireNonNull(strategies));
     }
 
+    /**
+     * Recommande les centres du rayon initial ; si AUCUN ne répond au besoin
+     * (aucun candidat, ou tous inéligibles — service fermé), la recherche
+     * s'élargit au palier suivant ({@link OrientationQuery#searchRadiiMeters()}),
+     * et s'arrête au premier palier qui donne au moins un centre.
+     */
     @Override
     public List<Recommendation> recommend(OrientationQuery query) {
         for (final String serviceCode : query.serviceCodes()) {
@@ -78,10 +84,20 @@ public class OrientationService implements RecommendFacilitiesUseCase {
                 throw new OrientationValidationException("Service médical inconnu : " + serviceCode);
             }
         }
+        for (final int radiusMeters : query.searchRadiiMeters()) {
+            final List<Recommendation> found = recommendWithin(query, radiusMeters);
+            if (!found.isEmpty()) {
+                return found;
+            }
+        }
+        return List.of();
+    }
+
+    private List<Recommendation> recommendWithin(OrientationQuery query, int radiusMeters) {
         final int poolSize = Math.min(query.limit() * CANDIDATE_POOL_FACTOR, MAX_CANDIDATE_POOL);
         final List<CandidateFacility> candidates = candidateFacilityPort.findCandidates(
                 query.serviceCodes(), query.latitude(), query.longitude(),
-                query.radiusMeters(), poolSize);
+                radiusMeters, poolSize);
         if (candidates.isEmpty()) {
             return List.of();
         }
