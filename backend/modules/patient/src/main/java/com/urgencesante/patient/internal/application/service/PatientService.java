@@ -73,7 +73,7 @@ public class PatientService
 
     @Override
     public PatientSession register(RegisterPatientCommand command) {
-        final PhoneNumber phone = PhoneNumber.of(command.phone());
+        final PhoneNumber phone = PhoneNumber.forNewAccount(command.phone());
         validatePassword(command.password());
 
         // Contrôle applicatif ; la contrainte d'unicité en base reste le dernier

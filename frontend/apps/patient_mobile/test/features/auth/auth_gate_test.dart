@@ -143,6 +143,26 @@ void main() {
   });
 
   testWidgets(
+      'capture terrain : « 225 0544210112 » sans + est envoyé en +2250544210112',
+      (tester) async {
+    final auth = FakeAuthRepository();
+    await tester.pumpWidget(
+        _app(session: SessionStoreProvider.empty(), auth: auth));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '225 0544210112');
+    await tester.enterText(find.byType(TextField).last, 'Enfant2Awa@');
+    final submit = find.widgetWithText(FilledButton, 'S\'inscrire');
+    await tester.scrollUntilVisible(submit, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(auth.lastPhone, '+2250544210112');
+    expect(find.text('Quelle est votre urgence ?'), findsOneWidget);
+  });
+
+  testWidgets(
       'mot de passe trop court (#139) : erreur affichée localement, aucun appel réseau',
       (tester) async {
     final auth = FakeAuthRepository();

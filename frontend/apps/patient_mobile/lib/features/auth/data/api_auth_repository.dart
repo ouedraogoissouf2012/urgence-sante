@@ -44,7 +44,8 @@ class ApiAuthRepository implements AuthRepository {
   AuthException _translate(int httpCode) {
     return switch (httpCode) {
       400 => const AuthException(AuthFailure.invalidInput,
-          'Vérifiez le numéro (format international) et le mot de passe (8 caractères minimum).'),
+          'Le serveur a refusé ce numéro ou ce mot de passe. Vérifiez le numéro choisi '
+              'et le mot de passe (8 caractères minimum).'),
       401 => const AuthException(AuthFailure.invalidCredentials,
           'Numéro de téléphone ou mot de passe incorrect.'),
       409 => const AuthException(AuthFailure.phoneAlreadyUsed,
