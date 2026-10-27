@@ -1,16 +1,20 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/international_phone.dart';
+import '../../domain/phone_country.dart';
 import '../auth_state.dart';
 import '../auth_view_model.dart';
+import 'phone_number_field.dart';
 
-/// Formulaire d'authentification partagé (inscription et connexion) : téléphone,
-/// mot de passe, bouton d'action, message d'erreur. Une validation locale
-/// (champs requis, mot de passe ≥ 8 caractères — même borne que le serveur)
-/// évite un aller-retour réseau inutile pour un formulaire manifestement
-/// invalide ; le reste de la logique est délégué au [AuthViewModel].
+/// Formulaire d'authentification partagé (inscription et connexion) : téléphone
+/// en deux champs (indicatif + numéro national), mot de passe, bouton
+/// d'action, message d'erreur. Une validation locale (numéro conforme au plan
+/// du pays, mot de passe ≥ 8 caractères — même borne que le serveur) évite un
+/// aller-retour réseau inutile ; le numéro envoyé est TOUJOURS le format
+/// international composé par le domaine, à l'inscription comme à la connexion
+/// — condition pour que la connexion retrouve le compte créé.
 class AuthForm extends ConsumerStatefulWidget {
   const AuthForm({
     required this.submitLabel,
@@ -35,6 +39,7 @@ class _AuthFormState extends ConsumerState<AuthForm> {
 
   final _phone = TextEditingController();
   final _password = TextEditingController();
+  PhoneCountry _country = PhoneCountries.defaultCountry;
 
   String? _phoneError;
   String? _passwordError;
@@ -58,6 +63,14 @@ class _AuthFormState extends ConsumerState<AuthForm> {
     _dismissSubmitError();
   }
 
+  /// Changer d'indicatif remet en forme les chiffres déjà saisis selon le
+  /// nouveau pays et efface l'erreur devenue obsolète.
+  void _changeCountry(PhoneCountry country) {
+    setState(() => _country = country);
+    _phone.text = formatNationalNumber(country, typedNationalDigits(country, _phone.text));
+    _clearPhoneError();
+  }
+
   void _clearPasswordError() {
     if (_passwordError != null) setState(() => _passwordError = null);
     _dismissSubmitError();
@@ -72,11 +85,10 @@ class _AuthFormState extends ConsumerState<AuthForm> {
   }
 
   void _submit(AuthViewModel vm) {
-    final String phone = _phone.text.trim();
+    final PhoneValidation phone = validateInternationalPhone(_country, _phone.text);
     final String password = _password.text;
 
-    final String? phoneError =
-        phone.isEmpty ? 'Le numéro de téléphone est requis.' : null;
+    final String? phoneError = phone.error;
     final String? passwordError = password.length < _minPasswordLength
         ? 'Le mot de passe doit contenir au moins $_minPasswordLength caractères.'
         : null;
@@ -89,7 +101,7 @@ class _AuthFormState extends ConsumerState<AuthForm> {
       return;
     }
 
-    widget.onSubmit(vm, phone, password);
+    widget.onSubmit(vm, phone.e164!, password);
   }
 
   @override
@@ -102,18 +114,13 @@ class _AuthFormState extends ConsumerState<AuthForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppTextField(
-            label: 'Téléphone',
-            hint: '+225 XX XX XX XX XX',
+          PhoneNumberField(
+            country: _country,
             controller: _phone,
+            onCountryChanged: _changeCountry,
             enabled: !busy,
             errorText: _phoneError,
-            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.telephoneNumber],
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s().\-]')),
-            ],
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(

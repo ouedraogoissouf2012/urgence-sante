@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../components/app_dropdown_field.dart';
 import '../components/app_text_field.dart';
 import '../components/async_state_view.dart';
 import '../components/emergency_call_button.dart';
@@ -77,6 +78,17 @@ abstract final class ComponentCatalog {
         label: 'Téléphone',
         errorText: 'Numéro invalide',
         controller: TextEditingController(),
+      ),
+    ),
+    CatalogEntry(
+      name: 'AppDropdownField — indicatif',
+      builder: (_) => AppDropdownField<String>(
+        label: 'Code',
+        value: '+225',
+        items: const ['+225', '+226'],
+        itemLabel: (code) => 'Indicatif $code',
+        selectedItemLabel: (code) => code,
+        onChanged: (_) {},
       ),
     ),
   ]);

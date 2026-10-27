@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../tokens/app_radius.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
+import 'app_input_decoration.dart';
 
 /// Champ de saisie du design system : étiquette, indice, message d'erreur, et
 /// prise en charge des mots de passe (masquage + bascule de visibilité).
@@ -50,7 +50,6 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -66,23 +65,10 @@ class _AppTextFieldState extends State<AppTextField> {
           autofillHints: widget.autofillHints,
           onSubmitted: widget.onSubmitted,
           style: AppTypography.body,
-          decoration: InputDecoration(
-            hintText: widget.hint,
+          decoration: appInputDecoration(
+            context,
+            hint: widget.hint,
             errorText: widget.errorText,
-            filled: true,
-            fillColor: scheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: AppRadius.card,
-              borderSide: BorderSide(color: scheme.outline),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: AppRadius.card,
-              borderSide: BorderSide(color: scheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: AppRadius.card,
-              borderSide: BorderSide(color: scheme.primary, width: 2),
-            ),
             suffixIcon: widget.obscure
                 ? IconButton(
                     tooltip: _hidden ? 'Afficher le mot de passe' : 'Masquer le mot de passe',

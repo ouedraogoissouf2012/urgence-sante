@@ -110,6 +110,9 @@ class PatientServiceTest {
         assertThatThrownBy(() ->
                 service.register(new RegisterPatientCommand("0102030405", "Secret123")))
                 .isInstanceOf(PatientValidationException.class);
+        assertThatThrownBy(() -> // hors plan ivoirien 2021 (9 chiffres)
+                service.register(new RegisterPatientCommand("+225544210112", "Secret123")))
+                .isInstanceOf(PatientValidationException.class);
     }
 
     // ── Connexion ───────────────────────────────────────────────────────────
@@ -156,7 +159,9 @@ class PatientServiceTest {
         // BCrypt (coûteuse) n'a lieu QUE pour un compte existant, la latence
         // de la réponse révèle à elle seule si un numéro est enregistré,
         // même avec un message d'erreur unique. La comparaison doit donc
-        // avoir lieu à CHAQUE tentative, compte existant ou non.
+        // avoir lieu à CHAQUE tentative, compte existant ou non. Le numéro est
+        // volontairement HORS plan ivoirien : la connexion ne doit pas le
+        // rejeter plus tôt (et plus vite) que la comparaison.
         assertThatThrownBy(() ->
                 service.login(new LoginCommand("+2250909090909", "PeuImporte1")))
                 .isInstanceOf(InvalidCredentialsException.class);
